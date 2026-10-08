@@ -63,7 +63,7 @@ build_openbangla() {
 
         mkdir -p "$build_dir" "$stage_dir"
 
-        cmake -S "$source_dir" -B "$build_dir"             -GNinja             -DCMAKE_BUILD_TYPE=Release             -DCMAKE_INSTALL_PREFIX="$HOME/.local"             -DCMAKE_INSTALL_RPATH=\$ORIGIN/../lib/openbangla             -DENABLE_IBUS="$ibus"             -DENABLE_FCITX="$fcitx"             -DENABLE_BOTH=OFF
+        cmake -S "$source_dir" -B "$build_dir"             -GNinja             -DCMAKE_BUILD_TYPE=Release             -DCMAKE_INSTALL_PREFIX="$HOME/.local"             -DCMAKE_INSTALL_RPATH=\$ORIGIN/../lib/openbangla             -DENABLE_IBUS="$ibus"             -DENABLE_FCITX="$fcitx"             -DENABLE_BOTH=OFF             -DCMAKE_EXE_LINKER_FLAGS=-Wl,--disable-new-dtags             -DCMAKE_SHARED_LINKER_FLAGS=-Wl,--disable-new-dtags
 
         cmake --build "$build_dir" --parallel "$OBK_JOBS"
 
