@@ -54,7 +54,9 @@ select_builder() {
     OBK_CLEANUP_BUILDER_ON_SUCCESS=0
     OBK_BUILDER_CREATED=0
 
-    if command -v toolbox >/dev/null 2>&1; then
+    if [[ "${OPENBANGLA_BUILD_USE_HOST:-0}" == 1 ]]; then
+        OBK_BUILDER=host
+    elif command -v toolbox >/dev/null 2>&1; then
         OBK_BUILDER=toolbox
     elif command -v distrobox >/dev/null 2>&1; then
         OBK_BUILDER=distrobox
@@ -83,6 +85,9 @@ builder_exists() {
             ;;
         docker)
             return 1
+            ;;
+        host)
+            return 0
             ;;
         *)
             return 1
@@ -174,6 +179,9 @@ run_builder() {
     printf -v env_prefix         'export OBK_WORKSPACE=%q OBK_BUILD=%q OBK_STAGE=%q OBK_CACHE=%q OBK_BACKEND=%q OBK_JOBS=%q; '         "$OBK_WORKSPACE" "$OBK_BUILD" "$OBK_STAGE" "$OBK_CACHE" "$OBK_BACKEND" "$OBK_JOBS"
 
     case "$OBK_BUILDER" in
+        host)
+            bash -lc "$env_prefix$command"
+            ;;
         toolbox)
             toolbox run --container openbangla-builder bash -lc "$env_prefix$command"
             ;;
