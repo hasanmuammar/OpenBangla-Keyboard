@@ -29,7 +29,7 @@ prepare_paths() {
     OBK_CACHE="$cache_home/openbangla-keyboard"
     OBK_BUILD="$OBK_CACHE/build"
     OBK_STAGE="$OBK_CACHE/stage"
-    OBK_WORKSPACE="$(cd -- "$SCRIPT_DIR/../.." && pwd)"
+    OBK_WORKSPACE="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 
     export OBK_PREFIX OBK_CACHE OBK_BUILD OBK_STAGE OBK_WORKSPACE
 
