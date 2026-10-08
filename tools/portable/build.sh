@@ -99,41 +99,10 @@ build_openbangla() {
         done
         cp -a "$qt_plugin_dir/platforms" "$runtime_plugin_dir/"
 
-        # Bundle non-host ABI runtime dependencies of the GUI and Qt platform plugin.
-        # Use the builder's dynamic linker to resolve each dependency. The host
-        # distribution is deliberately not inspected or assumed.
-        while :; do
-            missing=0
-            for library in \
-                "$stage_dir$HOME/.local/bin/openbangla-gui" \
-                "$stage_dir$HOME/.local/libexec/ibus-engine-openbangla" \
-                "$runtime_lib_dir"/*.so* \
-                "$runtime_plugin_dir"/platforms/*.so*; do
-                [[ -f "$library" ]] || continue
-
-                while IFS= read -r dependency_line; do
-                    dependency="${dependency_line##*=> }"
-                    [[ "$dependency" == /* ]] || continue
-                    dependency="${dependency%% *}"
-                    [[ -f "$dependency" ]] || continue
-
-                    dependency_name="${dependency##*/}"
-                    case "$dependency_name" in
-                        libc.so*|libm.so*|libpthread.so*|libdl.so*|librt.so*|libresolv.so*|libcrypt.so*|libutil.so*|libanl.so*|libnss_*.so*|libgcc_s.so*|libstdc++.so*|ld-linux*.so*|ld-musl-*.so*|libGL.so*|libEGL.so*|libGLX.so*|libX11.so*|libX11-xcb.so*|libxcb*.so*|libXau.so*|libXdmcp.so*|libXext.so*|libXfixes.so*|libXi.so*|libXrender.so*|libXrandr.so*|libXcursor.so*|libXdamage.so*|libXcomposite.so*|libwayland*.so*|libdecor*.so*|libdrm.so*|libinput.so*|libudev.so*|libfontconfig.so*|libfreetype.so*|libexpat.so*|libdbus-1.so*)
-                            continue
-                            ;;
-                    esac
-
-                    target="$runtime_lib_dir/$dependency_name"
-                    if [[ ! -e "$target" ]]; then
-                        cp -a "$dependency" "$target"
-                        missing=1
-                    fi
-                done < <(ldd "$library" 2>/dev/null)
-            done
-
-            [[ "$missing" -eq 0 ]] && break
-        done
+        "$source_dir/tools/portable/bundle-runtime.sh" \
+            "$runtime_lib_dir" \
+            "$runtime_plugin_dir" \
+            "$stage_dir"
 
         cat > "$stage_dir$HOME/.local/bin/qt.conf" <<EOF
 [Paths]
