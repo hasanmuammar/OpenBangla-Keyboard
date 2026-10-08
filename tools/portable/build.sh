@@ -100,10 +100,10 @@ build_openbangla() {
         cp -a "$qt_plugin_dir/platforms" "$runtime_plugin_dir/"
 
         # Bundle non-host ABI runtime dependencies of the GUI and Qt platform plugin.
-        # Repeat until no new application-owned shared libraries are discovered.
-        changed=1
-        while [[ "$changed" -eq 1 ]]; do
-            changed=0
+        # Use the builder's dynamic linker to resolve each dependency. The host
+        # distribution is deliberately not inspected or assumed.
+        while :; do
+            missing=0
             for library in \
                 "$stage_dir$HOME/.local/bin/openbangla-gui" \
                 "$stage_dir$HOME/.local/libexec/ibus-engine-openbangla" \
@@ -113,7 +113,7 @@ build_openbangla() {
 
                 while IFS= read -r dependency_line; do
                     dependency="${dependency_line##*=> }"
-                    [[ "$dependency" == /* ]] || dependency="${dependency_line%% *}"
+                    [[ "$dependency" == /* ]] || continue
                     dependency="${dependency%% *}"
                     [[ -f "$dependency" ]] || continue
 
@@ -124,16 +124,15 @@ build_openbangla() {
                             ;;
                     esac
 
-                    dependency_real="$(readlink -f "$dependency")"
-                    [[ -f "$dependency_real" ]] || continue
                     target="$runtime_lib_dir/$dependency_name"
-
                     if [[ ! -e "$target" ]]; then
-                        cp -a "$dependency_real" "$target"
-                        changed=1
+                        cp -a "$dependency" "$target"
+                        missing=1
                     fi
-                done < <(ldd "$library")
+                done < <(ldd "$library" 2>/dev/null)
             done
+
+            [[ "$missing" -eq 0 ]] && break
         done
 
         cat > "$stage_dir$HOME/.local/bin/qt.conf" <<EOF
