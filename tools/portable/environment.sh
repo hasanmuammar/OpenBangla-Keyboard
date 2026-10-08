@@ -50,6 +50,10 @@ bootstrap_podman() {
     log "Podman is now available."
 }
 select_builder() {
+    OBK_NEEDS_PODMAN_BOOTSTRAP=0
+    OBK_CLEANUP_BUILDER_ON_SUCCESS=0
+    OBK_BUILDER_CREATED=0
+
     if command -v toolbox >/dev/null 2>&1; then
         OBK_BUILDER=toolbox
     elif command -v distrobox >/dev/null 2>&1; then
@@ -63,7 +67,7 @@ select_builder() {
         OBK_NEEDS_PODMAN_BOOTSTRAP=1
     fi
 
-    export OBK_BUILDER OBK_NEEDS_PODMAN_BOOTSTRAP
+    export OBK_BUILDER OBK_NEEDS_PODMAN_BOOTSTRAP OBK_CLEANUP_BUILDER_ON_SUCCESS OBK_BUILDER_CREATED
 }
 
 builder_exists() {
@@ -89,7 +93,7 @@ builder_exists() {
 confirm_temporary_build() {
     local answer
 
-    if [[ "$OBK_BUILDER" == docker ]] || ! builder_exists; then
+    if [[ "$OBK_BUILDER" != docker ]] && ! builder_exists; then
         printf '\n'
         printf '%s\n' "OpenBangla needs some extra files to build the program."
         printf '%s\n' "This may temporarily use about 1 GB or more of disk space."
