@@ -93,7 +93,7 @@ builder_exists() {
 confirm_temporary_build() {
     local answer
 
-    if [[ "$OBK_BUILDER" != docker ]] && ! builder_exists; then
+    if [[ "$OBK_BUILDER" == docker ]] || ! builder_exists; then
         printf '\n'
         printf '%s\n' "OpenBangla needs some extra files to build the program."
         printf '%s\n' "This may temporarily use about 1 GB or more of disk space."
