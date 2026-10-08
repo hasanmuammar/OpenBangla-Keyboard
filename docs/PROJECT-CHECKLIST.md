@@ -4,7 +4,7 @@
 
 Last verified: 2026-10-09  
 Branch: `develop`  
-Current commit: `1c7d84065e45ead9b5d5b70c94adb2e5d534f567`
+Current commit: `e98628b9cde44710d87d54ed58fc4636f8b785f5`
 
 This checklist separates what is implemented, what is verified, what is configured but not yet exercised end-to-end, and what remains before the first public prebuilt release.
 
