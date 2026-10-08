@@ -1,6 +1,6 @@
-= ওপেনবাংলা কিবোর্ড — পরীক্ষামূলক Linux Fork
+= ওপেনবাংলা কিবোর্ড — Linux-এর জন্য Bangla Keyboard | IBus ও Fcitx5
 
-ওপেনবাংলা কিবোর্ড একটি Unicode-সমর্থিত বাংলা ইনপুট মেথড, যেখানে ফোনেটিক ও ফিক্সড কিবোর্ড লেআউট, টাইপিং অটোমেশন, ডিকশনারি এবং অটোকরেক্ট সুবিধা রয়েছে।
+ওপেনবাংলা কিবোর্ড একটি open-source, Unicode-সমর্থিত **Bangla (Bengali) keyboard ও input method for Linux**, যেখানে ফোনেটিক ও ফিক্সড কিবোর্ড লেআউট, টাইপিং অটোমেশন, ডিকশনারি এবং অটোকরেক্ট সুবিধা রয়েছে।
 
 এই repository-টি OpenBangla Keyboard-এর একটি পরীক্ষামূলক Linux-focused fork। এই fork-এর মূল কাজ হলো portable এবং user-local build ও installation workflow তৈরি করা, যাতে সাধারণ Linux-এর পাশাপাশি immutable বা image-based Linux-এও host system-এ system-wide package install না করেই এটি ব্যবহার করা যায়।
 
@@ -14,7 +14,7 @@ Portable installer এবং integration-এর কিছু অংশ AI-genera
 == এই fork-এর বৈশিষ্ট্য
 
 * Linux-only CMake build।
-* KDE/Plasma হলে Fcitx5 এবং অন্যান্য desktop environment-এ IBus নির্বাচন।
+* KDE Plasma-তে Fcitx5 এবং অন্যান্য desktop environment-এ IBus নির্বাচন।
 * বর্তমান user-এর জন্য `~/.local`-এ installation।
 * Toolbox, Distrobox, Podman বা Docker-এর isolated build environment।
 * XDG cache directory-তে persistent build ও staging cache।
