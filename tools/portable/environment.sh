@@ -31,7 +31,7 @@ ensure_builder() {
     case "$OBK_BUILDER" in
         toolbox)
             if ! toolbox list 2>/dev/null | grep -q 'openbangla-builder'; then
-                toolbox create --container openbangla-builder --image fedora:latest
+                toolbox create --container openbangla-builder
             fi
             ;;
         distrobox)
