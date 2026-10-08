@@ -54,8 +54,6 @@ enqueue() {
     queue+=("$library")
 }
 
-bundle_libproxy_backend
-
 enqueue "$stage_dir$HOME/.local/bin/openbangla-gui"
 enqueue "$stage_dir$HOME/.local/libexec/ibus-engine-openbangla"
 for library in "$runtime_lib_dir"/*.so* "$runtime_plugin_dir"/platforms/*.so*; do
