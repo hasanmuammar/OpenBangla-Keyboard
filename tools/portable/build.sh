@@ -100,15 +100,18 @@ build_openbangla() {
         cp -a "$qt_plugin_dir/platforms" "$runtime_plugin_dir/"
 
         # Bundle Qt libraries required by the Qt runtime.
+        qt_real_lib_dir="$(readlink -f "$qt_lib_dir")"
         for library in "$runtime_lib_dir"/*.so* "$runtime_plugin_dir"/platforms/*.so*; do
             [[ -f "$library" ]] || continue
             while IFS= read -r dependency_line; do
                 dependency="${dependency_line##*=> }"
                 [[ "$dependency" == /* ]] || dependency="${dependency_line%% *}"
+                dependency="${dependency%% *}"
                 [[ -f "$dependency" ]] || continue
-                case "$dependency" in
-                    "$qt_lib_dir"/*)
-                        cp -a "$dependency" "$runtime_lib_dir/"
+                dependency_real="$(readlink -f "$dependency")"
+                case "$dependency_real" in
+                    "$qt_real_lib_dir"/*)
+                        cp -a "$dependency_real" "$runtime_lib_dir/"
                         ;;
                 esac
             done < <(ldd "$library")
