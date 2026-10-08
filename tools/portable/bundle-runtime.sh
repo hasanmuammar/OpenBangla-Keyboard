@@ -4,6 +4,7 @@ set -Eeuo pipefail
 runtime_lib_dir="$1"
 runtime_plugin_dir="$2"
 stage_dir="$3"
+qt_lib_dir="$4"
 
 host_library() {
     case "$1" in
@@ -52,5 +53,5 @@ while ((${#queue[@]})); do
         fi
 
         enqueue "$target"
-    done < <(ldd "$library" 2>/dev/null)
+    done < <(LD_LIBRARY_PATH="$runtime_lib_dir:$qt_lib_dir${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" ldd "$library" 2>/dev/null)
 done
