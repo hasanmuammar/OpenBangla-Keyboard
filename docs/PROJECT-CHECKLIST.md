@@ -110,7 +110,7 @@ This checklist separates what is implemented, what is verified, what is configur
 - [ ] First public release has not yet been deployed.
 
 Current repository facts:
-- `version.txt` is `3.0.0-alpha.1`.
+- `version.txt` is `shanti-alpha.1`.
 - Existing inherited repository tags are unrelated upstream history; fork releases use their own alpha tags.
 - There are currently no published Releases in the fork.
 
