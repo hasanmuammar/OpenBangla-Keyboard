@@ -24,14 +24,13 @@ package_openbangla() {
                 ;;
         esac
 
-        artifact_name="openbangla-keyboard_${version}_linux_${artifact_arch}_${OBK_BACKEND}.tar.zst"
+        artifact_name="openbangla-keyboard_linux_${artifact_arch}_${OBK_BACKEND}.tar.gz"
         output_dir="$OBK_WORKSPACE/dist"
 
         rm -rf "$output_dir"
         mkdir -p "$output_dir"
 
-        tar -C "$install_root" -cf - . |
-            zstd -T0 -19 -o "$output_dir/$artifact_name"
+        tar -C "$install_root" -czf "$output_dir/$artifact_name" .
 
         (
             cd "$output_dir"
