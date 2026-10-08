@@ -116,27 +116,11 @@ This project uses or integrates with several established open-source projects. T
 
 [cols="1,1,1,1", options="header"]
 |===
-|Build environments |Input methods |Core build/runtime |Project origin
-
-|https://github.com/containers/toolbox[image:https://img.shields.io/badge/Toolbx-Container%20development-444444?logo=linux&logoColor=white[Toolbx]]
-|https://github.com/ibus/ibus[image:https://img.shields.io/badge/IBus-Linux%20input%20method-5A5A5A?logo=linux&logoColor=white[IBus]]
-|https://github.com/qt/qtbase[image:https://img.shields.io/badge/Qt5-Qt%20Widgets-41CD52?logo=qt&logoColor=white[Qt5]]
-|https://github.com/OpenBangla/OpenBangla-Keyboard[image:https://img.shields.io/badge/OpenBangla-Upstream-555555?logo=github&logoColor=white[OpenBangla upstream]]
-
-|https://github.com/89luca89/distrobox[image:https://img.shields.io/badge/Distrobox-Containers-555555?logo=linux&logoColor=white[Distrobox]]
-|https://github.com/fcitx/fcitx5[image:https://img.shields.io/badge/Fcitx5-KDE%20Plasma-555555?logo=linux&logoColor=white[Fcitx5]]
-|https://github.com/Kitware/CMake[image:https://img.shields.io/badge/CMake-Build%20system-064F8C?logo=cmake&logoColor=white[CMake]]
-|https://github.com/corrosion-rs/corrosion[image:https://img.shields.io/badge/Corrosion-Rust%20%2B%20CMake-555555?logo=rust&logoColor=white[Corrosion]]
-
-|https://github.com/containers/podman[image:https://img.shields.io/badge/Podman-Containers-892CA0?logo=podman&logoColor=white[Podman]]
-| |
-|https://github.com/facebook/zstd[image:https://img.shields.io/badge/Zstandard-zstd-555555?logo=github&logoColor=white[Zstandard]]
-| |
-
-|https://github.com/moby/moby[image:https://img.shields.io/badge/Docker-Containers-2496ED?logo=docker&logoColor=white[Docker]]
-| |
-|https://github.com/ninja-build/ninja[image:https://img.shields.io/badge/Ninja-Build-555555?logo=ninja&logoColor=white[Ninja]]
-| |
+|Build environments |Input methods |Core build/runtime |Upstream / dependencies
+|https://github.com/containers/toolbox[image:https://img.shields.io/badge/Toolbx-Container%20development-444444?logo=linux&logoColor=white[Toolbx]] |https://github.com/ibus/ibus[image:https://img.shields.io/badge/IBus-Linux%20input%20method-5A5A5A?logo=linux&logoColor=white[IBus]] |https://github.com/qt/qtbase[image:https://img.shields.io/badge/Qt5-Qt%20Widgets-41CD52?logo=qt&logoColor=white[Qt5]] |https://github.com/OpenBangla/OpenBangla-Keyboard[image:https://img.shields.io/badge/OpenBangla-Upstream-555555?logo=github&logoColor=white[OpenBangla upstream]]
+|https://github.com/89luca89/distrobox[image:https://img.shields.io/badge/Distrobox-Containers-555555?logo=linux&logoColor=white[Distrobox]] |https://github.com/fcitx/fcitx5[image:https://img.shields.io/badge/Fcitx5-KDE%20Plasma-555555?logo=linux&logoColor=white[Fcitx5]] |https://github.com/Kitware/CMake[image:https://img.shields.io/badge/CMake-Build%20system-064F8C?logo=cmake&logoColor=white[CMake]] |https://github.com/corrosion-rs/corrosion[image:https://img.shields.io/badge/Corrosion-Rust%20%2B%20CMake-555555?logo=rust&logoColor=white[Corrosion]]
+|https://github.com/containers/podman[image:https://img.shields.io/badge/Podman-Containers-892CA0?logo=podman&logoColor=white[Podman]] |— |https://github.com/facebook/zstd[image:https://img.shields.io/badge/Zstandard-zstd-555555?logo=github&logoColor=white[Zstandard]] |—
+|https://github.com/moby/moby[image:https://img.shields.io/badge/Docker-Containers-2496ED?logo=docker&logoColor=white[Docker]] |— |https://github.com/ninja-build/ninja[image:https://img.shields.io/badge/Ninja-Build-555555?logo=github&logoColor=white[Ninja]] |—
 |===
 
 These projects are dependencies or integrations; they are not part of the OpenBangla Keyboard project itself.
