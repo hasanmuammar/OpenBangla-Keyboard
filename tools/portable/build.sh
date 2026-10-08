@@ -100,48 +100,40 @@ build_openbangla() {
         cp -a "$qt_plugin_dir/platforms" "$runtime_plugin_dir/"
 
         # Bundle non-host ABI runtime dependencies of the GUI and Qt platform plugin.
-        # Do not assume the builder or host distribution. Keep glibc and the
-        # display/input stack provided by the host, but carry other shared
-        # libraries needed by the application.
-        runtime_roots=(
-            "$stage_dir$HOME/.local/bin/openbangla-gui"
-            "$stage_dir$HOME/.local/libexec/ibus-engine-openbangla"
-            "$runtime_plugin_dir"/platforms/*.so*
-        )
-        pending=("${runtime_roots[@]}")
-        declare -A bundled=()
+        # Repeat until no new application-owned shared libraries are discovered.
+        changed=1
+        while [[ "$changed" -eq 1 ]]; do
+            changed=0
+            for library in \
+                "$stage_dir$HOME/.local/bin/openbangla-gui" \
+                "$stage_dir$HOME/.local/libexec/ibus-engine-openbangla" \
+                "$runtime_lib_dir"/*.so* \
+                "$runtime_plugin_dir"/platforms/*.so*; do
+                [[ -f "$library" ]] || continue
 
-        while (\${#pending[@]}); do
-            library="${pending[0]}"
-            pending=("${pending[@]:1}")
-            [[ -f "$library" ]] || continue
+                while IFS= read -r dependency_line; do
+                    dependency="${dependency_line##*=> }"
+                    [[ "$dependency" == /* ]] || dependency="${dependency_line%% *}"
+                    dependency="${dependency%% *}"
+                    [[ -f "$dependency" ]] || continue
 
-            real_library="$(readlink -f "$library")"
-            [[ -n "$real_library" ]] || continue
-            [[ "${bundled[$real_library]:-}" == 1 ]] && continue
-            bundled["$real_library"]=1
+                    dependency_name="${dependency##*/}"
+                    case "$dependency_name" in
+                        libc.so*|libm.so*|libpthread.so*|libdl.so*|librt.so*|libresolv.so*|libcrypt.so*|libutil.so*|libanl.so*|libnss_*.so*|libgcc_s.so*|libstdc++.so*|ld-linux*.so*|ld-musl-*.so*|libGL.so*|libEGL.so*|libGLX.so*|libX11.so*|libX11-xcb.so*|libxcb*.so*|libXau.so*|libXdmcp.so*|libXext.so*|libXfixes.so*|libXi.so*|libXrender.so*|libXrandr.so*|libXcursor.so*|libXdamage.so*|libXcomposite.so*|libwayland*.so*|libdecor*.so*|libdrm.so*|libinput.so*|libudev.so*|libfontconfig.so*|libfreetype.so*|libexpat.so*|libdbus-1.so*)
+                            continue
+                            ;;
+                    esac
 
-            while IFS= read -r dependency_line; do
-                dependency="${dependency_line##*=> }"
-                [[ "$dependency" == /* ]] || dependency="${dependency_line%% *}"
-                dependency="${dependency%% *}"
-                [[ -f "$dependency" ]] || continue
+                    dependency_real="$(readlink -f "$dependency")"
+                    [[ -f "$dependency_real" ]] || continue
+                    target="$runtime_lib_dir/$dependency_name"
 
-                dependency_name="${dependency##*/}"
-                case "$dependency_name" in
-                    libc.so*|libm.so*|libpthread.so*|libdl.so*|librt.so*|libresolv.so*|libcrypt.so*|libutil.so*|libanl.so*|libnss_*.so*|libgcc_s.so*|libstdc++.so*|ld-linux*.so*|ld-musl-*.so*|libGL.so*|libEGL.so*|libGLX.so*|libX11.so*|libX11-xcb.so*|libxcb*.so*|libXau.so*|libXdmcp.so*|libXext.so*|libXfixes.so*|libXi.so*|libXrender.so*|libXrandr.so*|libXcursor.so*|libXdamage.so*|libXcomposite.so*|libwayland*.so*|libdecor*.so*|libdrm.so*|libinput.so*|libudev.so*|libfontconfig.so*|libfreetype.so*|libexpat.so*|libdbus-1.so*)
-                        continue
-                        ;;
-                esac
-
-                dependency_real="$(readlink -f "$dependency")"
-                [[ -f "$dependency_real" ]] || continue
-                target="$runtime_lib_dir/$dependency_name"
-                if [[ ! -e "$target" ]]; then
-                    cp -a "$dependency_real" "$target"
-                    pending+=("$target")
-                fi
-            done < <(ldd "$real_library")
+                    if [[ ! -e "$target" ]]; then
+                        cp -a "$dependency_real" "$target"
+                        changed=1
+                    fi
+                done < <(ldd "$library")
+            done
         done
 
         cat > "$stage_dir$HOME/.local/bin/qt.conf" <<EOF
