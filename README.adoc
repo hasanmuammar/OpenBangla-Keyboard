@@ -104,7 +104,7 @@ When you run `tools/install.sh`, it:
 . Installs the staged files into the current user's `~/.local` directory.
 . Performs basic verification of the user-local installation.
 
-The reason for this design is to make OpenBangla easier to build on different GNU/Linux systems without requiring system-wide packages or root access for the OpenBangla installation itself. This is particularly useful on immutable or image-based systems, but the workflow is **not specific to Dakota, Fedora, or any other single distribution**.
+The goal of this design is to make OpenBangla easier to build and install on GNU/Linux systems without requiring system-wide OpenBangla installation or host-level modification of the package database. Build dependencies are kept separate from the host system, while the resulting application is installed for the current user.
 
 The build dependencies are isolated in an available development environment. The host system is not modified with OpenBangla build packages or system-wide OpenBangla files.
 
@@ -205,11 +205,11 @@ This fork separates those concerns:
 * The resulting application is installed into the user's home directory.
 * The host package database is not used to install OpenBangla build dependencies.
 
-This is a build strategy, not a containerised runtime requirement. OpenBangla itself runs normally as a user-local Linux application after installation.
+The build environment is used only for compiling the software. OpenBangla itself is installed and run as a normal user-local Linux application after the build is complete.
 
 == Custom Build Guide
 
-The automated `tools/install.sh` workflow is intended to be the normal path. A custom build is useful when developing OpenBangla, testing a different backend, changing the install prefix, inspecting CMake configuration, or controlling the build steps manually.
+The automated `tools/install.sh` workflow provides the simplest way to build and install the fork. A custom build is useful for development, testing, changing the backend or installation prefix, inspecting the CMake configuration, or controlling individual build steps manually.
 
 The important distinction is that a **custom build still uses the OpenBangla CMake build system**. The fork's installer is an orchestration layer around that build system; it does not replace CMake.
 
@@ -366,7 +366,7 @@ If `XDG_CACHE_HOME` is not set:
 rm -rf "$HOME/.cache/openbangla-keyboard/build"
 ----
 
-The fork is experimental, so the build workflow and directory layout may change as development continues.
+This fork is experimental, so its build workflow and directory layout may change as development continues.
 
 == Acknowledgements
  * Mehdi Hasan Khan, for originally developing and maintaining Avro Keyboard.
