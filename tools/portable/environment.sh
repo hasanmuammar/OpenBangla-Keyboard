@@ -44,21 +44,24 @@ ensure_builder() {
 
 run_builder() {
     local command="$1"
+    local env_prefix
 
     ensure_builder
 
+    printf -v env_prefix         'export OBK_WORKSPACE=%q OBK_BUILD=%q OBK_STAGE=%q OBK_CACHE=%q OBK_BACKEND=%q OBK_JOBS=%q; '         "$OBK_WORKSPACE" "$OBK_BUILD" "$OBK_STAGE" "$OBK_CACHE" "$OBK_BACKEND" "$OBK_JOBS"
+
     case "$OBK_BUILDER" in
         toolbox)
-            toolbox run --container openbangla-builder bash -lc "$command"
+            toolbox run --container openbangla-builder bash -lc "$env_prefix$command"
             ;;
         distrobox)
-            distrobox enter --name openbangla-builder -- bash -lc "$command"
+            distrobox enter --name openbangla-builder -- bash -lc "$env_prefix$command"
             ;;
         podman)
-            podman run --rm --userns=keep-id                 -v "$OBK_WORKSPACE:/workspace:rw"                 -v "$HOME:$HOME:rw"                 -v "$OBK_CACHE:/cache:rw"                 -v "$OBK_STAGE:/stage:rw"                 -e HOME="$HOME"                 -e OBK_BACKEND="$OBK_BACKEND"                 -e OBK_JOBS="$OBK_JOBS"                 ubuntu:24.04 bash -lc "$command"
+            podman run --rm --userns=keep-id                 -v "$OBK_WORKSPACE:/workspace:rw"                 -v "$HOME:$HOME:rw"                 -v "$OBK_CACHE:/cache:rw"                 -v "$OBK_STAGE:/stage:rw"                 -e HOME="$HOME"                 -e OBK_WORKSPACE="$OBK_WORKSPACE"                 -e OBK_BUILD="$OBK_BUILD"                 -e OBK_STAGE="$OBK_STAGE"                 -e OBK_CACHE="$OBK_CACHE"                 -e OBK_BACKEND="$OBK_BACKEND"                 -e OBK_JOBS="$OBK_JOBS"                 ubuntu:24.04 bash -lc "$command"
             ;;
         docker)
-            docker run --rm --user "$(id -u):$(id -g)"                 -v "$OBK_WORKSPACE:/workspace:rw"                 -v "$HOME:$HOME:rw"                 -v "$OBK_CACHE:/cache:rw"                 -v "$OBK_STAGE:/stage:rw"                 -e HOME="$HOME"                 -e OBK_BACKEND="$OBK_BACKEND"                 -e OBK_JOBS="$OBK_JOBS"                 ubuntu:24.04 bash -lc "$command"
+            docker run --rm --user "$(id -u):$(id -g)"                 -v "$OBK_WORKSPACE:/workspace:rw"                 -v "$HOME:$HOME:rw"                 -v "$OBK_CACHE:/cache:rw"                 -v "$OBK_STAGE:/stage:rw"                 -e HOME="$HOME"                 -e OBK_WORKSPACE="$OBK_WORKSPACE"                 -e OBK_BUILD="$OBK_BUILD"                 -e OBK_STAGE="$OBK_STAGE"                 -e OBK_CACHE="$OBK_CACHE"                 -e OBK_BACKEND="$OBK_BACKEND"                 -e OBK_JOBS="$OBK_JOBS"                 ubuntu:24.04 bash -lc "$command"
             ;;
         *)
             die "Unknown build environment: $OBK_BUILDER"
