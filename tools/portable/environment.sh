@@ -53,40 +53,31 @@ run_host_root() {
 }
 
 bootstrap_podman() {
-    local distro
-    distro="$(detect_host_distro)"
-
-    log "No isolated build environment found. Installing Podman automatically."
-
-    case "$distro" in
-        debian)
-            log "Detected Debian/Ubuntu-based host."
-            run_host_root apt-get update
-            run_host_root env DEBIAN_FRONTEND=noninteractive apt-get install -y podman
-            ;;
-        fedora)
-            log "Detected Fedora/RHEL-based host."
-            run_host_root dnf install -y podman
-            ;;
-        arch)
-            log "Detected Arch-based host."
-            run_host_root pacman -Sy --needed --noconfirm podman
-            ;;
-        opensuse)
-            log "Detected openSUSE/SUSE-based host."
-            run_host_root zypper --non-interactive install podman
-            ;;
-        *)
-            die "No supported build environment was found, and the host distribution could not be recognised for automatic Podman installation. Install Podman, Toolbx, Distrobox, or Docker and rerun this installer."
-            ;;
-    esac
+    if command -v apt-get >/dev/null 2>&1; then
+        log "No isolated build environment found. Installing Podman with apt."
+        run_host_root apt-get update
+        run_host_root env DEBIAN_FRONTEND=noninteractive apt-get install -y podman
+    elif command -v dnf >/dev/null 2>&1; then
+        log "No isolated build environment found. Installing Podman with dnf."
+        run_host_root dnf install -y podman
+    elif command -v pacman >/dev/null 2>&1; then
+        log "No isolated build environment found. Installing Podman with pacman."
+        run_host_root pacman -Sy --needed --noconfirm podman
+    elif command -v zypper >/dev/null 2>&1; then
+        log "No isolated build environment found. Installing Podman with zypper."
+        run_host_root zypper --non-interactive install podman
+    elif command -v apk >/dev/null 2>&1; then
+        log "No isolated build environment found. Installing Podman with apk."
+        run_host_root apk add podman
+    else
+        die "No supported build environment or host package manager found. Install Toolbx, Distrobox, Podman, or Docker manually and rerun this installer."
+    fi
 
     command -v podman >/dev/null 2>&1 ||
         die "Podman installation completed but the podman command is still unavailable."
 
     log "Podman is now available."
 }
-
 select_builder() {
     if command -v toolbox >/dev/null 2>&1; then
         OBK_BUILDER=toolbox
