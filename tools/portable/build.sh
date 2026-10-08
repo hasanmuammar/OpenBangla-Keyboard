@@ -102,7 +102,8 @@ build_openbangla() {
         "$source_dir/tools/portable/bundle-runtime.sh" \
             "$runtime_lib_dir" \
             "$runtime_plugin_dir" \
-            "$stage_dir"
+            "$stage_dir" \
+            "$qt_lib_dir"
 
         cat > "$stage_dir$HOME/.local/bin/qt.conf" <<EOF
 [Paths]
