@@ -1,4 +1,4 @@
-# Installation
+# Installation — OpenBangla Keyboard for Linux
 
 Clone the fork with its submodules:
 
@@ -10,7 +10,7 @@ bash tools/install.sh
 
 The installer detects the desktop environment. KDE/Plasma selects Fcitx5; other desktop environments select IBus.
 
-The installer then selects the first available isolated build environment from Toolbox, Distrobox, Podman, or Docker. Build dependencies are installed inside that environment rather than into the host system.
+The installer then selects the first available isolated build environment from Toolbx, Distrobox, Podman, or Docker. Build dependencies are installed inside that environment rather than into the host system.
 
 Only the selected input-method backend is built.
 
@@ -41,3 +41,6 @@ ibus list-engine | grep -i -A3 -B2 openbangla
 ## Fcitx5
 
 On KDE/Plasma, the installer builds only the Fcitx5 backend and installs its module and addon metadata under the user-local prefix.
+## Related projects
+
+The installer and Linux integration use or integrate with [Toolbx](https://github.com/containers/toolbox), [Distrobox](https://github.com/89luca89/distrobox), [Podman](https://github.com/containers/podman), [Docker](https://github.com/moby/moby), [IBus](https://github.com/ibus/ibus), [Fcitx5](https://github.com/fcitx/fcitx5), [Qt](https://github.com/qt/qtbase) and [CMake](https://github.com/Kitware/CMake).
