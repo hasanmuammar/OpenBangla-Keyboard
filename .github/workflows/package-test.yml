@@ -55,7 +55,10 @@ jobs:
 
           test -f "$archive"
           test -f "$checksum"
-          sha256sum -c "$checksum"
+          (
+            cd dist
+            sha256sum -c "$(basename "$checksum")"
+          )
 
           work="$(mktemp -d)"
           trap 'rm -rf "$work"' EXIT
