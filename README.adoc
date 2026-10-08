@@ -28,6 +28,29 @@ endif::[]
 ++++
 
 
+== Fork Notice: Experimental Development
+
+This repository is an experimental fork of https://github.com/OpenBangla/OpenBangla-Keyboard[OpenBangla Keyboard], maintained independently from the upstream project.
+
+The purpose of this fork is to experiment with a simpler, portable, user-local Linux build and installation workflow, with particular attention to immutable and image-based Linux systems. The goal is to avoid requiring system-wide installation or modifying the host operating system's package database.
+
+The experimental work includes:
+
+* Automatic input-method backend selection: KDE/Plasma uses Fcitx5; other desktop environments use IBus.
+* User-local installation under the user's home directory.
+* Build dependency isolation using a suitable Toolbox, Distrobox, Podman, or Docker environment where available.
+* Persistent source and build caches to avoid unnecessary downloads and rebuilds.
+* A simple installation workflow intended eventually to be usable by a graphical installer.
+
+[IMPORTANT]
+====
+This fork is **experimental**. It is **not an official OpenBangla Keyboard release** and should not be treated as a production replacement for the upstream project.
+
+Parts of the experimental installer and integration work are generated or assisted by AI. The code is reviewed and tested incrementally, but AI-assisted code may contain errors, incomplete assumptions, or regressions. Users should review changes before relying on them.
+====
+
+The upstream OpenBangla Keyboard code and its original licensing remain the basis of this project. Changes made in this fork are intended to be clearly separated from upstream functionality wherever practical.
+
 *OpenBangla Keyboard* is an open source, Unicode compliant, Bangla input method for GNU/Linux systems.
 It's a full-fledged Bangla input method with typing automation tools, includes many famous typing methods such as Avro Phonetic,
 Probhat, Munir Optima, National (Jatiya) etc.
