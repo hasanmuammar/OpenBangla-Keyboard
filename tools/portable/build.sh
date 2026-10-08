@@ -105,9 +105,9 @@ build_openbangla() {
             "$runtime_plugin_dir"/platforms/*.so*
         )
         declare -A bundled=()
-        while ((\${#pending[@]})); do
+        while (\${#pending[@]}); do
             library="\${pending[0]}"
-            pending=("\${pending[@]:1}")
+            pending=(" \${pending[@]:1}")
             [[ -f "$library" ]] || continue
             real_library="$(readlink -f "$library")"
             [[ -n "$real_library" ]] || continue
@@ -128,7 +128,7 @@ build_openbangla() {
                         fi
                         ;;
                 esac
-            done < <(ldd "$real_library" | awk '/=> \\// {print $3} /^\\// {print $1}')
+            done < <(ldd "$real_library" | grep -oE '/[^ ]+')
         done
 
         cat > "$stage_dir$HOME/.local/bin/qt.conf" <<EOF
