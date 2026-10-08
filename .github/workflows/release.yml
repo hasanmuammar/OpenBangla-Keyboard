@@ -3,7 +3,7 @@ name: Linux release
 on:
   push:
     tags:
-      - "v*.*.*"
+      - "v*.*.*-alpha.*"
 
 permissions:
   contents: write
@@ -82,6 +82,7 @@ jobs:
         run: |
           gh release create "$GITHUB_REF_NAME" \
             --title "OpenBangla Keyboard ${GITHUB_REF_NAME#v}" \
+            --prerelease \
             --generate-notes
 
       - name: Upload Linux releases
