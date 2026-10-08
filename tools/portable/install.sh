@@ -5,6 +5,11 @@ install_openbangla() {
         die "Build completed without producing an install tree."
 
     mkdir -p "$OBK_PREFIX"
+
+    if [[ -d "$OBK_PREFIX/lib/openbangla" ]]; then
+        rm -rf "$OBK_PREFIX/lib/openbangla"
+    fi
+
     cp -a "$OBK_STAGE$OBK_PREFIX/." "$OBK_PREFIX/"
 
     if [[ "$OBK_BACKEND" == ibus ]] &&
