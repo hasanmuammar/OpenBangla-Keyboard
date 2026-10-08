@@ -4,7 +4,7 @@
 
 Last verified: 2026-10-09  
 Branch: `develop`  
-Current commit: `e98628b9cde44710d87d54ed58fc4636f8b785f5`
+Current commit: see the `develop` branch head
 
 This checklist separates what is implemented, what is verified, what is configured but not yet exercised end-to-end, and what remains before the first public prebuilt release.
 
@@ -100,7 +100,7 @@ This checklist separates what is implemented, what is verified, what is configur
   - x86_64 / Fcitx5
   - ARM64 / IBus
   - ARM64 / Fcitx5
-- [x] Release workflow is configured to create a GitHub Release from `v*.*.*` tags.
+- [x] Release workflow is configured to create a GitHub prerelease from fork-owned `v*.*.*-alpha.*` tags.
 - [x] Release workflow is configured to upload the generated archives and checksums.
 - [ ] Successful GitHub alpha release build has not yet been verified.
 - [ ] First `v3.0.0-alpha.1` tag has not yet been created.

@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/portable/common.sh"
 source "$SCRIPT_DIR/portable/install.sh"
 
-REPOSITORY="hasanmuammar/OpenBangla-Keyboard"
+REPOSITORY="hasanmuammar/OpenBangla-Keyboard-Shanti"
 REQUESTED_VERSION="${OPENBANGLA_VERSION:-}"
 RELEASE_VERSION="latest"
 RELEASE_BASE=""

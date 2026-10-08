@@ -68,8 +68,8 @@ Install:
 
 [source,bash]
 ----
-git clone https://github.com/hasanmuammar/OpenBangla-Keyboard.git
-cd OpenBangla-Keyboard
+git clone https://github.com/hasanmuammar/OpenBangla-Keyboard-Shanti.git
+cd OpenBangla-Keyboard-Shanti
 bash tools/install.sh
 ----
 
