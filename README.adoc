@@ -6,12 +6,7 @@ OpenBangla Keyboard is an open-source, Unicode-compliant **Bangla (Bengali) keyb
 
 This project provides a Linux-focused distribution of OpenBangla Keyboard with prebuilt releases, bundled runtime libraries, and a user-local installation workflow for conventional Linux desktops and immutable or image-based Linux systems.
 
-[NOTE]
-====
-This repository is a Linux-focused fork of the OpenBangla Keyboard project. It retains the original OpenBangla Keyboard code and attribution while providing additional Linux installation, packaging and runtime-integration work.
-====
-
-== What this project provides
+== What OpenBangla Keyboard provides
 
 * **Prebuilt Linux releases** for x86_64 and ARM64.
 * **Automatic backend selection:** KDE Plasma uses Fcitx5; other desktop environments use IBus.
@@ -192,7 +187,7 @@ If `XDG_CACHE_HOME` is not set:
 rm -rf "$HOME/.cache/openbangla-keyboard/build"
 ----
 
-Fork-specific documentation is kept under `docs/wiki/`.
+Project-specific documentation is kept under `docs/wiki/`.
 
 == Project structure
 
@@ -227,7 +222,7 @@ Fork-specific documentation is kept under `docs/wiki/`.
 
 == Credits
 
-This fork retains the original OpenBangla Keyboard code and attribution, including the work of the original OpenBangla and Avro-related contributors. See the source files and project history for the applicable attribution.
+This project retains the original OpenBangla Keyboard code and attribution, including the work of the original OpenBangla and Avro-related contributors. This repository is a Linux-focused fork that adds portable installation, release packaging and runtime-integration work.
 
 == License
 
