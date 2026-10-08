@@ -12,6 +12,7 @@ main() {
     detect_desktop_backend
     select_builder
     prepare_paths
+    confirm_temporary_build
 
     log "Backend: $OBK_BACKEND"
     log "Build environment: $OBK_BUILDER"
