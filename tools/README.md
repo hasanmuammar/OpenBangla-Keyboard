@@ -1,8 +1,9 @@
-# buildman
+# Fork tooling
 
-Builds OpenBangla Keyboard packages for various distributions.
+The fork-specific installation workflow is under `tools/portable/`.
 
-- A lightweight C/I workflow runs by default on each commit.
-- if commit message has the string `pkg+` or `deploy+`, then a deploy workflow runs instead of the default one.
-  - if build passes & `pkg+` is present, this workflow will upload the packages as Github Actions artifacts.
-  - if build passes & `deploy+` is present, this workflow will deploy packages to repositories, and create a github release.
+`tools/install.sh` is the main installation entry point. It detects the desktop environment, selects IBus or Fcitx5, chooses an isolated build environment, builds the current source tree, bundles the required runtime, and installs the result for the current user.
+
+`tools/uninstall.sh` removes the user-local installation and backend registration. Use `--purge-cache` to remove the build and staging cache as well.
+
+The portable installer is the primary installation path for this fork.
