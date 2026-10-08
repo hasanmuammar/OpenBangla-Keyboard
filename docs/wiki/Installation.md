@@ -22,7 +22,7 @@ The normal installation prefix is:
 
 The build and staging cache is under XDG_CACHE_HOME/openbangla-keyboard or ~/.cache/openbangla-keyboard.
 
-The Podman build environment is persistent and uses Debian 13 slim. The first build installs its development dependencies; later builds reuse the same environment.
+When a new Podman build environment is needed, the installer explains the temporary disk usage and asks for confirmation. The Debian 13 slim build container can be removed automatically after a successful installation.
 
 The default build parallelism is two jobs. Change it with:
 
