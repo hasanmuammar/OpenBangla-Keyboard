@@ -6,16 +6,16 @@
     <description>OpenBangla Keyboard</description>
     <exec>@LIBEXECDIR@/ibus-engine-openbangla --ibus</exec>
     <version>@PROJECT_VERSION@</version>
-    <author>See About Dialog</author>
+    <author>OpenBangla Keyboard</author>
     <license>GPL 3</license>
-    <homepage>http://openbangla.github.io</homepage>
+    <homepage>https://github.com/hasanmuammar/OpenBangla-Keyboard</homepage>
     <textdomain>openbangla-keyboard</textdomain>
     <engines>
         <engine>
             <name>OpenBangla</name>
             <language>bn</language>
             <license>GPL 3</license>
-            <author>See AboutBox</author>
+            <author>OpenBangla Keyboard</author>
             <icon>@PROJECT_DATADIR@/icons/OpenBangla-Keyboard.png</icon>
             <layout>default</layout>
             <longname>OpenBangla Keyboard</longname>
