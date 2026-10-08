@@ -58,12 +58,12 @@ Probhat, Munir Optima, National (Jatiya) etc.
 Most features of https://www.omicronlab.com/avro-keyboard.html[Avro Keyboard] are present in OpenBangla Keyboard.
 So Avro Keyboard users will feel right at home in Linux with OpenBangla Keyboard.
 
-image:https://github.com/OpenBangla/OpenBangla-Keyboard/workflows/CI/badge.svg[CI, link=https://github.com/OpenBangla/OpenBangla-Keyboard/actions?query=workflow%3ACI+branch%3Amaster] {nbsp}
+image:https://github.com/hasanmuammar/OpenBangla-Keyboard/actions/workflows/ci.yml/badge.svg[CI, link=https://github.com/hasanmuammar/OpenBangla-Keyboard/actions/workflows/ci.yml?query=branch%3Adevelop] {nbsp}
 image:https://img.shields.io/github/downloads/OpenBangla/OpenBangla-Keyboard/total.svg?label=GitHub%20Downloads[Github Downloads, link=https://img.shields.io/github/downloads/OpenBangla/OpenBangla-Keyboard/total.svg?label=GitHub%20Downloads] {nbsp}
 
 CAUTION: This project is powered by github 🌟s. Go ahead and *star* it please!
 
-🚧 🚧 *Ongoing developments happen on the https://github.com/OpenBangla/OpenBangla-Keyboard/tree/develop[`develop`] branch.* 🚧 🚧
+🚧 🚧 *Ongoing developments happen on the https://github.com/hasanmuammar/OpenBangla-Keyboard/tree/develop[`develop`] branch.* 🚧 🚧
 
 toc::[]
 
