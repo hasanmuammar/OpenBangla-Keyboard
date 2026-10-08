@@ -12,35 +12,6 @@ detect_desktop_backend() {
     export OBK_BACKEND
 }
 
-detect_host_distro() {
-    local distro_name=""
-
-    if [[ -r /etc/os-release ]]; then
-        # shellcheck disable=SC1091
-        source /etc/os-release
-
-        case "${ID:-}" in
-            debian|ubuntu|linuxmint)
-                distro_name=debian
-                ;;
-            fedora|rhel|centos|rocky|almalinux)
-                distro_name=fedora
-                ;;
-            arch|manjaro|endeavouros)
-                distro_name=arch
-                ;;
-            opensuse*|sles)
-                distro_name=opensuse
-                ;;
-        esac
-    fi
-
-    if [[ -z "$distro_name" && -e /etc/arch-release ]]; then
-        distro_name=arch
-    fi
-
-    printf "%s\\n" "$distro_name"
-}
 
 run_host_root() {
     if [[ "$(id -u)" -eq 0 ]]; then
