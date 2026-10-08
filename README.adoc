@@ -1,122 +1,47 @@
-//Ref : https://gist.github.com/dcode/0cfbf2699a1fe9b46ff04c41721dda74
-= OpenBangla Keyboard (OBK)
-ifdef::env-github[]
-:imagesdir:
- https://gist.githubusercontent.com/path/to/gist/revision/dir/with/all/images
-:tip-caption: :bulb:
-:note-caption: :information_source:
-:important-caption: :heavy_exclamation_mark:
-:caution-caption: :fire:
-:warning-caption: :warning:
-endif::[]
-ifndef::env-github[]
-:imagesdir: .
-endif::[]
-:toc:
-:toc-placement!:
+= OpenBangla Keyboard — Experimental Linux Fork
 
-++++
-<p align=right>(<a href="README.bn.adoc"><b>বাংলায় পড়ুন</b></a>)</p>
-++++
+OpenBangla Keyboard is a Unicode-compliant Bangla input method with phonetic and fixed keyboard layouts, typing automation, dictionary support and autocorrection.
 
-//HTML for formating the logo
-
-++++
-<p align="center">
-<img src="https://github.com/OpenBangla/OpenBangla-Keyboard/raw/master/data/128.png">
-</p>
-++++
-
-
-== Fork Notice: Experimental Development
-
-This repository is an experimental fork of https://github.com/OpenBangla/OpenBangla-Keyboard[OpenBangla Keyboard], maintained independently from the upstream project.
-
-The purpose of this fork is to experiment with a simpler, portable, user-local Linux build and installation workflow, with particular attention to immutable and image-based Linux systems. The goal is to avoid requiring system-wide installation or modifying the host operating system's package database.
-
-The experimental work includes:
-
-* Automatic input-method backend selection: KDE/Plasma uses Fcitx5; other desktop environments use IBus.
-* User-local installation under the user's home directory.
-* Build dependency isolation using a suitable Toolbox, Distrobox, Podman, or Docker environment where available.
-* Persistent source and build caches to avoid unnecessary downloads and rebuilds.
-* A simple installation workflow intended eventually to be usable by a graphical installer.
+This repository is an experimental Linux-focused fork. The fork adds a portable, user-local build and installation workflow designed to work across ordinary and immutable Linux systems without installing build packages into the host system.
 
 [IMPORTANT]
 ====
-This fork is **experimental**. It is **not an official OpenBangla Keyboard release** and should not be treated as a production replacement for the upstream project.
+This is an experimental fork, not an official upstream OpenBangla Keyboard release.
 
-Parts of the experimental installer and integration work are generated or assisted by AI. The code is reviewed and tested incrementally, but AI-assisted code may contain errors, incomplete assumptions, or regressions. Users should review changes before relying on them.
+The portable installer and related integration work contain AI-generated or AI-assisted code. The code is reviewed and tested incrementally, but regressions are possible.
 ====
 
-The upstream OpenBangla Keyboard code and its original licensing remain the basis of this project. Changes made in this fork are intended to be clearly separated from upstream functionality wherever practical.
+== What this fork provides
 
-*OpenBangla Keyboard* is an open source, Unicode compliant, Bangla input method for GNU/Linux systems.
-It's a full-fledged Bangla input method with typing automation tools, includes many famous typing methods such as Avro Phonetic,
-Probhat, Munir Optima, National (Jatiya) etc.
-
-Most features of https://www.omicronlab.com/avro-keyboard.html[Avro Keyboard] are present in OpenBangla Keyboard.
-So Avro Keyboard users will feel right at home in Linux with OpenBangla Keyboard.
-
-image:https://github.com/hasanmuammar/OpenBangla-Keyboard/actions/workflows/ci.yml/badge.svg[CI, link=https://github.com/hasanmuammar/OpenBangla-Keyboard/actions/workflows/ci.yml?query=branch%3Adevelop] {nbsp}
-image:https://img.shields.io/github/downloads/OpenBangla/OpenBangla-Keyboard/total.svg?label=GitHub%20Downloads[Github Downloads, link=https://img.shields.io/github/downloads/OpenBangla/OpenBangla-Keyboard/total.svg?label=GitHub%20Downloads] {nbsp}
-
-CAUTION: This project is powered by github 🌟s. Go ahead and *star* it please!
-
-🚧 🚧 *Ongoing developments happen on the https://github.com/hasanmuammar/OpenBangla-Keyboard/tree/develop[`develop`] branch.* 🚧 🚧
-
-toc::[]
-
-
-== Features
-* Features a __Top Bar__ like Avro Keyboard for easy configuration.
-* Layout Viewer
-* Phonetic Keyboard Layout (Avro Phonetic)
-  ** 100% compatibility with current Avro Phonetic scheme.
-  ** Dictionary support can predict and suggest phonetically similar words with correct spelling on the fly.
-  ** Autocorrect feature for numerous commonly mistyped words.
-  ** Autocorrect support brings commonly used English words to Bangla (like, Facebook, download etc.) even with their original English spelling.
-  ** User can add and edit autocorrect entries.
-  ** Support for preview window to see originally typed text right under the cursor.
-* Fixed Keyboard Layout
-  ** OpenBangla Keyboard comes with Probhat, Munir Optima, Avro Easy, Bornona, National (Jatiya) keyboard layouts out of the box.
-  ** OpenBangla Keyboard supports Avro Keyboard Layout files (version 5).
-* Typing Automation tools for Fixed Keyboard layout
-  ** Automatic vowel forming.
-  ** Old style "Reph".
-  ** Traditional "-Kar" joining.
-  ** Automatic "Chandrabindu" position fixing.
-
+* Linux-only CMake build.
+* Automatic backend selection: KDE/Plasma uses Fcitx5; other desktop environments use IBus.
+* User-local installation under `~/.local`.
+* Isolated build environments using Toolbox, Distrobox, Podman, or Docker.
+* Persistent build and staging cache under the XDG cache directory.
+* Bundled Qt and required runtime libraries for the user-local installation.
+* Automatic IBus component registration for user-local installations.
+* A matching user-local uninstaller.
 
 == Installation
 
-The experimental installer builds OpenBangla from the current source tree and installs it for the current user.
+Clone this fork with its submodules:
 
 [source,bash]
 ----
 git clone --recursive https://github.com/hasanmuammar/OpenBangla-Keyboard.git
 cd OpenBangla-Keyboard
+----
+
+Run the installer:
+
+[source,bash]
+----
 bash tools/install.sh
 ----
 
-The installer:
+The installer automatically detects the desktop environment and chooses the input-method backend. It then selects an available isolated build environment and installs the build dependencies there.
 
-* selects IBus for most desktops and Fcitx5 for KDE/Plasma;
-* selects an available build environment: Toolbox, Distrobox, Podman, or Docker;
-* installs build dependencies inside that environment;
-* builds OpenBangla with CMake;
-* installs the result under `~/.local`.
-
-Only the selected input-method backend is built.
-
-Build files and staging data are kept in:
-
-[source,text]
-----
-$XDG_CACHE_HOME/openbangla-keyboard/
-----
-
-or `~/.cache/openbangla-keyboard/` when `XDG_CACHE_HOME` is not set.
+Only the selected backend is built.
 
 The default build parallelism is 2 jobs. To change it:
 
@@ -125,15 +50,51 @@ The default build parallelism is 2 jobs. To change it:
 OPENBANGLA_BUILD_JOBS=4 bash tools/install.sh
 ----
 
-== Custom Build
+Build and staging data are stored in:
 
-The installer is a wrapper around the normal CMake build system. You can build OpenBangla manually when you need more control over the configuration or build process.
+[source,text]
+----
+$XDG_CACHE_HOME/openbangla-keyboard/
+----
+
+or:
+
+[source,text]
+----
+~/.cache/openbangla-keyboard/
+----
+
+when `XDG_CACHE_HOME` is not set.
+
+== Uninstallation
+
+Remove the current-user installation:
+
+[source,bash]
+----
+bash tools/uninstall.sh
+----
+
+To remove the build and staging cache as well:
+
+[source,bash]
+----
+bash tools/uninstall.sh --purge-cache
+----
+
+== Manual Linux build
+
+The CMake project supports one input-method backend per build.
 
 === IBus
 
 [source,bash]
 ----
-cmake -S . -B build -G Ninja   -DCMAKE_BUILD_TYPE=Release   -DCMAKE_INSTALL_PREFIX="$HOME/.local"   -DENABLE_IBUS=ON   -DENABLE_FCITX=OFF   -DENABLE_BOTH=OFF
+cmake -S . -B build -G Ninja \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_INSTALL_PREFIX="$HOME/.local" \
+  -DENABLE_IBUS=ON \
+  -DENABLE_FCITX=OFF
 
 cmake --build build --parallel 2
 cmake --install build
@@ -143,29 +104,23 @@ cmake --install build
 
 [source,bash]
 ----
-cmake -S . -B build -G Ninja   -DCMAKE_BUILD_TYPE=Release   -DCMAKE_INSTALL_PREFIX="$HOME/.local"   -DENABLE_IBUS=OFF   -DENABLE_FCITX=ON   -DENABLE_BOTH=OFF
+cmake -S . -B build -G Ninja \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_INSTALL_PREFIX="$HOME/.local" \
+  -DENABLE_IBUS=OFF \
+  -DENABLE_FCITX=ON
 
 cmake --build build --parallel 2
 cmake --install build
 ----
 
-Do not enable both backends for the user-local build.
-
-The required development packages include:
-
-* C/C++ compiler
-* CMake
-* Ninja
-* pkg-config
-* Rust and Cargo
-* zstd development files
-* Qt5 development files
-* IBus development files for an IBus build
-* Fcitx5 development files for an Fcitx5 build
+The build requires Qt5, CMake, Ninja, a C/C++ compiler, Rust/Cargo, zstd development files, and the development files for the selected input-method backend.
 
 == Development
 
-After updating the source tree:
+The fork is developed on the `develop` branch.
+
+After updating the repository:
 
 [source,bash]
 ----
@@ -173,33 +128,54 @@ git pull --recurse-submodules
 bash tools/install.sh
 ----
 
-To start a clean CMake configuration, remove the build directory:
+For a clean automated rebuild:
 
 [source,bash]
 ----
-rm -rf build
+rm -rf "$XDG_CACHE_HOME/openbangla-keyboard/build"
 ----
 
-For the automated installer, remove its cached build directory instead:
+If `XDG_CACHE_HOME` is not set:
 
 [source,bash]
 ----
 rm -rf "$HOME/.cache/openbangla-keyboard/build"
 ----
 
-The installer is experimental and may change during development.
+Fork-specific documentation is kept under `docs/wiki/`.
 
-== Acknowledgements
- * Mehdi Hasan Khan, for originally developing and maintaining Avro Keyboard.
- * Rifat Nabi, for porting Avro Phonetic to Javascript.
- * https://github.com/sarim[Sarim Khan], for writing ibus-avro.
- * https://github.com/dec32[Dec_32], for https://github.com/dec32/Ajemi[Ajemi] project.
- * https://github.com/saaiful[Saiful Islam], for the icon.
- * https://material.io/resources/icons[Material Design Icons].
- * https://github.com/alex-spataru/QSimpleUpdater[QSimpleUpdater], for providing update mechanism.
+== Project structure
 
+[cols="1,3"]
+|===
+|Path |Purpose
+
+|`tools/install.sh`
+|Main user-local installer.
+
+|`tools/uninstall.sh`
+|User-local uninstaller.
+
+|`tools/portable/`
+|Backend selection, isolated build, runtime bundling and installation logic.
+
+|`src/engine/ibus/`
+|IBus backend.
+
+|`src/engine/fcitx/`
+|Fcitx5 backend.
+
+|`src/frontend/`
+|Qt GUI.
+
+|`src/engine/riti/`
+|Riti input engine submodule.
+|===
+
+== Credits
+
+This fork retains the original OpenBangla Keyboard code and attribution, including the work of the original OpenBangla and Avro-related contributors. See the source files and project history for the applicable attribution.
 
 == License
-This project is licensed under https://opensource.org/licenses/GPL-3.0[GPL 3 Licence].
 
-Made with ❤️ by https://github.com/mominul[Muhammad Mominul Huque] and https://github.com/OpenBangla/OpenBangla-Keyboard/graphs/contributors[✨ contributors ✨]!
+This project is licensed under the GNU General Public License version 3 or later.
