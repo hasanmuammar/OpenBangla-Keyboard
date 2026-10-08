@@ -11,23 +11,31 @@ build_openbangla() {
     run_builder '
         set -Eeuo pipefail
 
+        if [[ "$(id -u)" -eq 0 ]]; then
+            sudo_cmd=""
+        else
+            command -v sudo >/dev/null 2>&1 ||
+                { echo "sudo is required inside the build environment." >&2; exit 1; }
+            sudo_cmd=sudo
+        fi
+
         if command -v apt-get >/dev/null 2>&1; then
             export DEBIAN_FRONTEND=noninteractive
-            apt-get update
-            apt-get install -y --no-install-recommends                 build-essential clang cmake ninja-build pkg-config                 rustc cargo libzstd-dev                 qtbase5-dev qtbase5-dev-tools libqt5svg5-dev                 ca-certificates
+            $sudo_cmd apt-get update
+            $sudo_cmd apt-get install -y --no-install-recommends                 build-essential clang cmake ninja-build pkg-config                 rustc cargo libzstd-dev                 qtbase5-dev qtbase5-dev-tools libqt5svg5-dev                 ca-certificates
 
             if [[ "$OBK_BACKEND" == ibus ]]; then
-                apt-get install -y --no-install-recommends libibus-1.0-dev
+                $sudo_cmd apt-get install -y --no-install-recommends libibus-1.0-dev
             else
-                apt-get install -y --no-install-recommends libfcitx5core-dev
+                $sudo_cmd apt-get install -y --no-install-recommends libfcitx5core-dev
             fi
         elif command -v dnf >/dev/null 2>&1; then
-            dnf install -y                 gcc gcc-c++ clang cmake ninja-build pkgconf-pkg-config                 rust cargo libzstd-devel                 qt5-qtbase-devel qt5-qtsvg-devel
+            $sudo_cmd dnf install -y                 gcc gcc-c++ clang cmake ninja-build pkgconf-pkg-config                 rust cargo libzstd-devel                 qt5-qtbase-devel qt5-qtsvg-devel
 
             if [[ "$OBK_BACKEND" == ibus ]]; then
-                dnf install -y ibus-devel
+                $sudo_cmd dnf install -y ibus-devel
             else
-                dnf install -y fcitx5-devel
+                $sudo_cmd dnf install -y fcitx5-devel
             fi
         else
             echo "Unsupported package manager in build environment." >&2
