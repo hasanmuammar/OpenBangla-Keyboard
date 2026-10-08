@@ -1,8 +1,10 @@
-= OpenBangla Keyboard — Experimental Linux Fork
+= OpenBangla Keyboard — Bangla Keyboard for Linux | IBus & Fcitx5
 
-OpenBangla Keyboard is a Unicode-compliant Bangla input method with phonetic and fixed keyboard layouts, typing automation, dictionary support and autocorrection.
+image:https://img.shields.io/badge/platform-Linux-333333?logo=linux&logoColor=white[Linux] image:https://img.shields.io/badge/input%20method-IBus%20%7C%20Fcitx5-0F6CBD[Input methods] image:https://img.shields.io/badge/build-CMake-064F8C?logo=cmake&logoColor=white[CMake] image:https://img.shields.io/badge/UI-Qt5-41CD52?logo=qt&logoColor=white[Qt5] image:https://img.shields.io/badge/C%2B%2B%20%7C%20Rust-00599C?logo=rust&logoColor=white[C++ and Rust]
 
-This repository is an experimental Linux-focused fork. The fork adds a portable, user-local build and installation workflow designed to work across ordinary and immutable Linux systems without installing build packages into the host system.
+OpenBangla Keyboard is an open-source, Unicode-compliant **Bangla (Bengali) keyboard and input method for Linux**. It provides phonetic and fixed keyboard layouts, typing automation, dictionary support and autocorrection.
+
+This repository is an **experimental Linux fork of OpenBangla Keyboard** with a portable, user-local build and installation workflow for conventional Linux desktops and immutable or image-based Linux systems.
 
 [IMPORTANT]
 ====
@@ -13,14 +15,14 @@ The portable installer and related integration work contain AI-generated or AI-a
 
 == What this fork provides
 
-* Linux-only CMake build.
-* Automatic backend selection: KDE/Plasma uses Fcitx5; other desktop environments use IBus.
-* User-local installation under `~/.local`.
-* Isolated build environments using Toolbox, Distrobox, Podman, or Docker.
-* Persistent build and staging cache under the XDG cache directory.
-* Bundled Qt and required runtime libraries for the user-local installation.
-* Automatic IBus component registration for user-local installations.
-* A matching user-local uninstaller.
+* **Linux-only CMake build** with one input-method backend per build.
+* **Automatic backend selection:** KDE Plasma uses Fcitx5; other desktop environments use IBus.
+* **User-local installation** under `~/.local` without a system-wide package install.
+* **Isolated builds** using Toolbx, Distrobox, Podman, or Docker.
+* **Persistent build and staging cache** under the XDG cache directory.
+* **Bundled Qt5 and required runtime libraries** for the user-local installation.
+* **Automatic IBus component registration** for user-local installations.
+* **User-local uninstaller** with optional cache removal.
 
 == Installation
 
@@ -39,9 +41,9 @@ Run the installer:
 bash tools/install.sh
 ----
 
-The installer automatically detects the desktop environment and chooses the input-method backend. It then selects an available isolated build environment and installs the build dependencies there.
+The installer automatically detects the desktop environment, selects the input-method backend, chooses an available isolated build environment, installs the build dependencies inside that environment, and builds only the selected backend.
 
-Only the selected backend is built.
+Supported build environments are https://github.com/containers/toolbox[Toolbx], https://github.com/89luca89/distrobox[Distrobox], https://github.com/containers/podman[Podman], and https://github.com/moby/moby[Docker]. No manual builder selection is required.
 
 The default build parallelism is 2 jobs. To change it:
 
@@ -65,6 +67,37 @@ or:
 ----
 
 when `XDG_CACHE_HOME` is not set.
+
+== Related projects and technologies
+
+This fork uses or integrates with several established open-source projects. They provide the Linux input-method frameworks, Qt interface, Rust/CMake integration, compression library, and isolated build environments used by the fork.
+
+[cols="1,1,1,1", options="header"]
+|===
+|Build environments |Input methods |Core build/runtime |Project origin
+
+|https://github.com/containers/toolbox[image:https://img.shields.io/badge/Toolbx-Container%20development-444444?logo=linux&logoColor=white[Toolbx]]
+|https://github.com/ibus/ibus[image:https://img.shields.io/badge/IBus-Linux%20input%20method-5A5A5A?logo=linux&logoColor=white[IBus]]
+|https://github.com/qt/qtbase[image:https://img.shields.io/badge/Qt5-Qt%20Widgets-41CD52?logo=qt&logoColor=white[Qt5]]
+|https://github.com/OpenBangla/OpenBangla-Keyboard[image:https://img.shields.io/badge/OpenBangla-Upstream-555555?logo=github&logoColor=white[OpenBangla upstream]]
+
+|https://github.com/89luca89/distrobox[image:https://img.shields.io/badge/Distrobox-Containers-555555?logo=linux&logoColor=white[Distrobox]]
+|https://github.com/fcitx/fcitx5[image:https://img.shields.io/badge/Fcitx5-KDE%20Plasma-555555?logo=linux&logoColor=white[Fcitx5]]
+|https://github.com/Kitware/CMake[image:https://img.shields.io/badge/CMake-Build%20system-064F8C?logo=cmake&logoColor=white[CMake]]
+|https://github.com/corrosion-rs/corrosion[image:https://img.shields.io/badge/Corrosion-Rust%20%2B%20CMake-555555?logo=rust&logoColor=white[Corrosion]]
+
+|https://github.com/containers/podman[image:https://img.shields.io/badge/Podman-Containers-892CA0?logo=podman&logoColor=white[Podman]]
+| |
+|https://github.com/facebook/zstd[image:https://img.shields.io/badge/Zstandard-zstd-555555?logo=github&logoColor=white[Zstandard]]
+| |
+
+|https://github.com/moby/moby[image:https://img.shields.io/badge/Docker-Containers-2496ED?logo=docker&logoColor=white[Docker]]
+| |
+|https://github.com/ninja-build/ninja[image:https://img.shields.io/badge/Ninja-Build-555555?logo=ninja&logoColor=white[Ninja]]
+| |
+|===
+
+These projects are dependencies or integrations; they are not part of the OpenBangla Keyboard fork itself.
 
 == Uninstallation
 
