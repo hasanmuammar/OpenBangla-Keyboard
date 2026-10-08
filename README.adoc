@@ -38,49 +38,49 @@ The OpenBangla Keyboard codebase is built for Bangla typing on Linux and include
 
 == Installation
 
-Clone this fork with its submodules:
+=== Prebuilt installation
+
+Normal users do not need a compiler, CMake, Rust, Qt development packages, or a build container. The installer downloads the matching prebuilt Linux release for the current architecture and desktop environment, verifies its checksum, and installs it for the current user.
+
+Supported architectures:
+
+* x86_64
+* ARM64 (aarch64)
+
+KDE Plasma automatically uses Fcitx5. Other desktop environments automatically use IBus.
+
+Install:
 
 [source,bash]
 ----
-git clone --recursive https://github.com/hasanmuammar/OpenBangla-Keyboard.git
+git clone https://github.com/hasanmuammar/OpenBangla-Keyboard.git
 cd OpenBangla-Keyboard
-----
-
-Run the installer:
-
-[source,bash]
-----
 bash tools/install.sh
 ----
 
-The installer automatically detects the desktop environment, selects the input-method backend, chooses an available isolated build environment, installs the build dependencies inside that environment, and builds only the selected backend.
-
-Supported build environments are https://github.com/containers/toolbox[Toolbx (`toolbox`)], https://github.com/89luca89/distrobox[Distrobox], https://github.com/containers/podman[Podman], and https://github.com/moby/moby[Docker]. No manual builder selection is required.
-
-When a new Podman build environment is needed, the installer explains the temporary disk usage and asks for confirmation. The temporary Debian 13 slim build container can be removed automatically after a successful installation, freeing the space used by its build dependencies.
-
-The default build parallelism is 2 jobs. To change it:
+To install a specific release:
 
 [source,bash]
 ----
-OPENBANGLA_BUILD_JOBS=4 bash tools/install.sh
+bash tools/install.sh --version 3.0.0
 ----
 
-Build and staging data are stored in:
+=== Build from source
 
-[source,text]
-----
-$XDG_CACHE_HOME/openbangla-keyboard/
-----
+For development, local compilation, or release packaging, use the separate source-build script:
 
-or:
-
-[source,text]
+[source,bash]
 ----
-~/.cache/openbangla-keyboard/
+bash tools/build.sh
 ----
 
-when `XDG_CACHE_HOME` is not set.
+The source build can use Toolbx, Distrobox, Podman, or Docker to keep build dependencies out of the host system. Release packages are produced for both x86_64 and ARM64 by GitHub Actions.
+
+[source,bash]
+----
+bash tools/build.sh --backend ibus --package
+bash tools/build.sh --backend fcitx --package
+----
 
 == Related projects and technologies
 
@@ -115,7 +115,7 @@ These projects are dependencies or integrations; they are not part of the OpenBa
 
 == Uninstallation
 
-Remove the current-user installation:
+Remove the current-user prebuilt installation:
 
 [source,bash]
 ----
@@ -167,12 +167,12 @@ The build requires Qt5, CMake, Ninja, a C/C++ compiler, Rust/Cargo, zstd develop
 
 The fork is developed on the `develop` branch.
 
-After updating the repository:
+For normal use, `tools/install.sh` downloads a prebuilt release. For source development and local compilation, use `tools/build.sh`.
 
 [source,bash]
 ----
 git pull --recurse-submodules
-bash tools/install.sh
+bash tools/build.sh
 ----
 
 For a clean automated rebuild:
@@ -198,7 +198,10 @@ Fork-specific documentation is kept under `docs/wiki/`.
 |Path |Purpose
 
 |`tools/install.sh`
-|Main user-local installer.
+|Prebuilt Linux installer; selects IBus or Fcitx5 and x86_64 or ARM64 automatically.
+
+|`tools/build.sh`
+|Source-build and release-packaging entry point.
 
 |`tools/uninstall.sh`
 |User-local uninstaller.
