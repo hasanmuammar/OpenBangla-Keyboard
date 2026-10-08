@@ -99,6 +99,38 @@ build_openbangla() {
         done
         cp -a "$qt_plugin_dir/platforms" "$runtime_plugin_dir/"
 
+        # Bundle Qt libraries provided by the same runtime tree but missing on the host.
+        pending=(
+            "$runtime_lib_dir"/*.so*
+            "$runtime_plugin_dir"/platforms/*.so*
+        )
+        declare -A bundled=()
+        while ((\${#pending[@]})); do
+            library="\${pending[0]}"
+            pending=(" \${pending[@]:1}")
+            [[ -f "$library" ]] || continue
+            real_library="$(readlink -f "$library")"
+            [[ -n "$real_library" ]] || continue
+            [[ "\${bundled[$real_library]:-}" == 1 ]] && continue
+            bundled["$real_library"]=1
+
+            while IFS= read -r dependency; do
+                [[ -f "$dependency" ]] || continue
+                case "$dependency" in
+                    "$qt_lib_dir"/*)
+                        dependency_name="\${dependency##*/}"
+                        case "$dependency_name" in
+                            libc.so*|libm.so*|libpthread.so*|libdl.so*|librt.so*|libresolv.so*|libgcc_s.so*|libstdc++.so*) continue ;;
+                        esac
+                        if [[ ! -e "$runtime_lib_dir/$dependency_name" ]]; then
+                            cp -a "$dependency" "$runtime_lib_dir/"
+                            pending+=("$runtime_lib_dir/$dependency_name")
+                        fi
+                        ;;
+                esac
+            done < <(ldd "$real_library" | awk '/=> \\// {print $3} /^\\// {print $1}')
+        done
+
         cat > "$stage_dir$HOME/.local/bin/qt.conf" <<EOF
 [Paths]
 Plugins=../lib/openbangla/qt5/plugins
