@@ -15,5 +15,5 @@ The portable build uses [CMake](https://github.com/Kitware/CMake), [Qt5](https:/
 
 ## Build environment selection
 
-The installer prefers an existing Toolbx or Distrobox environment, then Podman or Docker. When no supported builder is installed, `environment.sh` detects the host package manager and attempts to install Podman automatically. The Podman builder is persistent and named `openbangla-builder`; its development dependencies are cached inside that container.
+The installer prefers an existing Toolbx or Distrobox environment, then Podman or Docker. When no supported builder is installed, `environment.sh` detects the host package manager and attempts to install Podman automatically. The Podman builder is persistent, named `openbangla-builder`, and uses Debian 13 slim; its development dependencies are cached inside that container.
 
