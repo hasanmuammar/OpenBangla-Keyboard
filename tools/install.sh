@@ -9,16 +9,16 @@ REPOSITORY="hasanmuammar/OpenBangla-Keyboard-Shanti"
 REQUESTED_VERSION="${OPENBANGLA_VERSION:-}"
 RELEASE_VERSION="latest"
 RELEASE_BASE=""
-VERSION_FILE="$SCRIPT_DIR/../version.txt"
+RELEASE_TAG_FILE="$SCRIPT_DIR/../release-tag.txt"
 
 usage() {
     cat <<'EOF'
 Usage: tools/install.sh [options]
 
-Install the prebuilt OpenBangla Keyboard build specified by version.txt for this fork.
+Install the prebuilt OpenBangla Keyboard build specified by release-tag.txt for this fork.
 
 Options:
-  --version VERSION   Install a specific fork release version.
+  --version TAG      Install a specific Shanti release tag.
   -h, --help          Show this help.
 EOF
 }
@@ -26,7 +26,7 @@ EOF
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --version)
-            [[ $# -ge 2 ]] || die "--version requires a release version."
+            [[ $# -ge 2 ]] || die "--version requires a release tag."
             REQUESTED_VERSION="$2"
             shift 2
             ;;
@@ -116,8 +116,8 @@ download_release() {
 main() {
     require_linux
 
-    if [[ -z "$REQUESTED_VERSION" && -f "$VERSION_FILE" ]]; then
-        REQUESTED_VERSION="$(tr -d '[:space:]' < "$VERSION_FILE")"
+    if [[ -z "$REQUESTED_VERSION" && -f "$RELEASE_TAG_FILE" ]]; then
+        REQUESTED_VERSION="$(tr -d '[:space:]' < "$RELEASE_TAG_FILE")"
     fi
     detect_backend
     detect_arch

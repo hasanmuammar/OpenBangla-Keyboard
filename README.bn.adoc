@@ -20,7 +20,7 @@ OpenBangla Keyboard একটি open-source, Unicode-সমর্থিত **Ba
 
 == এই fork-এর বৈশিষ্ট্য
 
-এই fork upstream-এর release cycle অনুসরণ করে না। Alpha build-এর জন্য fork-specific tag ব্যবহার করা হয়, যেমন `shanti-alpha.1`।
+এই fork upstream-এর release cycle অনুসরণ করে না। Alpha build-এর জন্য fork-specific tag ব্যবহার করা হয়, যেমন `shanti-alpha.1`। CMake project version `version.txt`-এ আলাদাভাবে রাখা হয় এবং installer-এর release tag `release-tag.txt`-এ রাখা হয়।
 
 * x86_64 ও ARM64-এর জন্য **prebuilt Linux release**।
 * **Automatic backend selection:** KDE Plasma-তে Fcitx5 এবং অন্যান্য desktop environment-এ IBus।
