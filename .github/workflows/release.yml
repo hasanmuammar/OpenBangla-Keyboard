@@ -3,7 +3,7 @@ name: Linux release
 on:
   push:
     tags:
-      - "v*.*.*-alpha.*"
+      - "shanti-alpha.*"
 
 permissions:
   contents: write
@@ -81,7 +81,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" \
-            --title "OpenBangla Keyboard ${GITHUB_REF_NAME#v}" \
+            --title "OpenBangla Keyboard ${GITHUB_REF_NAME}" \
             --prerelease \
             --generate-notes
 

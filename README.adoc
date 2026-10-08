@@ -73,13 +73,13 @@ cd OpenBangla-Keyboard-Shanti
 bash tools/install.sh
 ----
 
-This fork does not follow the upstream OpenBangla release cycle. Alpha builds are fork-specific and use tags such as `v3.0.0-alpha.1`. The default installer follows the version in `version.txt`, while `--version` can override it.
+This fork does not follow the upstream OpenBangla release cycle. Alpha builds are fork-specific and use tags such as `shanti-alpha.1`. The default installer follows the version in `version.txt`, while `--version` can override it.
 
 To install a specific alpha build:
 
 [source,bash]
 ----
-bash tools/install.sh --version 3.0.0-alpha.1
+bash tools/install.sh --version shanti-alpha.1
 ----
 
 === Build from source

@@ -18,7 +18,7 @@ This checklist separates what is implemented, what is verified, what is configur
 - [x] IBus and Fcitx5 are supported as separate backend builds.
 - [x] x86_64 and ARM64/aarch64 are the target prebuilt architectures.
 - [x] Prebuilt releases are treated as complete runtime bundles, not single standalone executables.
-- [x] Fork-owned alpha versioning is defined using tags such as `v3.0.0-alpha.1`.
+- [x] Fork-owned alpha versioning is defined using tags such as `shanti-alpha.1`.
 
 ## 2. User-facing installation architecture
 
@@ -100,10 +100,10 @@ This checklist separates what is implemented, what is verified, what is configur
   - x86_64 / Fcitx5
   - ARM64 / IBus
   - ARM64 / Fcitx5
-- [x] Release workflow is configured to create a GitHub prerelease from fork-owned `v*.*.*-alpha.*` tags.
+- [x] Release workflow is configured to create a GitHub prerelease from fork-owned `shanti-alpha.*` tags.
 - [x] Release workflow is configured to upload the generated archives and checksums.
 - [ ] Successful GitHub alpha release build has not yet been verified.
-- [ ] First `v3.0.0-alpha.1` tag has not yet been created.
+- [ ] First `shanti-alpha.1` tag has not yet been created.
 - [ ] First fork alpha GitHub Release has not yet been published.
 - [ ] Release assets have not yet been published.
 - [ ] Prebuilt installer has not yet been tested against published release assets.
@@ -155,7 +155,7 @@ The first release should not be considered complete until all of the following a
 - [ ] Clean source checkout builds successfully in CI on all six CI variants.
 - [ ] Release packaging succeeds on all four release variants.
 - [ ] Four release archives and four checksum files are uploaded.
-- [ ] A `v3.0.0-alpha.1` GitHub prerelease exists.
+- [ ] A `shanti-alpha.1` GitHub prerelease exists.
 - [ ] `tools/install.sh` successfully downloads the correct archive on x86_64 and ARM64.
 - [ ] IBus installation is functionally tested.
 - [ ] Fcitx5 installation is functionally tested.

@@ -73,8 +73,8 @@ download() {
 build_urls() {
     local asset="openbangla-keyboard_linux_${OBK_ARCH}_${OBK_BACKEND}.tar.gz"
     if [[ -n "$REQUESTED_VERSION" ]]; then
-        RELEASE_VERSION="${REQUESTED_VERSION#v}"
-        RELEASE_BASE="https://github.com/$REPOSITORY/releases/download/v$RELEASE_VERSION"
+        RELEASE_VERSION="$REQUESTED_VERSION"
+        RELEASE_BASE="https://github.com/$REPOSITORY/releases/download/$RELEASE_VERSION"
     else
         RELEASE_BASE="https://github.com/$REPOSITORY/releases/latest/download"
     fi
