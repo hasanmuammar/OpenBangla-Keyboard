@@ -57,6 +57,8 @@ The installer automatically detects the desktop environment, selects the input-m
 
 Supported build environments are https://github.com/containers/toolbox[Toolbx (`toolbox`)], https://github.com/89luca89/distrobox[Distrobox], https://github.com/containers/podman[Podman], and https://github.com/moby/moby[Docker]. No manual builder selection is required.
 
+The isolated build environment is persistent. The first build installs its development dependencies; later builds reuse the same environment instead of reinstalling the packages.
+
 The default build parallelism is 2 jobs. To change it:
 
 [source,bash]
