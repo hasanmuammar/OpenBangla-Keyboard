@@ -88,11 +88,27 @@ toc::[]
   ** Automatic "Chandrabindu" position fixing.
 
 
-== Installation
+== Installation and User-Local Build
 
-This fork's experimental installer builds the current checkout in an isolated development environment and installs it only for the current user.
+This fork does **not** provide a pre-built binary through `tools/install.sh`. The command is a **build-and-install workflow**.
 
-It does not use `sudo`, does not install host packages, and does not write OpenBangla files into system directories.
+When you run `tools/install.sh`, it:
+
+. Detects the desktop environment and selects the input-method backend.
+. Selects an available isolated build environment.
+. Creates or reuses that build environment.
+. Installs the build dependencies inside that environment, not on the host.
+. Configures the OpenBangla source tree with CMake.
+. Compiles the selected backend and the OpenBangla application.
+. Stages the compiled files.
+. Installs the staged files into the current user's `~/.local` directory.
+. Performs basic verification of the user-local installation.
+
+The reason for this design is to make OpenBangla easier to build on different GNU/Linux systems without requiring system-wide packages or root access for the OpenBangla installation itself. This is particularly useful on immutable or image-based systems, but the workflow is **not specific to Dakota, Fedora, or any other single distribution**.
+
+The build dependencies are isolated in an available development environment. The host system is not modified with OpenBangla build packages or system-wide OpenBangla files.
+
+=== Quick Install
 
 From a clone of this repository:
 
@@ -103,34 +119,254 @@ cd OpenBangla-Keyboard
 bash tools/install.sh
 ----
 
-The installer automatically selects an available build environment in this order:
+The installer automatically chooses the first available build environment in this order:
 
 . Toolbox
 . Distrobox
 . Podman
 . Docker
 
-KDE/Plasma builds the Fcitx5 backend. Other desktop environments build the IBus backend. Only the selected backend is compiled.
+For Toolbox and Distrobox, the environment's normal host integration is used. For Podman and Docker, the required source, build, cache, and staging directories are made available to the build container.
 
-Build state is retained in the user's XDG cache directory so subsequent builds can reuse the CMake build tree. The default build parallelism is two jobs; it can be changed explicitly with `OPENBANGLA_BUILD_JOBS` when required.
+The installer does not ask the user to choose a build environment.
 
-The installation prefix is `~/.local`. The IBus component is additionally placed in the user's `XDG_DATA_HOME/ibus/component` directory when IBus is selected.
+=== Backend Selection
 
-This workflow is experimental and may change as the fork develops. It is not intended to replace the upstream packaging and distribution methods.
+The installer builds **one input-method backend**, rather than compiling both backends.
 
-== Compiling on GNU/Linux
+* KDE/Plasma desktops use Fcitx5.
+* Other desktop environments use IBus.
 
-The upstream project contains platform-specific packaging and installation tooling. This fork currently concentrates on a user-local Linux workflow suitable for immutable and image-based systems.
+This is intentional: the installed integration should match the desktop environment rather than installing unnecessary input-method components.
 
-The source tree is still built with CMake. The fork's installer supplies the build dependencies inside the selected development environment and configures exactly one input-method backend.
+The backend can also be selected explicitly when performing a custom build; see the custom build guide below.
 
-For manual development builds, the relevant CMake options are:
+=== What Is Installed
 
-* `-DENABLE_IBUS=ON -DENABLE_FCITX=OFF -DENABLE_BOTH=OFF` for IBus.
-* `-DENABLE_IBUS=OFF -DENABLE_FCITX=ON -DENABLE_BOTH=OFF` for Fcitx5.
+The default installation prefix is:
 
-For a user-local prefix, configure CMake with `-DCMAKE_INSTALL_PREFIX="$HOME/.local"`. Do not use `sudo make install` for the experimental workflow.
+[source,text]
+----
+~/.local
+----
 
+The main application is therefore installed under the user's home directory rather than a system directory.
+
+For an IBus build, the installer also installs the IBus component description under the user's XDG data directory:
+
+[source,text]
+----
+$XDG_DATA_HOME/ibus/component/openbangla.xml
+----
+
+If `XDG_DATA_HOME` is not set, the usual default is:
+
+[source,text]
+----
+~/.local/share
+----
+
+The installer may configure the user's desktop input sources where supported. It does not modify system-wide input-method configuration.
+
+=== Persistent Build and Cache Data
+
+The fork keeps build state in the user's XDG cache directory so that repeated builds do not have to start from an empty build directory.
+
+The main locations are:
+
+[source,text]
+----
+$XDG_CACHE_HOME/openbangla-keyboard/
+├── build/
+└── stage/
+----
+
+If `XDG_CACHE_HOME` is not set, `~/.cache` is used.
+
+The build directory contains the CMake/Ninja build state. The staging directory contains the files produced by `cmake --install` before they are copied into `~/.local`.
+
+The default build parallelism is **2 jobs**. It can be changed for a particular invocation, for example:
+
+[source,bash]
+----
+OPENBANGLA_BUILD_JOBS=4 bash tools/install.sh
+----
+
+Use a lower value on systems with limited CPU or memory.
+
+=== Why Use an Isolated Build Environment?
+
+OpenBangla is a native application with C++, Qt, Rust, and input-method dependencies. Building it directly on the host requires the correct development packages for the host distribution.
+
+This fork separates those concerns:
+
+* The host provides the user's desktop session and final runtime environment.
+* The isolated build environment provides compilers, headers, CMake, Ninja, Rust, Qt development files, and the selected input-method development files.
+* The resulting application is installed into the user's home directory.
+* The host package database is not used to install OpenBangla build dependencies.
+
+This is a build strategy, not a containerised runtime requirement. OpenBangla itself runs normally as a user-local Linux application after installation.
+
+== Custom Build Guide
+
+The automated `tools/install.sh` workflow is intended to be the normal path. A custom build is useful when developing OpenBangla, testing a different backend, changing the install prefix, inspecting CMake configuration, or controlling the build steps manually.
+
+The important distinction is that a **custom build still uses the OpenBangla CMake build system**. The fork's installer is an orchestration layer around that build system; it does not replace CMake.
+
+=== 1. Choose the Backend
+
+Enable exactly one backend.
+
+For IBus:
+
+[source,bash]
+----
+-DENABLE_IBUS=ON
+-DENABLE_FCITX=OFF
+-DENABLE_BOTH=OFF
+----
+
+For Fcitx5:
+
+[source,bash]
+----
+-DENABLE_IBUS=OFF
+-DENABLE_FCITX=ON
+-DENABLE_BOTH=OFF
+----
+
+Do not enable both for the normal portable/user-local workflow.
+
+=== 2. Configure a User-Local Build
+
+A basic IBus example is:
+
+[source,bash]
+----
+cmake -S . -B build   -G Ninja   -DCMAKE_BUILD_TYPE=Release   -DCMAKE_INSTALL_PREFIX="$HOME/.local"   -DENABLE_IBUS=ON   -DENABLE_FCITX=OFF   -DENABLE_BOTH=OFF
+----
+
+For Fcitx5, change the three backend options to:
+
+[source,bash]
+----
+-DENABLE_IBUS=OFF -DENABLE_FCITX=ON -DENABLE_BOTH=OFF
+----
+
+=== 3. Compile
+
+Build with Ninja:
+
+[source,bash]
+----
+cmake --build build --parallel 2
+----
+
+Increase the parallelism only when the system has enough CPU and memory:
+
+[source,bash]
+----
+cmake --build build --parallel 4
+----
+
+=== 4. Install for the Current User
+
+Install into the configured user-local prefix:
+
+[source,bash]
+----
+cmake --install build
+----
+
+Do **not** use `sudo` for this user-local installation.
+
+If you want to inspect the installation first, use a staging directory:
+
+[source,bash]
+----
+rm -rf stage
+DESTDIR="$PWD/stage" cmake --install build
+----
+
+The staged tree can then be inspected before copying it into the final prefix.
+
+=== 5. Clean or Reconfigure
+
+To remove only the CMake build state and configure again:
+
+[source,bash]
+----
+rm -rf build
+----
+
+Then rerun the CMake configuration command.
+
+To rebuild without deleting the build directory:
+
+[source,bash]
+----
+cmake --build build --parallel 2
+----
+
+When changing backend selection, it is safest to use a fresh build directory so that no previous backend configuration remains.
+
+=== 6. Custom Prefix
+
+The installation prefix does not have to be `~/.local`. For example:
+
+[source,bash]
+----
+-DCMAKE_INSTALL_PREFIX="$HOME/.local/opt/openbangla"
+----
+
+However, the portable installer and the desktop integration in this fork are designed around the normal XDG user-local layout. Custom prefixes may therefore require additional desktop/input-method configuration.
+
+=== 7. Build Dependencies
+
+The exact dependency set depends on the selected backend and the distribution providing the build environment.
+
+The automated installer handles the dependency installation inside the selected Toolbox, Distrobox, Podman, or Docker environment. A manual build requires the equivalent development packages to be available in whatever environment you use.
+
+The important categories are:
+
+* C/C++ compiler and standard build tools
+* CMake and Ninja
+* pkg-config
+* Rust and Cargo
+* zstd development files
+* Qt5 development files
+* IBus development files for an IBus build
+* Fcitx5 development files for an Fcitx5 build
+
+The installer deliberately installs only the selected input-method development dependency.
+
+=== 8. Updating the Fork
+
+After pulling new source changes:
+
+[source,bash]
+----
+git pull --recurse-submodules
+bash tools/install.sh
+----
+
+The persistent build directory allows CMake/Ninja to reuse unchanged build state.
+
+If a source or dependency change causes a stale configuration problem, remove the build cache:
+
+[source,bash]
+----
+rm -rf "$XDG_CACHE_HOME/openbangla-keyboard/build"
+----
+
+If `XDG_CACHE_HOME` is not set:
+
+[source,bash]
+----
+rm -rf "$HOME/.cache/openbangla-keyboard/build"
+----
+
+The fork is experimental, so the build workflow and directory layout may change as development continues.
 
 == Acknowledgements
  * Mehdi Hasan Khan, for originally developing and maintaining Avro Keyboard.
