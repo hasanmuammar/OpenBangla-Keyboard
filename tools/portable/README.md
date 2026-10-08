@@ -8,3 +8,7 @@ This directory contains the fork-specific Linux build and installation implement
 - `bundle-runtime.sh` handles the Linux shared-library closure and runtime modules such as the libproxy backend.
 - `install.sh` copies the staged tree into the user-local prefix and registers the selected input method.
 - `launch-bundled.sh` supplies the bundled library directory to the installed GUI and IBus engine.
+
+## Main integrations
+
+The portable build uses [CMake](https://github.com/Kitware/CMake), [Qt5](https://github.com/qt/qtbase), [Corrosion](https://github.com/corrosion-rs/corrosion) and [Zstandard](https://github.com/facebook/zstd), with Toolbx, Distrobox, Podman or Docker providing the isolated build environment.
