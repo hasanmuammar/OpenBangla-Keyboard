@@ -16,31 +16,41 @@ host_library() {
     esac
 }
 
-changed=1
-while [[ "$changed" -eq 1 ]]; do
-    changed=0
+queue=()
+declare -A seen=()
 
-    for library in \
-        "$stage_dir$HOME/.local/bin/openbangla-gui" \
-        "$stage_dir$HOME/.local/libexec/ibus-engine-openbangla" \
-        "$runtime_lib_dir"/*.so* \
-        "$runtime_plugin_dir"/platforms/*.so*; do
-        [[ -f "$library" ]] || continue
+enqueue() {
+    local library="$1"
+    [[ -f "$library" ]] || return 0
+    [[ "${seen[$library]:-0}" -eq 1 ]] && return 0
+    seen["$library"]=1
+    queue+=("$library")
+}
 
-        while IFS= read -r dependency_line; do
-            dependency="${dependency_line##*=> }"
-            [[ "$dependency" == /* ]] || continue
-            dependency="${dependency%% *}"
-            [[ -f "$dependency" ]] || continue
+enqueue "$stage_dir$HOME/.local/bin/openbangla-gui"
+enqueue "$stage_dir$HOME/.local/libexec/ibus-engine-openbangla"
+for library in "$runtime_lib_dir"/*.so* "$runtime_plugin_dir"/platforms/*.so*; do
+    enqueue "$library"
+done
 
-            dependency_name="${dependency##*/}"
-            host_library "$dependency_name" && continue
+while ((${#queue[@]})); do
+    library="${queue[0]}"
+    queue=("${queue[@]:1}")
 
-            target="$runtime_lib_dir/$dependency_name"
-            if [[ ! -e "$target" ]]; then
-                cp -a "$dependency" "$target"
-                changed=1
-            fi
-        done < <(ldd "$library" 2>/dev/null)
-    done
+    while IFS= read -r dependency_line; do
+        dependency="${dependency_line##*=> }"
+        [[ "$dependency" == /* ]] || continue
+        dependency="${dependency%% *}"
+        [[ -f "$dependency" ]] || continue
+
+        dependency_name="${dependency##*/}"
+        host_library "$dependency_name" && continue
+
+        target="$runtime_lib_dir/$dependency_name"
+        if [[ ! -e "$target" ]]; then
+            cp -a "$dependency" "$target"
+        fi
+
+        enqueue "$target"
+    done < <(ldd "$library" 2>/dev/null)
 done
