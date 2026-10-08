@@ -156,3 +156,5 @@ target
 *xcuserdata*
 *xcworkspace*
 /build
+
+dist/
