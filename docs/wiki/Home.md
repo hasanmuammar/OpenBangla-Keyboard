@@ -10,8 +10,9 @@ OpenBangla Keyboard is a Bangla/Bengali input method for Linux. This fork is Lin
 - [Uninstallation](Uninstallation.md)
 - [Input Methods](Input-Methods.md)
 - [Development](Development.md)
-- [Troubleshooting](Troubleshooting.md)
 - [Architecture](Architecture.md)
+- [Project Checklist](../PROJECT-CHECKLIST.md)
+
 ## Related projects
 
 The fork uses or integrates with:
