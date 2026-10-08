@@ -15,11 +15,11 @@ The portable installer and related integration work contain AI-generated or AI-a
 
 == What this fork provides
 
-* **Linux-only CMake build** with one input-method backend per build.
+* **Prebuilt Linux releases** for x86_64 and ARM64.
 * **Automatic backend selection:** KDE Plasma uses Fcitx5; other desktop environments use IBus.
 * **User-local installation** under `~/.local` without a system-wide package install.
-* **Isolated builds** using Toolbx, Distrobox, Podman, or Docker.
-* **Persistent build and staging cache** under the XDG cache directory.
+* **Source builds** remain available through `tools/build.sh`.
+* **Isolated source builds** using Toolbx, Distrobox, Podman, or Docker.
 * **Bundled Qt5 and required runtime libraries** for the user-local installation.
 * **Automatic IBus component registration** for user-local installations.
 * **User-local uninstaller** with optional cache removal.
