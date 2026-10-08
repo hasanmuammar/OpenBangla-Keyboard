@@ -44,6 +44,9 @@ build_openbangla() {
             exit 1
         fi
 
+            touch "$deps_stamp"
+        fi
+
         if [[ -f /etc/ssl/certs/ca-certificates.crt ]]; then
             ca_bundle=/etc/ssl/certs/ca-certificates.crt
         elif [[ -f /etc/pki/tls/certs/ca-bundle.crt ]]; then
