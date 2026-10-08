@@ -12,6 +12,8 @@ set(SRC_GUI
     LayoutViewer.cpp
     SettingsDialog.cpp
     AutoCorrectDialog.cpp
+    SingleInstance.cpp
+    SingleInstance.h
     images.qrc
 )
 
