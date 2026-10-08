@@ -1,6 +1,6 @@
 # Portable user-local build
 
-This directory contains the fork-specific Linux build and installation implementation.
+This directory contains the fork-specific Linux source-build, runtime-bundling and user-local installation implementation. The normal installer downloads prebuilt releases and does not use this build environment.
 
 - `common.sh` defines user-local paths and cache locations.
 - `environment.sh` selects IBus or Fcitx5 and chooses Toolbox, Distrobox, Podman, or Docker automatically.
