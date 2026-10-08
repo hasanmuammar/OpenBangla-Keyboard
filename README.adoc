@@ -90,107 +90,46 @@ toc::[]
 
 == Installation
 
-IMPORTANT: If you had installed OpenBangla Keyboard 1.5.1 or earlier version, https://github.com/OpenBangla/OpenBangla-Keyboard/wiki/Uninstalling-OpenBangla-Keyboard[please uninstall it first.]
+This fork's experimental installer builds the current checkout in an isolated development environment and installs it only for the current user.
 
-Open your terminal and run this command on your bash shell. NB : It has to be **BASH**, otherwise it won't work.
-```bash
-bash -c "$(wget -q https://raw.githubusercontent.com/OpenBangla/OpenBangla-Keyboard/master/tools/install.sh -O -)"
-```
+It does not use `sudo`, does not install host packages, and does not write OpenBangla files into system directories.
 
-If this does not workout for you please create an https://github.com/OpenBangla/OpenBangla-Keyboard/issues[Issue]. While we look into the problem you can check the https://github.com/OpenBangla/OpenBangla-Keyboard/wiki/Installing-OpenBangla-Keyboard[Wiki] for Distrowise/Distro-specific Install Instructions.
+From a clone of this repository:
 
-=== Archlinux and it's derivatives
-TIP: There is a video tutorial about installing OpenBangla Keyboard in Arch Linux. You may check that out from https://youtu.be/C8vnR1AY6sA[here].
+[source,bash]
+----
+git clone --recursive https://github.com/hasanmuammar/OpenBangla-Keyboard.git
+cd OpenBangla-Keyboard
+bash tools/install.sh
+----
 
-There are two packages for OpenBangla Keyboard in the Arch User Repository(AUR). Use `openbangla-keyboard` if you want to make and install the package from source. Otherwise, use `openbangla-keyboard-bin` to use the binary package released for Arch and its derivatives by the maintainer. You can install it in one command with your favorite aur helper. Example commands for two popular AUR helpers:
+The installer automatically selects an available build environment in this order:
 
-==== `openbangla-keyboard`
-* `$ paru -S openbangla-keyboard`
-* `$ yay -S openbangla-keyboard`
+. Toolbox
+. Distrobox
+. Podman
+. Docker
 
-==== `openbangla-keyboard-bin`
-* `$ paru -S openbangla-keyboard-bin`
-* `$ yay -S openbangla-keyboard-bin`
+KDE/Plasma builds the Fcitx5 backend. Other desktop environments build the IBus backend. Only the selected backend is compiled.
 
-Or install manually:
-```bash
-sudo pacman -S base-devel git
-git clone https://aur.archlinux.org/openbangla-keyboard.git
-cd openbangla-keyboard
-makepkg -risc
-```
-We also provide a `.pkg.tar.zst` package for Arch Linux which you can download the installation package from https://github.com/OpenBangla/OpenBangla-Keyboard/releases[releases page] and install OpenBangla Keyboard on your system by running the following command:
-```bash
-$ sudo pacman -U package.pkg.tar.zst
-```
+Build state is retained in the user's XDG cache directory so subsequent builds can reuse the CMake build tree. The default build parallelism is two jobs; it can be changed explicitly with `OPENBANGLA_BUILD_JOBS` when required.
 
-=== Others
-You can also install by downloading necessary packages from our https://github.com/OpenBangla/OpenBangla-Keyboard/releases[Releases] page.
+The installation prefix is `~/.local`. The IBus component is additionally placed in the user's `XDG_DATA_HOME/ibus/component` directory when IBus is selected.
 
-=== Finally
-After you have installed OpenBangla Keyboard, you may need to https://github.com/OpenBangla/OpenBangla-Keyboard/wiki/Configuring-Environment[configure your desktop environment].
-
-If this does not work out for you, please create an https://github.com/OpenBangla/OpenBangla-Keyboard/issues[Issue.]
-
-== Community
-We are on https://github.com/OpenBangla/OpenBangla-Keyboard/discussions[Github Discussions] and https://www.facebook.com/openbanglakeyboard[Facebook].
+This workflow is experimental and may change as the fork develops. It is not intended to replace the upstream packaging and distribution methods.
 
 == Compiling on GNU/Linux
 
-OpenBangla Keyboard currently has the following build dependencies:
+The upstream project contains platform-specific packaging and installation tooling. This fork currently concentrates on a user-local Linux workflow suitable for immutable and image-based systems.
 
-* GNU GCC 8 (or later) or Clang 7 (or later) compiler
-* Rust 1.34.0 or later
-* GNU Make or Ninja
-* CMake
-* Qt 5.15 or later
-* iBus development library
-* Zstandard compression library (zstd)
+The source tree is still built with CMake. The fork's installer supplies the build dependencies inside the selected development environment and configures exactly one input-method backend.
 
-=== Ubuntu & Debian derivatives
-On a Ubuntu/Debian system you can easily install them like this:
-```bash
-sudo apt-get install build-essential rustc cargo cmake libibus-1.0-dev qtbase5-dev qtbase5-dev-tools libzstd-dev
-```
+For manual development builds, the relevant CMake options are:
 
-=== Fedora
-On a Fedora system you can easily install them like this:
-```bash
-sudo dnf install @buildsys-build rust cargo cmake qt5-qtdeclarative-devel ibus-devel libzstd-devel
-```
+* `-DENABLE_IBUS=ON -DENABLE_FCITX=OFF -DENABLE_BOTH=OFF` for IBus.
+* `-DENABLE_IBUS=OFF -DENABLE_FCITX=ON -DENABLE_BOTH=OFF` for Fcitx5.
 
-=== Arch Linux & it's derivatives
-On a Arch Linux / Arch Based system you can easily install them like this:
-```bash
-sudo pacman -S base-devel rust cmake qt5-base libibus zstd
-```
-
-=== openSUSE
-On openSUSE & derivatives you can easily install them like this:
-```bash
-sudo zypper install libQt5Core-devel libQt5Widgets-devel libQt5Network-devel libzstd-devel libzstd1 cmake make ninja rust ibus-devel ibus clang gcc patterns-devel-base-devel_basis
-```
-
-=== Solus
-On Solus you can easily install them like this:
-```bash
-sudo eopkg install -c system.devel rust qt5-base-devel ibus-devel zstd-devel git
-```
-
-=== Finally
-After you have installed required libraries and binaries, clone this repository and change to the cloned folder:
-```bash
-git clone --recursive https://github.com/OpenBangla/OpenBangla-Keyboard.git
-cd OpenBangla-Keyboard
-```
-
-Then issue the build commands:
-```bash
-mkdir build && cd build
-cmake ..
-make
-sudo make install
-```
+For a user-local prefix, configure CMake with `-DCMAKE_INSTALL_PREFIX="$HOME/.local"`. Do not use `sudo make install` for the experimental workflow.
 
 
 == Acknowledgements
