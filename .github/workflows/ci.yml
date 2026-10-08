@@ -31,10 +31,12 @@ jobs:
           sudo apt-get install -y             build-essential             clang             cmake             ninja-build             pkg-config             rustc             cargo             libzstd-dev             qtbase5-dev             qtbase5-dev-tools             libqt5svg5-dev             libibus-1.0-dev             libfcitx5core-dev
 
       - name: Configure
-        env: ${{ matrix.compiler }}
-      backend: ${{ matrix.backend }}
+        env:
+          CC: ${{ matrix.compiler.CC }}
+          CXX: ${{ matrix.compiler.CXX }}
+          BACKEND: ${{ matrix.backend }}
         run: |
-          if [ "${backend}" = "ibus" ]; then
+          if [ "${BACKEND}" = "ibus" ]; then
             cmake -S . -B build -G Ninja               -DENABLE_IBUS=ON               -DENABLE_FCITX=OFF
           else
             cmake -S . -B build -G Ninja               -DENABLE_IBUS=OFF               -DENABLE_FCITX=ON
