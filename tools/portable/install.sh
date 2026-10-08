@@ -17,6 +17,9 @@ verify_installation() {
     [[ -x "$OBK_PREFIX/bin/openbangla-gui" ]] ||
         die "openbangla-gui was not installed."
 
+    "$OBK_PREFIX/bin/openbangla-gui" --version >/dev/null 2>&1 ||
+        die "openbangla-gui cannot start with the installed runtime."
+
     case "$OBK_BACKEND" in
         ibus)
             [[ -x "$OBK_PREFIX/libexec/ibus-engine-openbangla" ]] ||
