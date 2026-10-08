@@ -2,7 +2,7 @@
 
 এই repository-টি **OpenBangla Keyboard-এর একটি Linux-focused fork**। মূল OpenBangla Keyboard codebase বজায় রেখে এই fork-এর উদ্দেশ্য হলো **সাধারণ Linux desktop এবং immutable বা image-based Linux system-এ OpenBangla সহজে install ও ব্যবহারযোগ্য করা**।
 
-এই fork-এর মূল লক্ষ্য হলো **prebuilt Linux release, bundled runtime library এবং user-local installer** দেওয়া, যাতে সাধারণ user-কে compiler, CMake, Rust, Qt development package বা build container প্রস্তুত করতে না হয়। Development এবং release packaging-এর জন্য source build-ও রাখা হয়েছে।
+এই fork-এর মূল লক্ষ্য হলো **Bazzite ও Bluefin-এর মতো আধুনিক Linux operating system-এ সহজ installation** দেওয়া, যেখানে prebuilt Linux release, bundled runtime library এবং user-local installer ব্যবহার করা হয়। সাধারণ user-কে compiler, CMake, Rust, Qt development package বা build container প্রস্তুত করতে হয় না। Development এবং release packaging-এর জন্য source build-ও রাখা হয়েছে।
 
 OpenBangla Keyboard একটি open-source, Unicode-সমর্থিত **Bangla (Bengali) keyboard ও input method for Linux**। এতে phonetic ও fixed keyboard layout, typing automation, dictionary এবং autocorrection সুবিধা রয়েছে।
 
