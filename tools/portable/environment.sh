@@ -12,6 +12,81 @@ detect_desktop_backend() {
     export OBK_BACKEND
 }
 
+detect_host_distro() {
+    local distro_name=""
+
+    if [[ -r /etc/os-release ]]; then
+        # shellcheck disable=SC1091
+        source /etc/os-release
+
+        case "${ID:-}" in
+            debian|ubuntu|linuxmint)
+                distro_name=debian
+                ;;
+            fedora|rhel|centos|rocky|almalinux)
+                distro_name=fedora
+                ;;
+            arch|manjaro|endeavouros)
+                distro_name=arch
+                ;;
+            opensuse*|sles)
+                distro_name=opensuse
+                ;;
+        esac
+    fi
+
+    if [[ -z "$distro_name" && -e /etc/arch-release ]]; then
+        distro_name=arch
+    fi
+
+    printf "%s\\n" "$distro_name"
+}
+
+run_host_root() {
+    if [[ "$(id -u)" -eq 0 ]]; then
+        "$@"
+    else
+        command -v sudo >/dev/null 2>&1 ||
+            die "sudo is required to install the host build environment."
+        sudo "$@"
+    fi
+}
+
+bootstrap_podman() {
+    local distro
+    distro="$(detect_host_distro)"
+
+    log "No isolated build environment found. Installing Podman automatically."
+
+    case "$distro" in
+        debian)
+            log "Detected Debian/Ubuntu-based host."
+            run_host_root apt-get update
+            run_host_root env DEBIAN_FRONTEND=noninteractive apt-get install -y podman
+            ;;
+        fedora)
+            log "Detected Fedora/RHEL-based host."
+            run_host_root dnf install -y podman
+            ;;
+        arch)
+            log "Detected Arch-based host."
+            run_host_root pacman -Sy --needed --noconfirm podman
+            ;;
+        opensuse)
+            log "Detected openSUSE/SUSE-based host."
+            run_host_root zypper --non-interactive install podman
+            ;;
+        *)
+            die "No supported build environment was found, and the host distribution could not be recognised for automatic Podman installation. Install Podman, Toolbx, Distrobox, or Docker and rerun this installer."
+            ;;
+    esac
+
+    command -v podman >/dev/null 2>&1 ||
+        die "Podman installation completed but the podman command is still unavailable."
+
+    log "Podman is now available."
+}
+
 select_builder() {
     if command -v toolbox >/dev/null 2>&1; then
         OBK_BUILDER=toolbox
@@ -22,7 +97,8 @@ select_builder() {
     elif command -v docker >/dev/null 2>&1; then
         OBK_BUILDER=docker
     else
-        die "No supported build environment found. Install Toolbox, Distrobox, Podman, or Docker."
+        bootstrap_podman
+        OBK_BUILDER=podman
     fi
     export OBK_BUILDER
 }
