@@ -78,8 +78,20 @@ ensure_builder() {
             fi
             ;;
         podman)
+            local builder_image="debian:13-slim"
+            local current_image=""
+
+            if podman container exists openbangla-builder 2>/dev/null; then
+                current_image="$(podman inspect -f '{{.Config.Image}}' openbangla-builder 2>/dev/null || true)"
+
+                if [[ "$current_image" != "$builder_image" ]]; then
+                    log "Replacing the old OpenBangla builder image with $builder_image."
+                    podman rm -f openbangla-builder >/dev/null
+                fi
+            fi
+
             if ! podman container exists openbangla-builder 2>/dev/null; then
-                podman create                     --name openbangla-builder                     -v "$OBK_WORKSPACE:/workspace:rw"                     -v "$HOME:$HOME:rw"                     -v "$OBK_CACHE:/cache:rw"                     -v "$OBK_STAGE:/stage:rw"                     -e HOME="$HOME"                     ubuntu:24.04 sleep infinity
+                podman create --pull=missing                     --name openbangla-builder                     -v "$OBK_WORKSPACE:/workspace:rw"                     -v "$HOME:$HOME:rw"                     -v "$OBK_CACHE:/cache:rw"                     -v "$OBK_STAGE:/stage:rw"                     -e HOME="$HOME"                     "$builder_image"                     sleep infinity
             fi
 
             if [[ "$(podman inspect -f '{{.State.Running}}' openbangla-builder 2>/dev/null)" != true ]]; then
