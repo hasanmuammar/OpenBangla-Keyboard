@@ -69,8 +69,21 @@ build_openbangla() {
 
         rm -rf "$stage_dir"/*
         DESTDIR="$stage_dir" cmake --install "$build_dir"
-        qt_lib_dir="$(qmake -query QT_INSTALL_LIBS)"
-        qt_plugin_dir="$(qmake -query QT_INSTALL_PLUGINS)"
+        if command -v qmake >/dev/null 2>&1; then
+            qt_query_tool=qmake
+        elif command -v qmake-qt5 >/dev/null 2>&1; then
+            qt_query_tool=qmake-qt5
+        elif command -v qtpaths >/dev/null 2>&1; then
+            qt_query_tool=qtpaths
+        elif command -v qtpaths-qt5 >/dev/null 2>&1; then
+            qt_query_tool=qtpaths-qt5
+        else
+            echo "Qt5 query tool (qmake/qtpaths) was not found." >&2
+            exit 1
+        fi
+
+        qt_lib_dir="$("$qt_query_tool" -query QT_INSTALL_LIBS)"
+        qt_plugin_dir="$("$qt_query_tool" -query QT_INSTALL_PLUGINS)"
         runtime_lib_dir="$stage_dir$HOME/.local/lib/openbangla"
         runtime_plugin_dir="$runtime_lib_dir/qt5/plugins"
 
