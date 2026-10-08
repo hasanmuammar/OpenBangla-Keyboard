@@ -1,120 +1,42 @@
 = ওপেনবাংলা কিবোর্ড — Linux-এর জন্য Bangla Keyboard | IBus ও Fcitx5
 
-ওপেনবাংলা কিবোর্ড একটি open-source, Unicode-সমর্থিত **Bangla (Bengali) keyboard ও input method for Linux**, যেখানে ফোনেটিক ও ফিক্সড কিবোর্ড লেআউট, টাইপিং অটোমেশন, ডিকশনারি এবং অটোকরেক্ট সুবিধা রয়েছে।
+এই repository-টি **OpenBangla Keyboard-এর একটি Linux-focused fork**। মূল OpenBangla Keyboard codebase বজায় রেখে এই fork-এর উদ্দেশ্য হলো **সাধারণ Linux desktop এবং immutable বা image-based Linux system-এ OpenBangla সহজে install ও ব্যবহারযোগ্য করা**।
 
-এই repository-টি OpenBangla Keyboard-এর একটি পরীক্ষামূলক Linux-focused fork। এই fork-এর মূল কাজ হলো portable এবং user-local build ও installation workflow তৈরি করা, যাতে সাধারণ Linux-এর পাশাপাশি immutable বা image-based Linux-এও host system-এ system-wide package install না করেই এটি ব্যবহার করা যায়।
+এই fork-এর মূল লক্ষ্য হলো **prebuilt Linux release, bundled runtime library এবং user-local installer** দেওয়া, যাতে সাধারণ user-কে compiler, CMake, Rust, Qt development package বা build container প্রস্তুত করতে না হয়। Development এবং release packaging-এর জন্য source build-ও রাখা হয়েছে।
+
+OpenBangla Keyboard একটি open-source, Unicode-সমর্থিত **Bangla (Bengali) keyboard ও input method for Linux**। এতে phonetic ও fixed keyboard layout, typing automation, dictionary এবং autocorrection সুবিধা রয়েছে।
 
 [IMPORTANT]
 ====
-এটি upstream OpenBangla Keyboard-এর official release নয়।
-
-Portable installer এবং integration-এর কিছু অংশ AI-generated বা AI-assisted। পরিবর্তনগুলো ধাপে ধাপে review ও test করা হচ্ছে, তবে এটিকে experimental software হিসেবে বিবেচনা করা উচিত।
+এটি OpenBangla Keyboard-এর **experimental fork**, official OpenBangla Keyboard release নয়। এই repository-তে fork-specific installation, runtime bundling, packaging এবং Linux integration-এর কাজ করা হয়।
 ====
 
 == এই fork-এর বৈশিষ্ট্য
 
-* x86_64 ও ARM64-এর জন্য prebuilt Linux release।
-* KDE Plasma-তে Fcitx5 এবং অন্যান্য desktop environment-এ IBus নির্বাচন।
+* x86_64 ও ARM64-এর জন্য **prebuilt Linux release**।
+* **Automatic backend selection:** KDE Plasma-তে Fcitx5 এবং অন্যান্য desktop environment-এ IBus।
 * বর্তমান user-এর জন্য `~/.local`-এ installation।
-* Source build-এর জন্য আলাদা `tools/build.sh`।
-* Toolbx, Distrobox, Podman বা Docker-এর isolated source-build environment।
-* XDG cache directory-তে persistent build ও staging cache।
-* Qt এবং প্রয়োজনীয় runtime library user-local bundle হিসেবে রাখা।
+* Source build-এর জন্য `tools/build.sh`।
+* Toolbx, Distrobox, Podman অথবা Docker-এর isolated source-build environment।
+* User-local installation-এর জন্য bundled Qt5 ও প্রয়োজনীয় runtime library।
 * User-local IBus component registration।
-* User-local uninstaller।
+* User-local uninstaller ও optional cache removal।
 
-== ইনস্টলেশন
+== Bangla keyboard ও input-method features
 
-সাধারণ user-এর জন্য compiler, CMake, Rust, Qt development package বা build container প্রয়োজন নেই। `tools/install.sh` বর্তমান CPU architecture ও desktop environment অনুযায়ী prebuilt Linux release download করে checksum verify করে `~/.local`-এ install করে।
+OpenBangla Keyboard codebase Linux-এ Bangla typing-এর জন্য ব্যবহারযোগ্য এবং এতে রয়েছে:
 
-সমর্থিত architecture:
+* Avro-style phonetic input-সহ phonetic Bangla typing।
+* Fixed Bangla keyboard layout।
+* Unicode-compliant Bengali text input।
+* Fixed layout-এর typing automation।
+* Dictionary-based suggestion এবং autocorrection।
+* Qt-based configuration interface।
+* IBus অথবা Fcitx5-এর মাধ্যমে Linux desktop integration।
 
-* x86_64
-* ARM64 (aarch64)
+[IMPORTANT]
+====
+Portable installer এবং related integration-এর কিছু অংশ AI-generated বা AI-assisted। পরিবর্তনগুলো ধাপে ধাপে review ও test করা হচ্ছে, তবে এটি experimental software।
+====
 
-[source,bash]
-----
-git clone https://github.com/hasanmuammar/OpenBangla-Keyboard.git
-cd OpenBangla-Keyboard
-bash tools/install.sh
-----
 
-নির্দিষ্ট release install করতে:
-
-[source,bash]
-----
-bash tools/install.sh --version 3.0.0
-----
-
-== আনইনস্টলেশন
-
-বর্তমান user-এর OpenBangla installation সরাতে:
-
-[source,bash]
-----
-bash tools/uninstall.sh
-----
-
-Build এবং staging cache-ও সরাতে:
-
-[source,bash]
-----
-bash tools/uninstall.sh --purge-cache
-----
-
-== Manual Linux build
-
-CMake build-এ একবারে একটি backend ব্যবহার করুন।
-
-=== IBus
-
-[source,bash]
-----
-cmake -S . -B build -G Ninja \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_INSTALL_PREFIX="$HOME/.local" \
-  -DENABLE_IBUS=ON \
-  -DENABLE_FCITX=OFF
-
-cmake --build build --parallel 2
-cmake --install build
-----
-
-=== Fcitx5
-
-[source,bash]
-----
-cmake -S . -B build -G Ninja \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_INSTALL_PREFIX="$HOME/.local" \
-  -DENABLE_IBUS=OFF \
-  -DENABLE_FCITX=ON
-
-cmake --build build --parallel 2
-cmake --install build
-----
-
-প্রয়োজনীয় build dependencies-এর মধ্যে Qt5, CMake, Ninja, C/C++ compiler, Rust/Cargo, zstd development files এবং নির্বাচিত input-method backend-এর development files রয়েছে।
-
-== Development
-
-এই fork-এর development `develop` branch-এ হয়।
-
-[source,bash]
-----
-git pull --recurse-submodules
-bash tools/build.sh
-----
-
-Automated build cache পরিষ্কার করে rebuild করতে:
-
-[source,bash]
-----
-rm -rf "$HOME/.cache/openbangla-keyboard/build"
-----
-
-Fork-specific documentation `docs/wiki/` directory-তে রাখা হয়েছে।
-
-== License
-
-এই project GNU General Public License version 3 or later-এর অধীনে licensed।
