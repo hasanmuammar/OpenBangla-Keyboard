@@ -12,6 +12,18 @@ install_openbangla() {
 
     cp -a "$OBK_STAGE$OBK_PREFIX/." "$OBK_PREFIX/"
 
+    if [[ -x "$OBK_PREFIX/bin/openbangla-gui" ]]; then
+        mv -f "$OBK_PREFIX/bin/openbangla-gui" "$OBK_PREFIX/bin/openbangla-gui.bin"
+        cp "$OBK_WORKSPACE/tools/portable/launch-bundled.sh" "$OBK_PREFIX/bin/openbangla-gui"
+        chmod +x "$OBK_PREFIX/bin/openbangla-gui"
+    fi
+
+    if [[ -x "$OBK_PREFIX/libexec/ibus-engine-openbangla" ]]; then
+        mv -f "$OBK_PREFIX/libexec/ibus-engine-openbangla" "$OBK_PREFIX/libexec/ibus-engine-openbangla.bin"
+        cp "$OBK_WORKSPACE/tools/portable/launch-bundled.sh" "$OBK_PREFIX/libexec/ibus-engine-openbangla"
+        chmod +x "$OBK_PREFIX/libexec/ibus-engine-openbangla"
+    fi
+
     if [[ "$OBK_BACKEND" == ibus ]] &&
        command -v dconf >/dev/null 2>&1; then
         "$OBK_PREFIX/bin/openbangla-gui" --setup-system || true
