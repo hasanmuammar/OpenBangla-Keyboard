@@ -57,7 +57,7 @@ The installer automatically detects the desktop environment, selects the input-m
 
 Supported build environments are https://github.com/containers/toolbox[Toolbx (`toolbox`)], https://github.com/89luca89/distrobox[Distrobox], https://github.com/containers/podman[Podman], and https://github.com/moby/moby[Docker]. No manual builder selection is required.
 
-The isolated Podman build environment is persistent and uses a Debian 13 slim base. The first build installs its development dependencies; later builds reuse the same environment instead of reinstalling the packages.
+When a new Podman build environment is needed, the installer explains the temporary disk usage and asks for confirmation. The temporary Debian 13 slim build container can be removed automatically after a successful installation, freeing the space used by its build dependencies.
 
 The default build parallelism is 2 jobs. To change it:
 
