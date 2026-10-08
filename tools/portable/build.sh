@@ -22,7 +22,9 @@ build_openbangla() {
         if command -v apt-get >/dev/null 2>&1; then
             export DEBIAN_FRONTEND=noninteractive
             $sudo_cmd apt-get update
-            $sudo_cmd apt-get install -y --no-install-recommends                 build-essential clang cmake ninja-build pkg-config                 rustc cargo libzstd-dev                 qtbase5-dev qtbase5-dev-tools libqt5svg5-dev                 ca-certificates
+            $sudo_cmd apt-get install -y --no-install-recommends                 build-essential clang cmake ninja-build pkg-config                 rustc cargo libzstd-dev                 qtbase5-dev qtbase5-dev-tools libqt5svg5-dev                 ca-certificates curl
+
+            $sudo_cmd update-ca-certificates
 
             if [[ "$OBK_BACKEND" == ibus ]]; then
                 $sudo_cmd apt-get install -y --no-install-recommends libibus-1.0-dev
@@ -30,7 +32,7 @@ build_openbangla() {
                 $sudo_cmd apt-get install -y --no-install-recommends libfcitx5core-dev
             fi
         elif command -v dnf >/dev/null 2>&1; then
-            $sudo_cmd dnf install -y                 gcc gcc-c++ clang cmake ninja-build pkgconf-pkg-config                 rust cargo libzstd-devel                 qt5-qtbase-devel qt5-qtsvg-devel
+            $sudo_cmd dnf install -y                 gcc gcc-c++ clang cmake ninja-build pkgconf-pkg-config                 rust cargo libzstd-devel                 qt5-qtbase-devel qt5-qtsvg-devel ca-certificates curl
 
             if [[ "$OBK_BACKEND" == ibus ]]; then
                 $sudo_cmd dnf install -y ibus-devel
@@ -41,6 +43,18 @@ build_openbangla() {
             echo "Unsupported package manager in build environment." >&2
             exit 1
         fi
+
+        if [[ -f /etc/ssl/certs/ca-certificates.crt ]]; then
+            ca_bundle=/etc/ssl/certs/ca-certificates.crt
+        elif [[ -f /etc/pki/tls/certs/ca-bundle.crt ]]; then
+            ca_bundle=/etc/pki/tls/certs/ca-bundle.crt
+        else
+            echo "A system CA certificate bundle was not found in the build environment." >&2
+            exit 1
+        fi
+
+        export SSL_CERT_FILE="$ca_bundle"
+        export CARGO_HTTP_CAINFO="$ca_bundle"
 
         case "$OBK_BACKEND" in
             ibus)
@@ -63,7 +77,7 @@ build_openbangla() {
 
         mkdir -p "$build_dir" "$stage_dir"
 
-        cmake -S "$source_dir" -B "$build_dir"             -GNinja             -DCMAKE_BUILD_TYPE=Release             -DCMAKE_INSTALL_PREFIX="$HOME/.local"             -DCMAKE_INSTALL_RPATH=\$ORIGIN/../lib/openbangla             -DENABLE_IBUS="$ibus"             -DENABLE_FCITX="$fcitx"             -DENABLE_BOTH=OFF             -DCMAKE_EXE_LINKER_FLAGS=-Wl,--disable-new-dtags             -DCMAKE_SHARED_LINKER_FLAGS=-Wl,--disable-new-dtags
+        cmake -S "$source_dir" -B "$build_dir"             -GNinja             -DCMAKE_BUILD_TYPE=Release             -DCMAKE_INSTALL_PREFIX="$HOME/.local"             -DCMAKE_INSTALL_RPATH=\$ORIGIN/../lib/openbangla             -DENABLE_IBUS="$ibus"             -DENABLE_FCITX="$fcitx"             -DCMAKE_EXE_LINKER_FLAGS=-Wl,--disable-new-dtags             -DCMAKE_SHARED_LINKER_FLAGS=-Wl,--disable-new-dtags
 
         cmake --build "$build_dir" --parallel "$OBK_JOBS"
 
