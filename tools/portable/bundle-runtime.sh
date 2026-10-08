@@ -51,6 +51,9 @@ while ((${#queue[@]})); do
         [[ -f "$resolved_dependency" ]] || continue
 
         target="$runtime_lib_dir/$dependency_name"
+        if [[ -L "$target" ]]; then
+            rm -f "$target"
+        fi
         if [[ ! -e "$target" ]]; then
             cp -a "$resolved_dependency" "$target"
         fi
