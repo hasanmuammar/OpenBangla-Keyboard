@@ -26,11 +26,22 @@ install_openbangla() {
 
     if [[ "$OBK_BACKEND" == ibus ]] && command -v ibus >/dev/null 2>&1; then
         local ibus_component_path="$OBK_PREFIX/share/ibus/component"
+        local ibus_component_env="$ibus_component_path:/usr/share/ibus/component"
+        local xdg_config_home
 
-        IBUS_COMPONENT_PATH="$ibus_component_path:/usr/share/ibus/component${IBUS_COMPONENT_PATH:+:$IBUS_COMPONENT_PATH}" \
-            ibus write-cache || die "Failed to register the IBus component."
+        xdg_config_home="$(xdg_dir XDG_CONFIG_HOME "$HOME/.config")"
+        mkdir -p "$xdg_config_home/environment.d"
+        printf "%s\n" "IBUS_COMPONENT_PATH=$ibus_component_env" > "$xdg_config_home/environment.d/90-openbangla-ibus.conf"
 
-        ibus restart >/dev/null 2>&1 || true
+        if command -v dbus-update-activation-environment >/dev/null 2>&1; then
+            dbus-update-activation-environment --systemd "IBUS_COMPONENT_PATH=$ibus_component_env" || true
+        elif command -v systemctl >/dev/null 2>&1; then
+            IBUS_COMPONENT_PATH="$ibus_component_env" systemctl --user import-environment IBUS_COMPONENT_PATH || true
+        fi
+
+        IBUS_COMPONENT_PATH="$ibus_component_env" ibus write-cache || die "Failed to register the IBus component."
+
+        IBUS_COMPONENT_PATH="$ibus_component_env" ibus restart >/dev/null 2>&1 || true
     fi
 
     if [[ "$OBK_BACKEND" == ibus ]] &&
