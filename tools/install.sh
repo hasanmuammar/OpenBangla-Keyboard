@@ -20,6 +20,7 @@ main() {
     build_openbangla
     install_openbangla
     verify_installation
+    cleanup_builder
 
     log "OpenBangla Keyboard was installed for the current user."
 }
