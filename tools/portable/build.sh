@@ -14,9 +14,21 @@ build_openbangla() {
         if command -v apt-get >/dev/null 2>&1; then
             export DEBIAN_FRONTEND=noninteractive
             apt-get update
-            apt-get install -y --no-install-recommends                 build-essential clang cmake ninja-build pkg-config                 rustc cargo libibus-1.0-dev libzstd-dev                 qtbase5-dev qtbase5-dev-tools libqt5svg5-dev                 libfcitx5core-dev ca-certificates
+            apt-get install -y --no-install-recommends                 build-essential clang cmake ninja-build pkg-config                 rustc cargo libzstd-dev                 qtbase5-dev qtbase5-dev-tools libqt5svg5-dev                 ca-certificates
+
+            if [[ "$OBK_BACKEND" == ibus ]]; then
+                apt-get install -y --no-install-recommends libibus-1.0-dev
+            else
+                apt-get install -y --no-install-recommends libfcitx5core-dev
+            fi
         elif command -v dnf >/dev/null 2>&1; then
-            dnf install -y                 gcc gcc-c++ clang cmake ninja-build pkgconf-pkg-config                 rust cargo ibus-devel libzstd-devel                 qt5-qtbase-devel qt5-qtsvg-devel fcitx5-devel
+            dnf install -y                 gcc gcc-c++ clang cmake ninja-build pkgconf-pkg-config                 rust cargo libzstd-devel                 qt5-qtbase-devel qt5-qtsvg-devel
+
+            if [[ "$OBK_BACKEND" == ibus ]]; then
+                dnf install -y ibus-devel
+            else
+                dnf install -y fcitx5-devel
+            fi
         else
             echo "Unsupported package manager in build environment." >&2
             exit 1
@@ -37,15 +49,9 @@ build_openbangla() {
                 ;;
         esac
 
-        if [[ -d /workspace ]]; then
-            source_dir=/workspace
-            build_dir=/cache/build
-            stage_dir=/stage
-        else
-            source_dir="$HOME/.local/share/openbangla-keyboard/source"
-            build_dir="$HOME/.cache/openbangla-keyboard/build"
-            stage_dir="$HOME/.cache/openbangla-keyboard/stage"
-        fi
+        source_dir="$OBK_WORKSPACE"
+        build_dir="$OBK_BUILD"
+        stage_dir="$OBK_STAGE"
 
         mkdir -p "$build_dir" "$stage_dir"
 
