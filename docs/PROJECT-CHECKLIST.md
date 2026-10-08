@@ -11,7 +11,7 @@ This checklist separates what is implemented, what is verified, what is configur
 ## 1. Project direction and scope
 
 - [x] Linux-only fork established.
-- [x] Conventional Linux and immutable/image-based Linux are the primary targets.
+- [x] Conventional Linux and modern atomic/image-based Linux systems are the primary targets.
 - [x] User-local installation under `~/.local`.
 - [x] System-wide package installation is no longer the normal installation model.
 - [x] Cross-platform packaging/code that is not needed for the Linux fork was removed.
@@ -69,12 +69,12 @@ This checklist separates what is implemented, what is verified, what is configur
 - [ ] Verify actual text input through Fcitx5 after a clean install.
 - [ ] Verify the GUI and input engine on both supported CPU architectures.
 
-## 5. Current build issue / CI status
+## 5. Current build and CI status
 
 - [x] The previous GUI linker failure was identified: `SingleInstance.cpp` was not part of the GUI target.
 - [x] `SingleInstance.cpp` and `SingleInstance.h` were added to `src/frontend/CMakeLists.txt`.
 - [x] Fix committed as `bd4e0c739d8619f6afa83342328fe343239bdc1e`.
-- [x] Latest CI run #82 completed successfully.
+- [x] Latest source-build CI run #86 completed successfully.
 - [x] x86_64 + GCC + IBus passed.
 - [x] x86_64 + GCC + Fcitx5 passed.
 - [x] x86_64 + Clang + IBus passed.
@@ -84,6 +84,9 @@ This checklist separates what is implemented, what is verified, what is configur
 - [x] CMake configuration passed for all six latest CI variants.
 - [x] Compilation passed for all six latest CI variants.
 - [ ] Runtime/functional input testing is not yet covered by CI.
+- [x] Prebuilt package test run #6 completed successfully for x86_64/IBus, x86_64/Fcitx5, ARM64/IBus and ARM64/Fcitx5.
+- [x] Prebuilt package test run #7 completed successfully after the README update.
+- [x] Package validation verifies checksums, archive contents, backend metadata and a headless Qt GUI smoke test.
 
 ## 6. Release packaging
 
@@ -136,9 +139,9 @@ Current repository facts:
 
 ## 9. Known issues/blockers before first public release
 
-- [ ] Resolve the prebuilt installation wrapping path before release. The current packaging step wraps the GUI/IBus binaries, while the generic installation step also wraps executable files; this needs a single, unambiguous wrapping stage.
-- [ ] Add an archive-content validation step to release CI.
-- [ ] Add a release smoke test that runs the packaged `openbangla-gui --version`.
+- [x] Resolve the prebuilt installation wrapping path before release: packaging now preserves real binaries and the installer applies the wrapper exactly once.
+- [x] Add archive-content validation to the prebuilt package test workflow.
+- [x] Add a packaged `openbangla-gui --version` smoke test using Qt's headless `offscreen` platform.
 - [ ] Add backend-specific smoke validation where practical.
 - [ ] Verify that Fcitx5 registration behaves correctly after installing the published archive.
 - [ ] Verify that IBus registration survives logout/reboot on a clean system.
