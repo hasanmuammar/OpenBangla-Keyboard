@@ -9,15 +9,16 @@ REPOSITORY="hasanmuammar/OpenBangla-Keyboard"
 REQUESTED_VERSION="${OPENBANGLA_VERSION:-}"
 RELEASE_VERSION="latest"
 RELEASE_BASE=""
+VERSION_FILE="$SCRIPT_DIR/../version.txt"
 
 usage() {
     cat <<'EOF'
 Usage: tools/install.sh [options]
 
-Install the latest prebuilt OpenBangla Keyboard for Linux.
+Install the prebuilt OpenBangla Keyboard build specified by version.txt for this fork.
 
 Options:
-  --version VERSION   Install a specific release version.
+  --version VERSION   Install a specific fork release version.
   -h, --help          Show this help.
 EOF
 }
@@ -114,6 +115,10 @@ download_release() {
 
 main() {
     require_linux
+
+    if [[ -z "$REQUESTED_VERSION" && -f "$VERSION_FILE" ]]; then
+        REQUESTED_VERSION="$(tr -d '[:space:]' < "$VERSION_FILE")"
+    fi
     detect_backend
     detect_arch
     prepare_paths
