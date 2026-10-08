@@ -17,8 +17,6 @@ This is an experimental fork and significant portions of the fork-specific insta
 **Do not report problems caused by this fork to the upstream OpenBangla Keyboard project.** Please report fork-specific bugs, installation failures and integration issues in this repository instead.
 ====
 
-This is an **experimental fork**, not an official OpenBangla Keyboard release. Fork-specific installation, runtime bundling, packaging and Linux integration are maintained in this repository.
-====
 
 == What this fork provides
 
@@ -43,10 +41,6 @@ The OpenBangla Keyboard codebase is built for Bangla typing on Linux and include
 * A Qt-based configuration interface.
 * Linux desktop integration through IBus or Fcitx5.
 
-[IMPORTANT]
-====
-The portable installer and related integration work contain AI-generated or AI-assisted code. The code is reviewed and tested incrementally, but regressions are possible.
-====
 
 == Installation
 
