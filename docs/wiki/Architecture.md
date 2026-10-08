@@ -1,4 +1,4 @@
-# Architecture
+# Architecture — Portable Linux Build and Runtime
 
 The fork keeps the installer modular.
 
@@ -31,3 +31,6 @@ Build and staging state is kept outside the installed tree under the XDG cache d
 The installer selects exactly one backend:
 - KDE/Plasma -> Fcitx5
 - other desktops -> IBus
+## External projects
+
+The architecture integrates with [Toolbx](https://github.com/containers/toolbox), [Distrobox](https://github.com/89luca89/distrobox), [Podman](https://github.com/containers/podman), [Docker](https://github.com/moby/moby), [Qt](https://github.com/qt/qtbase), [CMake](https://github.com/Kitware/CMake), [Corrosion](https://github.com/corrosion-rs/corrosion), [IBus](https://github.com/ibus/ibus), [Fcitx5](https://github.com/fcitx/fcitx5) and [Zstandard](https://github.com/facebook/zstd).
