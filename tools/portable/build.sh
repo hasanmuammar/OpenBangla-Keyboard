@@ -63,7 +63,7 @@ build_openbangla() {
 
         mkdir -p "$build_dir" "$stage_dir"
 
-        cmake -S "$source_dir" -B "$build_dir"             -GNinja             -DCMAKE_BUILD_TYPE=Release             -DCMAKE_INSTALL_PREFIX="$HOME/.local"             -DCMAKE_INSTALL_RPATH=\$ORIGIN/../lib/openbangla             -DENABLE_IBUS="$ibus"             -DENABLE_FCITX="$fcitx"             -DENABLE_BOTH=OFF
+        cmake -S "$source_dir" -B "$build_dir"             -GNinja             -DCMAKE_BUILD_TYPE=Release             -DCMAKE_INSTALL_PREFIX="$HOME/.local"             -DCMAKE_INSTALL_RPATH=$ORIGIN/../lib/openbangla             -DENABLE_IBUS="$ibus"             -DENABLE_FCITX="$fcitx"             -DENABLE_BOTH=OFF
 
         cmake --build "$build_dir" --parallel "$OBK_JOBS"
 
@@ -105,20 +105,20 @@ build_openbangla() {
             "$runtime_plugin_dir"/platforms/*.so*
         )
         declare -A bundled=()
-        while (\${#pending[@]}); do
-            library="\${pending[0]}"
-            pending=(" \${pending[@]:1}")
+        while (${#pending[@]}); do
+            library="${pending[0]}"
+            pending=("${pending[@]:1}")
             [[ -f "$library" ]] || continue
             real_library="$(readlink -f "$library")"
             [[ -n "$real_library" ]] || continue
-            [[ "\${bundled[$real_library]:-}" == 1 ]] && continue
+            [[ "${bundled[$real_library]:-}" == 1 ]] && continue
             bundled["$real_library"]=1
 
             while IFS= read -r dependency; do
                 [[ -f "$dependency" ]] || continue
                 case "$dependency" in
                     "$qt_lib_dir"/*)
-                        dependency_name="\${dependency##*/}"
+                        dependency_name="${dependency##*/}"
                         case "$dependency_name" in
                             libc.so*|libm.so*|libpthread.so*|libdl.so*|librt.so*|libresolv.so*|libgcc_s.so*|libstdc++.so*) continue ;;
                         esac
