@@ -89,7 +89,7 @@ remove_fcitx_profile_entry() {
                 printf "%s", block
         }
 
-        /^[/ {
+        /^\[/ {
             flush()
             section = $0
             block = $0 ORS
