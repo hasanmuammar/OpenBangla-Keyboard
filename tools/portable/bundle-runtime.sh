@@ -20,6 +20,32 @@ host_library() {
 queue=()
 declare -A seen=()
 
+bundle_libproxy_backend() {
+    local libproxy
+    local module
+    local module_dir
+    local target
+
+    command -v ldconfig >/dev/null 2>&1 || return 0
+
+    libproxy="$(ldconfig -p 2>/dev/null | awk '$1 == "libproxy.so.1" {print $NF; exit}')"
+    [[ -f "$libproxy" ]] || return 0
+
+    module_dir="$(dirname "$(readlink -f "$libproxy")")/libproxy"
+    for module in "$module_dir"/libpxbackend-1.0.so*; do
+        [[ -e "$module" ]] || continue
+
+        target="$runtime_lib_dir/libpxbackend-1.0.so"
+        if [[ -L "$target" ]]; then
+            rm -f "$target"
+        fi
+
+        cp -a "$(readlink -f "$module")" "$target"
+        enqueue "$target"
+    done
+}
+
+
 enqueue() {
     local library="$1"
     [[ -f "$library" ]] || return 0
@@ -27,6 +53,8 @@ enqueue() {
     seen["$library"]=1
     queue+=("$library")
 }
+
+bundle_libproxy_backend
 
 enqueue "$stage_dir$HOME/.local/bin/openbangla-gui"
 enqueue "$stage_dir$HOME/.local/libexec/ibus-engine-openbangla"
