@@ -24,6 +24,15 @@ install_openbangla() {
         chmod +x "$OBK_PREFIX/libexec/ibus-engine-openbangla"
     fi
 
+    if [[ "$OBK_BACKEND" == ibus ]] && command -v ibus >/dev/null 2>&1; then
+        local ibus_component_path="$OBK_PREFIX/share/ibus/component"
+
+        IBUS_COMPONENT_PATH="$ibus_component_path:/usr/share/ibus/component${IBUS_COMPONENT_PATH:+:$IBUS_COMPONENT_PATH}" \
+            ibus write-cache || die "Failed to register the IBus component."
+
+        ibus restart >/dev/null 2>&1 || true
+    fi
+
     if [[ "$OBK_BACKEND" == ibus ]] &&
        command -v dconf >/dev/null 2>&1; then
         "$OBK_PREFIX/bin/openbangla-gui" --setup-system || true
