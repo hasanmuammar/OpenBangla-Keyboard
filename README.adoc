@@ -24,6 +24,18 @@ The portable installer and related integration work contain AI-generated or AI-a
 * **Automatic IBus component registration** for user-local installations.
 * **User-local uninstaller** with optional cache removal.
 
+== Bangla keyboard and input-method features
+
+The OpenBangla Keyboard codebase is built for Bangla typing on Linux and includes:
+
+* Phonetic Bangla typing, including Avro-style phonetic input.
+* Fixed Bangla keyboard layouts.
+* Unicode-compliant Bengali text input.
+* Typing automation for fixed layouts.
+* Dictionary-based suggestions and autocorrection.
+* A Qt-based configuration interface.
+* Linux desktop integration through IBus or Fcitx5.
+
 == Installation
 
 Clone this fork with its submodules:
@@ -43,7 +55,7 @@ bash tools/install.sh
 
 The installer automatically detects the desktop environment, selects the input-method backend, chooses an available isolated build environment, installs the build dependencies inside that environment, and builds only the selected backend.
 
-Supported build environments are https://github.com/containers/toolbox[Toolbx], https://github.com/89luca89/distrobox[Distrobox], https://github.com/containers/podman[Podman], and https://github.com/moby/moby[Docker]. No manual builder selection is required.
+Supported build environments are https://github.com/containers/toolbox[Toolbx (`toolbox`)], https://github.com/89luca89/distrobox[Distrobox], https://github.com/containers/podman[Podman], and https://github.com/moby/moby[Docker]. No manual builder selection is required.
 
 The default build parallelism is 2 jobs. To change it:
 
