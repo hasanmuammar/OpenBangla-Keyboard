@@ -75,7 +75,7 @@ jobs:
             test -f "$work/share/fcitx5/addon/openbangla.conf"
           fi
 
-          "$work/bin/openbangla-gui" --version
+          QT_QPA_PLATFORM=offscreen "$work/bin/openbangla-gui" --version
 
       - name: Upload prebuilt package
         uses: actions/upload-artifact@v5
