@@ -22,6 +22,8 @@ The normal installation prefix is:
 
 The build and staging cache is under XDG_CACHE_HOME/openbangla-keyboard or ~/.cache/openbangla-keyboard.
 
+The build environment is persistent. The first build installs its development dependencies; later builds reuse the same environment.
+
 The default build parallelism is two jobs. Change it with:
 
 ```bash
