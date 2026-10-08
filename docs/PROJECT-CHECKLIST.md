@@ -1,4 +1,6 @@
-# OpenBangla Keyboard Fork — Project Checklist
+# OpenBangla Keyboard Fork — Shanti Project Checklist
+
+**Codename: Shanti**
 
 Last verified: 2026-10-09  
 Branch: `develop`  
