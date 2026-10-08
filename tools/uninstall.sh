@@ -61,11 +61,10 @@ remove_dconf_tuple() {
     [[ -n "$value" && "$value" != "[]" ]] || return 0
     [[ "$value" == *"$tuple"* ]] || return 0
 
-    cleaned="$(printf '%s\n' "$value" |
-        sed -E \
-            "s/, *${tuple//\//\\/}//" \
-            "s/${tuple//\//\\/}, *//" \
-            "s/${tuple//\//\\/}//")"
+    cleaned="${value//"$tuple"/}"
+    cleaned="${cleaned//, ,/, }"
+    cleaned="${cleaned//, ]/]}"
+    cleaned="${cleaned//[, /[}"
 
     if [[ -z "$cleaned" ]]; then
         cleaned="[]"
