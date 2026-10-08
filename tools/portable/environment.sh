@@ -77,6 +77,15 @@ ensure_builder() {
                 distrobox create --name openbangla-builder --image ubuntu:24.04
             fi
             ;;
+        podman)
+            if ! podman container exists openbangla-builder 2>/dev/null; then
+                podman create                     --name openbangla-builder                     -v "$OBK_WORKSPACE:/workspace:rw"                     -v "$HOME:$HOME:rw"                     -v "$OBK_CACHE:/cache:rw"                     -v "$OBK_STAGE:/stage:rw"                     -e HOME="$HOME"                     ubuntu:24.04 sleep infinity
+            fi
+
+            if [[ "$(podman inspect -f '{{.State.Running}}' openbangla-builder 2>/dev/null)" != true ]]; then
+                podman start openbangla-builder >/dev/null
+            fi
+            ;;
     esac
 }
 
@@ -96,7 +105,7 @@ run_builder() {
             distrobox enter --name openbangla-builder -- bash -lc "$env_prefix$command"
             ;;
         podman)
-            podman run --rm                 -v "$OBK_WORKSPACE:/workspace:rw"                 -v "$HOME:$HOME:rw"                 -v "$OBK_CACHE:/cache:rw"                 -v "$OBK_STAGE:/stage:rw"                 -e HOME="$HOME"                 -e OBK_WORKSPACE=/workspace                 -e OBK_BUILD=/cache/build                 -e OBK_STAGE=/stage                 -e OBK_CACHE=/cache                 -e OBK_BACKEND="$OBK_BACKEND"                 -e OBK_JOBS="$OBK_JOBS"                 ubuntu:24.04 bash -lc "$command"
+            podman exec                 -e OBK_WORKSPACE=/workspace                 -e OBK_BUILD=/cache/build                 -e OBK_STAGE=/stage                 -e OBK_CACHE=/cache                 -e OBK_BACKEND="$OBK_BACKEND"                 -e OBK_JOBS="$OBK_JOBS"                 openbangla-builder                 bash -lc "$env_prefix$command"
             ;;
         docker)
             docker run --rm                 -v "$OBK_WORKSPACE:/workspace:rw"                 -v "$HOME:$HOME:rw"                 -v "$OBK_CACHE:/cache:rw"                 -v "$OBK_STAGE:/stage:rw"                 -e HOME="$HOME"                 -e OBK_WORKSPACE=/workspace                 -e OBK_BUILD=/cache/build                 -e OBK_STAGE=/stage                 -e OBK_CACHE=/cache                 -e OBK_BACKEND="$OBK_BACKEND"                 -e OBK_JOBS="$OBK_JOBS"                 ubuntu:24.04 bash -lc "$command"
