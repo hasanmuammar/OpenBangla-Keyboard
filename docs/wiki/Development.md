@@ -1,4 +1,4 @@
-# Development
+# Development — OpenBangla Keyboard Linux Fork
 
 Use the develop branch for fork development.
 
@@ -34,7 +34,9 @@ For Fcitx5, switch the two backend options accordingly.
 
 ## Installer code
 
-Main components are tools/install.sh, tools/uninstall.sh and tools/portable/.
+Main components are `tools/install.sh`, `tools/uninstall.sh` and `tools/portable/`.
+
+The installer integrates with Toolbx, Distrobox, Podman or Docker for isolated builds, CMake for configuration, Qt5 for the GUI, Corrosion for Rust/CMake integration, and either IBus or Fcitx5 for Linux input-method integration.
 
 ## Testing
 
