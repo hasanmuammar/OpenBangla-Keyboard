@@ -107,7 +107,7 @@ build_openbangla() {
         declare -A bundled=()
         while ((\${#pending[@]})); do
             library="\${pending[0]}"
-            pending=(" \${pending[@]:1}")
+            pending=("\${pending[@]:1}")
             [[ -f "$library" ]] || continue
             real_library="$(readlink -f "$library")"
             [[ -n "$real_library" ]] || continue
