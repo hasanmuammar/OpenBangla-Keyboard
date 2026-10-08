@@ -12,3 +12,8 @@ This directory contains the fork-specific Linux build and installation implement
 ## Main integrations
 
 The portable build uses [CMake](https://github.com/Kitware/CMake), [Qt5](https://github.com/qt/qtbase), [Corrosion](https://github.com/corrosion-rs/corrosion) and [Zstandard](https://github.com/facebook/zstd), with Toolbx, Distrobox, Podman or Docker providing the isolated build environment.
+
+## Build environment selection
+
+The installer prefers an existing Toolbx or Distrobox environment, then Podman or Docker. When no supported builder is installed, `environment.sh` detects the host distribution and attempts to install Podman automatically through the native package manager.
+
