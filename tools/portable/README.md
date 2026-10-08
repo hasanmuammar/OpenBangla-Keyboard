@@ -1,11 +1,10 @@
 # Portable user-local build
 
-This tooling is specific to the experimental fork. It builds OpenBangla Keyboard in an isolated development environment and installs the result under the current user's home directory.
+This directory contains the fork-specific Linux build and installation implementation.
 
-The installer automatically selects Toolbox, Distrobox, Podman, or Docker, in that order.
-
-For the input-method backend, KDE/Plasma uses Fcitx5 and other desktop environments use IBus.
-
-Build state is cached under XDG cache storage. The default build parallelism is two jobs and can be overridden with `OPENBANGLA_BUILD_JOBS`.
-
-The host is not used as a package-installation target. The installer does not require sudo and does not write to system directories.
+- `common.sh` defines user-local paths and cache locations.
+- `environment.sh` selects IBus or Fcitx5 and chooses Toolbox, Distrobox, Podman, or Docker automatically.
+- `build.sh` installs build dependencies inside the selected environment, configures CMake, builds the selected backend, stages the installation, and prepares the bundled Qt/runtime libraries.
+- `bundle-runtime.sh` handles the Linux shared-library closure and runtime modules such as the libproxy backend.
+- `install.sh` copies the staged tree into the user-local prefix and registers the selected input method.
+- `launch-bundled.sh` supplies the bundled library directory to the installed GUI and IBus engine.
