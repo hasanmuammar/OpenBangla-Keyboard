@@ -1,53 +1,55 @@
-# Contributing to OpenBangla Keyboard (OBK)
+# Contributing to this fork
 
-Thank you for your interest in contributing to OpenBangla Keyboard! We welcome contributions of all kinds, whether it's code, documentation, bug reports, feature requests, or helping fellow contributors.
+This repository is an experimental Linux-focused fork of OpenBangla Keyboard.
 
-Please take a moment to review this guide before submitting your contribution.
+## Scope
 
-## Code of Conduct
+Changes should be relevant to the fork itself, especially:
 
-We expect all contributors to adhere to our [Code of Conduct](CODE_OF_CONDUCT.md). Please read it carefully and ensure you understand and agree to its terms.
+- the portable user-local installer and uninstaller;
+- Linux IBus and Fcitx5 integration;
+- isolated build environments;
+- bundled runtime handling;
+- Linux CMake configuration;
+- fork-specific documentation.
 
-## How Can I Contribute?
+Windows and macOS support are not part of this fork.
 
-There are many ways you can contribute to this project:
+## Development branch
 
-### Reporting Bugs
+Use the `develop` branch for fork development.
 
-If you encounter a bug, please help us by submitting a detailed issue. When reporting a bug, please include:
+## Testing
 
-- **A clear and descriptive title** for the issue.
-- **Steps to reproduce the bug** as precisely as possible.
-- **What you expected to happen** instead of the actual outcome.
-- **Any relevant environment information**, such as your operating system, software versions, and any specific configurations.
-- **If possible, include any error messages or screenshots** that might be helpful.
+For installer changes, test installation and removal with:
 
-### Suggesting Enhancements
+```bash
+bash tools/install.sh
+bash tools/uninstall.sh
+```
 
-We are always open to suggestions for new features and improvements. When suggesting an enhancement, please consider:
+For IBus changes, verify the engine with:
 
-- **Clearly describe the proposed enhancement** and its benefits.
-- **Explain the use case** and why you believe this enhancement would be valuable.
-- **If possible, suggest how the enhancement might be implemented.**
-- **Check if a similar feature request already exists** before creating a new one.
+```bash
+ibus list-engine | grep -i -A3 -B2 openbangla
+```
 
-### Contributing Code or Documentation
+For a manual CMake check, configure exactly one backend:
 
-If you'd like to contribute code or documentation, please follow these steps:
+```bash
+cmake -S . -B build -G Ninja \
+  -DENABLE_IBUS=ON \
+  -DENABLE_FCITX=OFF
 
-1.  **Fork the repository** on your GitHub account
-2.  **Clone your fork** to your local machine
-3.  **Create a new branch** for your changes and choose a descriptive name (e.g., feature/smth, fix/smth)
-4.  **Make your changes** and ensure your code follows the project's coding style (if applicable)
-5.  **Add your changes** to Git
-6.  **Commit your changes** with a clear and concise commit message. It's highly encouraged follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) for commit messages which will help us to auto-generate `CHANGELOG.md`
-7.  **Push your branch** to your fork on GitHub
-8.  **Create a Pull Request (PR)** targeting OBK's `develop` branch and while creating your PR, it's highly appreciated if you follow [Semantic PR](https://pulsar.apache.org/contribute/develop-semantic-title/) conventions
+cmake --build build --parallel 2
+```
 
-> NOTE: All documentation for OBK will be managed in the [OpenBangla/manual](https://github.com/OpenBangla/manual) repository. Its contribution guidelines are the preferred and prioritized source for documentation contributions.
+For Fcitx5, switch the two backend options accordingly.
 
-## Questions?
+## Documentation
 
-If you have any questions about contributing, feel free to ask in [GitHub Discussions](https://github.com/OpenBangla/OpenBangla-Keyboard/discussions)!
+Fork-specific documentation belongs in `docs/wiki/`. Do not direct users to the upstream project's installation or configuration documentation for this fork.
 
-Thank you again for your contribution! We appreciate your time and effort in making OBK better.
+## Commit messages
+
+Keep commit messages concise and describe the actual change made in this fork.
