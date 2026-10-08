@@ -1,20 +1,11 @@
 #!/usr/bin/env bash
 
 install_openbangla() {
-    local data_home
-    data_home="$(xdg_dir XDG_DATA_HOME "$HOME/.local/share")"
-
     [[ -d "$OBK_STAGE$OBK_PREFIX" ]] ||
         die "Build completed without producing an install tree."
 
     mkdir -p "$OBK_PREFIX"
     cp -a "$OBK_STAGE$OBK_PREFIX/." "$OBK_PREFIX/"
-
-    if [[ "$OBK_BACKEND" == ibus ]] &&
-       [[ -f "$OBK_PREFIX/share/ibus/component/openbangla.xml" ]]; then
-        mkdir -p "$data_home/ibus/component"
-        cp -f "$OBK_PREFIX/share/ibus/component/openbangla.xml"             "$data_home/ibus/component/openbangla.xml"
-    fi
 
     if [[ "$OBK_BACKEND" == ibus ]] &&
        command -v dconf >/dev/null 2>&1; then
