@@ -27,8 +27,25 @@ select_builder() {
     export OBK_BUILDER
 }
 
+ensure_builder() {
+    case "$OBK_BUILDER" in
+        toolbox)
+            if ! toolbox list 2>/dev/null | grep -q 'openbangla-builder'; then
+                toolbox create --container openbangla-builder --image fedora:latest
+            fi
+            ;;
+        distrobox)
+            if ! distrobox list 2>/dev/null | grep -q 'openbangla-builder'; then
+                distrobox create --name openbangla-builder --image ubuntu:24.04
+            fi
+            ;;
+    esac
+}
+
 run_builder() {
     local command="$1"
+
+    ensure_builder
 
     case "$OBK_BUILDER" in
         toolbox)
@@ -38,10 +55,10 @@ run_builder() {
             distrobox enter --name openbangla-builder -- bash -lc "$command"
             ;;
         podman)
-            podman run --rm --userns=keep-id                 -v "$OBK_WORKSPACE:/workspace:rw"                 -v "$OBK_CACHE:/cache:rw"                 -v "$OBK_STAGE:/stage:rw"                 -e HOME=/tmp/openbangla-home                 -e OBK_BACKEND="$OBK_BACKEND"                 -e OBK_JOBS="$OBK_JOBS"                 ubuntu:24.04 bash -lc "$command"
+            podman run --rm --userns=keep-id                 -v "$OBK_WORKSPACE:/workspace:rw"                 -v "$HOME:$HOME:rw"                 -v "$OBK_CACHE:/cache:rw"                 -v "$OBK_STAGE:/stage:rw"                 -e HOME="$HOME"                 -e OBK_BACKEND="$OBK_BACKEND"                 -e OBK_JOBS="$OBK_JOBS"                 ubuntu:24.04 bash -lc "$command"
             ;;
         docker)
-            docker run --rm --user "$(id -u):$(id -g)"                 -v "$OBK_WORKSPACE:/workspace:rw"                 -v "$OBK_CACHE:/cache:rw"                 -v "$OBK_STAGE:/stage:rw"                 -e HOME=/tmp/openbangla-home                 -e OBK_BACKEND="$OBK_BACKEND"                 -e OBK_JOBS="$OBK_JOBS"                 ubuntu:24.04 bash -lc "$command"
+            docker run --rm --user "$(id -u):$(id -g)"                 -v "$OBK_WORKSPACE:/workspace:rw"                 -v "$HOME:$HOME:rw"                 -v "$OBK_CACHE:/cache:rw"                 -v "$OBK_STAGE:/stage:rw"                 -e HOME="$HOME"                 -e OBK_BACKEND="$OBK_BACKEND"                 -e OBK_JOBS="$OBK_JOBS"                 ubuntu:24.04 bash -lc "$command"
             ;;
         *)
             die "Unknown build environment: $OBK_BUILDER"
