@@ -1,163 +1,40 @@
-include_directories(../shared ../platform/include 3rdParty macOS)
+include_directories(../shared ../platform/include 3rdParty)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-set(SRC_GUI TopBar.cpp
-        AboutDialog.cpp
-        AboutFile.cpp
-        LayoutViewer.cpp
-        SettingsDialog.cpp
-        AutoCorrectDialog.cpp
-        images.qrc)
+set(SRC_GUI
+    TopBar.cpp
+    AboutDialog.cpp
+    AboutFile.cpp
+    LayoutViewer.cpp
+    SettingsDialog.cpp
+    AutoCorrectDialog.cpp
+    images.qrc
+)
 
-set(SRC_MAIN main.cpp
-        Layout.cpp
-        LayoutConverter.cpp
-        LayoutConverter.h
-        SingleInstance.cpp
-        AvroPhonetic.cpp
-        PlatformConfig.cpp)
+set(SRC_MAIN
+    main.cpp
+    Layout.cpp
+    LayoutConverter.cpp
+    LayoutConverter.h
+    AvroPhonetic.cpp
+    PlatformConfig.cpp
+)
 
-set(LINK_LIBS libShared Qt5::Widgets Qt5::Network Qt5::Svg platform)
+add_executable(openbangla-gui ${SRC_MAIN} ${SRC_GUI})
+target_link_libraries(
+    openbangla-gui
+    libShared
+    Qt5::Widgets
+    Qt5::Network
+    Qt5::Svg
+    platform
+    ${ZSTD_LIBRARIES}
+)
 
-if(OS_LINUX)
-    list(APPEND LINK_LIBS ${ZSTD_LIBRARIES})
-endif(OS_LINUX)
-
-if(WIN32)
-    list(APPEND SRC_MAIN app.rc)
-    list(APPEND LINK_LIBS zstd::libzstd)
-    set(CMAKE_WIN32_EXECUTABLE ON)
-
-    list(APPEND LINK_LIBS zstd::libzstd)
-endif(WIN32)
-
-if(APPLE)
-    add_subdirectory(macOS)
-
-    list(APPEND LINK_LIBS macOS "-framework Foundation" "-framework AppKit" zstd::libzstd)
-endif(APPLE)
-
-if(APPLE)
-    set(APP_ICON "${CMAKE_SOURCE_DIR}/data/AppIcon.icns")
-
-    set(APP_DATA
-        "${CMAKE_SOURCE_DIR}/src/engine/riti/data/autocorrect.json"
-    )
-
-    set(LAYOUT_DATA
-        "${CMAKE_SOURCE_DIR}/data/avrophonetic.json"
-        "${CMAKE_SOURCE_DIR}/data/khipro.json"
-        "${CMAKE_SOURCE_DIR}/data/Avro_Easy.json"
-        "${CMAKE_SOURCE_DIR}/data/Borno.json"
-        "${CMAKE_SOURCE_DIR}/data/Munir_Optima.json"
-        "${CMAKE_SOURCE_DIR}/data/National_Jatiya.json"
-        "${CMAKE_SOURCE_DIR}/data/Probhat.json"
-    )
-
-    set_source_files_properties(
-        ${APP_ICON}
-        PROPERTIES
-        MACOSX_PACKAGE_LOCATION "Resources"
-    )
-
-    set_source_files_properties(
-            ${APP_DATA}
-            PROPERTIES
-            MACOSX_PACKAGE_LOCATION "Resources/data"
-    )
-
-    set_source_files_properties(
-            ${LAYOUT_DATA}
-            PROPERTIES
-            MACOSX_PACKAGE_LOCATION "Resources/layouts"
-    )
-
-    add_executable(openbangla-gui MACOSX_BUNDLE ${SRC_MAIN} ${SRC_GUI} ${APP_ICON} ${APP_DATA} ${LAYOUT_DATA})
-
-    set_target_properties(openbangla-gui PROPERTIES
-        OUTPUT_NAME "OpenBangla Keyboard"
-        MACOSX_BUNDLE_ICON_FILE AppIcon.icns
-        MACOSX_BUNDLE_BUNDLE_NAME "OpenBangla Keyboard"
-        MACOSX_BUNDLE_INFO_STRING "OpenBangla Keyboard"
-        MACOSX_BUNDLE_GUI_IDENTIFIER "org.openbangla.keyboard"
-        MACOSX_BUNDLE_COPYRIGHT "© 2025 OpenBangla"
-        MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
-        MACOSX_BUNDLE_LONG_VERSION_STRING "${PROJECT_VERSION}"
-        MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
-    )
-
-    get_target_property(_qmake_executable Qt5::qmake IMPORTED_LOCATION)
-        get_filename_component(_qt_bin_dir "${_qmake_executable}" DIRECTORY)
-        find_program(MACDEPLOYQT_EXECUTABLE macdeployqt HINTS "${_qt_bin_dir}")
-    
-        add_custom_command(TARGET openbangla-gui POST_BUILD
-            COMMAND "${MACDEPLOYQT_EXECUTABLE}"
-                    "$<TARGET_BUNDLE_DIR:openbangla-gui>"
-                    -always-overwrite
-            COMMAND codesign --force --deep --sign -
-                    "$<TARGET_BUNDLE_DIR:openbangla-gui>"
-            COMMENT "Deploying Qt and signing app"
-            VERBATIM
-        )
-else()
-    add_executable(openbangla-gui ${SRC_MAIN} ${SRC_GUI})
-endif()
-
-target_link_libraries(openbangla-gui ${LINK_LIBS})
-
-if(WIN32)
-    get_target_property(_qmake_executable Qt5::qmake IMPORTED_LOCATION)
-    get_filename_component(_qt_bin_dir "${_qmake_executable}" DIRECTORY)
-    find_program(WINDEPLOYQT_EXECUTABLE NAMES windeployqt-qt5 windeployqt HINTS "${_qt_bin_dir}")
-
-    set(_windeployqt_flags "")
-    if(MINGW)
-        list(APPEND _windeployqt_flags --no-angle --no-opengl-sw)
-    endif()
-
-    add_custom_command(TARGET openbangla-gui POST_BUILD
-    COMMAND ${WINDEPLOYQT_EXECUTABLE} ${_windeployqt_flags} $<TARGET_FILE:openbangla-gui>
-    COMMENT "Deploying Qt..."
-    VERBATIM
-    )
-endif()
-
-if(WIN32)
-    install(TARGETS openbangla-gui RUNTIME DESTINATION .)
-
-    # Bundle third-party runtime DLLs (e.g. zstd.dll) next to the GUI executable.
-    # windeployqt deploys only Qt; InstallRequiredSystemLibraries only the MSVC runtime.
-    install(FILES $<TARGET_RUNTIME_DLLS:openbangla-gui> DESTINATION .)
-
-    # Deploy Qt DLLs alongside the installed executable
-    if(MINGW)
-        install(CODE "execute_process(COMMAND \"${WINDEPLOYQT_EXECUTABLE}\" --no-angle --no-opengl-sw \"\${CMAKE_INSTALL_PREFIX}/openbangla-gui.exe\")")
-        # windeployqt bundles Qt's own DLLs/plugins but not the MSYS2/Clang runtime
-        # DLLs (libc++, libunwind, libwinpthread) nor Qt's third-party dependencies
-        # (libpng, pcre2, harfbuzz, ...). Resolve and copy that closure so the app
-        # runs outside an MSYS2 shell.
-        install(SCRIPT "${CMAKE_SOURCE_DIR}/cmake/BundleMingwDeps.cmake")
-    else()
-        install(CODE "execute_process(COMMAND \"${WINDEPLOYQT_EXECUTABLE}\" \"\${CMAKE_INSTALL_PREFIX}/openbangla-gui.exe\")")
-    endif()
-endif()
-
-if(OS_LINUX)
-    install(TARGETS openbangla-gui
-        RUNTIME DESTINATION ${BIN_DIR})
-endif()
-
-if(APPLE)
-    # Install the bundle as a directory rather than a target to prevent
-    # install_name_tool from modifying the binary and invalidating the
-    # code signature applied after macdeployqt.
-    install(DIRECTORY "$<TARGET_BUNDLE_DIR:openbangla-gui>"
-        DESTINATION "Applications"
-        USE_SOURCE_PERMISSIONS
-        COMPONENT GUI
-    )
-endif()
+install(TARGETS openbangla-gui
+    RUNTIME DESTINATION ${BIN_DIR}
+)
