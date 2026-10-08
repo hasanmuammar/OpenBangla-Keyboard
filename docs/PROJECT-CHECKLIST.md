@@ -4,7 +4,7 @@
 
 Last verified: 2026-10-09  
 Branch: `develop`  
-Current commit: `bd4e0c739d8619f6afa83342328fe343239bdc1e`
+Current commit: `1c7d84065e45ead9b5d5b70c94adb2e5d534f567`
 
 This checklist separates what is implemented, what is verified, what is configured but not yet exercised end-to-end, and what remains before the first public prebuilt release.
 
@@ -18,7 +18,7 @@ This checklist separates what is implemented, what is verified, what is configur
 - [x] IBus and Fcitx5 are supported as separate backend builds.
 - [x] x86_64 and ARM64/aarch64 are the target prebuilt architectures.
 - [x] Prebuilt releases are treated as complete runtime bundles, not single standalone executables.
-- [ ] Public release/versioning policy is finalised and used for the first fork release.
+- [x] Fork-owned alpha versioning is defined using tags such as `v3.0.0-alpha.1`.
 
 ## 2. User-facing installation architecture
 
@@ -102,16 +102,16 @@ This checklist separates what is implemented, what is verified, what is configur
   - ARM64 / Fcitx5
 - [x] Release workflow is configured to create a GitHub Release from `v*.*.*` tags.
 - [x] Release workflow is configured to upload the generated archives and checksums.
-- [ ] Successful GitHub release build has not yet been verified.
-- [ ] First `v3.0.0` tag has not yet been created.
-- [ ] First fork GitHub Release has not yet been published.
+- [ ] Successful GitHub alpha release build has not yet been verified.
+- [ ] First `v3.0.0-alpha.1` tag has not yet been created.
+- [ ] First fork alpha GitHub Release has not yet been published.
 - [ ] Release assets have not yet been published.
 - [ ] Prebuilt installer has not yet been tested against published release assets.
 - [ ] First public release has not yet been deployed.
 
 Current repository facts:
-- `version.txt` is `3.0.0`.
-- Existing inherited repository tags currently go only through `2.0.0`.
+- `version.txt` is `3.0.0-alpha.1`.
+- Existing inherited repository tags are unrelated upstream history; fork releases use their own alpha tags.
 - There are currently no published Releases in the fork.
 
 ## 7. Documentation
@@ -155,7 +155,7 @@ The first release should not be considered complete until all of the following a
 - [ ] Clean source checkout builds successfully in CI on all six CI variants.
 - [ ] Release packaging succeeds on all four release variants.
 - [ ] Four release archives and four checksum files are uploaded.
-- [ ] A `v3.0.0` GitHub Release exists.
+- [ ] A `v3.0.0-alpha.1` GitHub prerelease exists.
 - [ ] `tools/install.sh` successfully downloads the correct archive on x86_64 and ARM64.
 - [ ] IBus installation is functionally tested.
 - [ ] Fcitx5 installation is functionally tested.
