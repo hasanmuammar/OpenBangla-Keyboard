@@ -47,9 +47,12 @@ while ((${#queue[@]})); do
         dependency_name="${dependency##*/}"
         host_library "$dependency_name" && continue
 
+        resolved_dependency="$(readlink -f "$dependency")"
+        [[ -f "$resolved_dependency" ]] || continue
+
         target="$runtime_lib_dir/$dependency_name"
         if [[ ! -e "$target" ]]; then
-            cp -a "$dependency" "$target"
+            cp -a "$resolved_dependency" "$target"
         fi
 
         enqueue "$target"
