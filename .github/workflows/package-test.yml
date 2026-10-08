@@ -1,0 +1,84 @@
+name: Prebuilt package test
+
+on:
+  push:
+    branches: ["develop"]
+  workflow_dispatch:
+
+jobs:
+  package-linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            arch: x86_64
+            backend: ibus
+          - runner: ubuntu-24.04
+            arch: x86_64
+            backend: fcitx
+          - runner: ubuntu-24.04-arm
+            arch: aarch64
+            backend: ibus
+          - runner: ubuntu-24.04-arm
+            arch: aarch64
+            backend: fcitx
+
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y             build-essential             cmake             ninja-build             pkg-config             rustc             cargo             libzstd-dev             qtbase5-dev             qtbase5-dev-tools             libqt5svg5-dev             libibus-1.0-dev             libfcitx5core-dev             ca-certificates
+
+      - name: Build prebuilt package
+        env:
+          OPENBANGLA_BUILD_USE_HOST: "1"
+          OPENBANGLA_NONINTERACTIVE: "1"
+        run: bash tools/build.sh --backend ${{ matrix.backend }} --package
+
+      - name: Validate package
+        env:
+          BACKEND: ${{ matrix.backend }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          set -Eeuo pipefail
+
+          archive="dist/openbangla-keyboard_linux_${ARCH}_${BACKEND}.tar.gz"
+          checksum="${archive}.sha256"
+
+          test -f "$archive"
+          test -f "$checksum"
+          sha256sum -c "$checksum"
+
+          work="$(mktemp -d)"
+          trap 'rm -rf "$work"' EXIT
+          tar -xzf "$archive" -C "$work"
+
+          test -x "$work/bin/openbangla-gui"
+          test -d "$work/lib/openbangla"
+          test -d "$work/share/openbangla-keyboard"
+
+          if [[ "$BACKEND" == ibus ]]; then
+            test -x "$work/libexec/ibus-engine-openbangla"
+            test -f "$work/share/ibus/component/openbangla.xml"
+          else
+            test -f "$work/share/fcitx5/addon/openbangla.conf"
+          fi
+
+          "$work/bin/openbangla-gui" --version
+
+      - name: Upload prebuilt package
+        uses: actions/upload-artifact@v5
+        with:
+          name: linux-${{ matrix.arch }}-${{ matrix.backend }}-package
+          path: |
+            dist/*.tar.gz
+            dist/*.sha256
+          if-no-files-found: error
