@@ -2,22 +2,51 @@ name: CI
 
 on:
   push:
-    branches: [ "**" ]
-    tags-ignore: [ "**" ]
-    paths-ignore: [ "**.md", "**.adoc" ]
+    branches: ["**"]
+    tags-ignore: ["**"]
+    paths-ignore: ["**.md", "**.adoc"]
   pull_request:
-    branches: [ "**" ]
-    paths-ignore: [ "**.md", "**.adoc" ]
+    branches: ["**"]
+    paths-ignore: ["**.md", "**.adoc"]
 
 jobs:
   build-linux:
-    runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        compiler:
-          - { CXX: g++, CC: gcc }
-          - { CXX: clang++, CC: clang }
-        backend: [ibus, fcitx]
+        include:
+          - runner: ubuntu-24.04
+            arch: x86_64
+            cc: gcc
+            cxx: g++
+            backend: ibus
+          - runner: ubuntu-24.04
+            arch: x86_64
+            cc: gcc
+            cxx: g++
+            backend: fcitx
+          - runner: ubuntu-24.04
+            arch: x86_64
+            cc: clang
+            cxx: clang++
+            backend: ibus
+          - runner: ubuntu-24.04
+            arch: x86_64
+            cc: clang
+            cxx: clang++
+            backend: fcitx
+          - runner: ubuntu-24.04-arm
+            arch: aarch64
+            cc: gcc
+            cxx: g++
+            backend: ibus
+          - runner: ubuntu-24.04-arm
+            arch: aarch64
+            cc: gcc
+            cxx: g++
+            backend: fcitx
+
+    runs-on: ${{ matrix.runner }}
 
     steps:
       - name: Checkout source
@@ -28,18 +57,38 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y             build-essential             clang             cmake             ninja-build             pkg-config             rustc             cargo             libzstd-dev             qtbase5-dev             qtbase5-dev-tools             libqt5svg5-dev             libibus-1.0-dev             libfcitx5core-dev
+          sudo apt-get install -y \
+            build-essential \
+            clang \
+            cmake \
+            ninja-build \
+            pkg-config \
+            rustc \
+            cargo \
+            libzstd-dev \
+            qtbase5-dev \
+            qtbase5-dev-tools \
+            libqt5svg5-dev \
+            libibus-1.0-dev \
+            libfcitx5core-dev \
+            ca-certificates
 
       - name: Configure
         env:
-          CC: ${{ matrix.compiler.CC }}
-          CXX: ${{ matrix.compiler.CXX }}
+          CC: ${{ matrix.cc }}
+          CXX: ${{ matrix.cxx }}
           BACKEND: ${{ matrix.backend }}
         run: |
-          if [ "${BACKEND}" = "ibus" ]; then
-            cmake -S . -B build -G Ninja               -DENABLE_IBUS=ON               -DENABLE_FCITX=OFF
+          if [ "$BACKEND" = "ibus" ]; then
+            cmake -S . -B build -G Ninja \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DENABLE_IBUS=ON \
+              -DENABLE_FCITX=OFF
           else
-            cmake -S . -B build -G Ninja               -DENABLE_IBUS=OFF               -DENABLE_FCITX=ON
+            cmake -S . -B build -G Ninja \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DENABLE_IBUS=OFF \
+              -DENABLE_FCITX=ON
           fi
 
       - name: Build
