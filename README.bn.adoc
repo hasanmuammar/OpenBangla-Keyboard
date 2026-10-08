@@ -13,10 +13,11 @@ Portable installer এবং integration-এর কিছু অংশ AI-genera
 
 == এই fork-এর বৈশিষ্ট্য
 
-* Linux-only CMake build।
+* x86_64 ও ARM64-এর জন্য prebuilt Linux release।
 * KDE Plasma-তে Fcitx5 এবং অন্যান্য desktop environment-এ IBus নির্বাচন।
 * বর্তমান user-এর জন্য `~/.local`-এ installation।
-* Toolbox, Distrobox, Podman বা Docker-এর isolated build environment।
+* Source build-এর জন্য আলাদা `tools/build.sh`।
+* Toolbx, Distrobox, Podman বা Docker-এর isolated source-build environment।
 * XDG cache directory-তে persistent build ও staging cache।
 * Qt এবং প্রয়োজনীয় runtime library user-local bundle হিসেবে রাখা।
 * User-local IBus component registration।
@@ -24,46 +25,25 @@ Portable installer এবং integration-এর কিছু অংশ AI-genera
 
 == ইনস্টলেশন
 
-Submodule-সহ এই fork clone করুন:
+সাধারণ user-এর জন্য compiler, CMake, Rust, Qt development package বা build container প্রয়োজন নেই। `tools/install.sh` বর্তমান CPU architecture ও desktop environment অনুযায়ী prebuilt Linux release download করে checksum verify করে `~/.local`-এ install করে।
+
+সমর্থিত architecture:
+
+* x86_64
+* ARM64 (aarch64)
 
 [source,bash]
 ----
-git clone --recursive https://github.com/hasanmuammar/OpenBangla-Keyboard.git
+git clone https://github.com/hasanmuammar/OpenBangla-Keyboard.git
 cd OpenBangla-Keyboard
-----
-
-তারপর installer চালান:
-
-[source,bash]
-----
 bash tools/install.sh
 ----
 
-Installer desktop environment শনাক্ত করে backend নির্বাচন করবে। KDE/Plasma-তে Fcitx5 এবং অন্য desktop environment-এ IBus নির্বাচন করা হবে।
-
-এরপর installer Toolbox, Distrobox, Podman বা Docker-এর মধ্যে available একটি isolated build environment নির্বাচন করবে এবং সেখানেই build dependencies install করবে।
-
-শুধু নির্বাচিত backend build করা হয়।
-
-ডিফল্ট build parallelism 2 jobs। পরিবর্তন করতে:
+নির্দিষ্ট release install করতে:
 
 [source,bash]
 ----
-OPENBANGLA_BUILD_JOBS=4 bash tools/install.sh
-----
-
-Build ও staging data থাকে:
-
-[source,text]
-----
-$XDG_CACHE_HOME/openbangla-keyboard/
-----
-
-অথবা `XDG_CACHE_HOME` নির্ধারিত না থাকলে:
-
-[source,text]
-----
-~/.cache/openbangla-keyboard/
+bash tools/install.sh --version 3.0.0
 ----
 
 == আনইনস্টলেশন
@@ -123,7 +103,7 @@ cmake --install build
 [source,bash]
 ----
 git pull --recurse-submodules
-bash tools/install.sh
+bash tools/build.sh
 ----
 
 Automated build cache পরিষ্কার করে rebuild করতে:
