@@ -8,20 +8,7 @@ package_openbangla() {
         [[ -d "$install_root" ]] ||
             { echo "Build completed without producing an install tree." >&2; exit 1; }
 
-        version="$(head -n1 "$OBK_WORKSPACE/version.txt")"
         arch="$(uname -m)"
-
-        if [[ -x "$install_root/bin/openbangla-gui" ]]; then
-            mv -f "$install_root/bin/openbangla-gui" "$install_root/bin/openbangla-gui.bin"
-            cp "$OBK_WORKSPACE/tools/portable/launch-bundled.sh" "$install_root/bin/openbangla-gui"
-            chmod +x "$install_root/bin/openbangla-gui"
-        fi
-
-        if [[ -x "$install_root/libexec/ibus-engine-openbangla" ]]; then
-            mv -f "$install_root/libexec/ibus-engine-openbangla" "$install_root/libexec/ibus-engine-openbangla.bin"
-            cp "$OBK_WORKSPACE/tools/portable/launch-bundled.sh" "$install_root/libexec/ibus-engine-openbangla"
-            chmod +x "$install_root/libexec/ibus-engine-openbangla"
-        fi
 
         case "$arch" in
             x86_64)
