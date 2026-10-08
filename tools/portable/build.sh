@@ -63,11 +63,32 @@ build_openbangla() {
 
         mkdir -p "$build_dir" "$stage_dir"
 
-        cmake -S "$source_dir" -B "$build_dir"             -GNinja             -DCMAKE_BUILD_TYPE=Release             -DCMAKE_INSTALL_PREFIX="$HOME/.local"             -DENABLE_IBUS="$ibus"             -DENABLE_FCITX="$fcitx"             -DENABLE_BOTH=OFF
+        cmake -S "$source_dir" -B "$build_dir"             -GNinja             -DCMAKE_BUILD_TYPE=Release             -DCMAKE_INSTALL_PREFIX="$HOME/.local"             -DCMAKE_INSTALL_RPATH='$ORIGIN/../lib/openbangla'             -DENABLE_IBUS="$ibus"             -DENABLE_FCITX="$fcitx"             -DENABLE_BOTH=OFF
 
         cmake --build "$build_dir" --parallel "$OBK_JOBS"
 
         rm -rf "$stage_dir"/*
         DESTDIR="$stage_dir" cmake --install "$build_dir"
+        qt_lib_dir="$(qmake -query QT_INSTALL_LIBS)"
+        qt_plugin_dir="$(qmake -query QT_INSTALL_PLUGINS)"
+        runtime_lib_dir="$stage_dir$HOME/.local/lib/openbangla"
+        runtime_plugin_dir="$runtime_lib_dir/qt5/plugins"
+
+        mkdir -p "$runtime_lib_dir" "$runtime_plugin_dir"
+        for library in \
+            libQt5Core.so.5 \
+            libQt5Gui.so.5 \
+            libQt5Widgets.so.5 \
+            libQt5Network.so.5 \
+            libQt5Svg.so.5 \
+            libQt5XcbQpa.so.5; do
+            cp -a "$qt_lib_dir/$library"* "$runtime_lib_dir/"
+        done
+        cp -a "$qt_plugin_dir/platforms" "$runtime_plugin_dir/"
+
+        cat > "$stage_dir$HOME/.local/bin/qt.conf" <<EOF
+[Paths]
+Plugins=../lib/openbangla/qt5/plugins
+EOF
     '
 }
