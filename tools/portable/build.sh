@@ -105,7 +105,7 @@ build_openbangla() {
             "$runtime_plugin_dir"/platforms/*.so*
         )
         declare -A bundled=()
-        while (${#pending[@]}); do
+        while ((${#pending[@]})); do
             library="${pending[0]}"
             pending=("${pending[@]:1}")
             [[ -f "$library" ]] || continue
