@@ -1,4 +1,6 @@
-= ওপেনবাংলা কিবোর্ড — Linux-এর জন্য Bangla Keyboard | IBus ও Fcitx5
+= ওপেনবাংলা কিবোর্ড Fork — Shanti
+
+**Shanti** এই Linux-focused OpenBangla Keyboard fork-এর project codename। এর লক্ষ্য হলো Bazzite, Bluefin এবং আধুনিক Linux system-এ Bangla input সহজ ও আরামদায়কভাবে ব্যবহার করা।
 
 এই repository-টি **OpenBangla Keyboard-এর একটি Linux-focused fork**। মূল OpenBangla Keyboard codebase বজায় রেখে এই fork-এর উদ্দেশ্য হলো **সাধারণ Linux desktop এবং immutable বা image-based Linux system-এ OpenBangla সহজে install ও ব্যবহারযোগ্য করা**।
 
