@@ -8,8 +8,15 @@ The main purpose of this fork is to provide **easy installation on modern Linux 
 
 OpenBangla Keyboard is an open-source, Unicode-compliant **Bangla (Bengali) keyboard and input method for Linux**. It provides phonetic and fixed keyboard layouts, typing automation, dictionary support and autocorrection.
 
-[IMPORTANT]
+[WARNING]
 ====
+**EXPERIMENTAL • VIBE-CODED • FORK-SPECIFIC**
+
+This is an experimental fork and significant portions of the fork-specific installation, packaging, runtime-bundling and integration work are **vibe-coded / AI-assisted**. Regressions, incomplete behaviour and Linux-specific integration problems are possible.
+
+**Do not report problems caused by this fork to the upstream OpenBangla Keyboard project.** Please report fork-specific bugs, installation failures and integration issues in this repository instead.
+====
+
 This is an **experimental fork**, not an official OpenBangla Keyboard release. Fork-specific installation, runtime bundling, packaging and Linux integration are maintained in this repository.
 ====
 
@@ -42,6 +49,13 @@ The portable installer and related integration work contain AI-generated or AI-a
 ====
 
 == Installation
+
+[WARNING]
+====
+**FORK ISSUES STAY HERE**
+
+For bugs or installation/integration problems introduced by this fork, use this repository's issue tracker. Do not send fork-specific reports to upstream.
+====
 
 === Prebuilt installation
 
