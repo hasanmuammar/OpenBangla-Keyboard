@@ -108,9 +108,9 @@ GitHub Actions currently tests source builds across:
 * ARM64 (aarch64) with GCC.
 * ARM64 (aarch64) with IBus and Fcitx5.
 
-A separate prebuilt-package test workflow builds release archives for x86_64 and ARM64 with both IBus and Fcitx5, verifies their SHA-256 checksums, inspects the archive contents, checks the bundled runtime and backend metadata, and runs `openbangla-gui --version`.
+A separate prebuilt-package test workflow builds release archives for x86_64 and ARM64 with both IBus and Fcitx5, verifies their SHA-256 checksums, inspects the archive contents, checks the bundled runtime and backend metadata, and runs `openbangla-gui --version` plus `openbangla-gui --check-data`. The data check verifies that layout and dictionary files can be found relative to the installed executable, not the CI builder's home directory.
 
-These workflows validate the build and package structure. They do not replace functional testing of actual Bangla input on a user’s desktop.
+After installation, `bash tools/install.sh` also runs the data-file check. You can repeat it with `~/.local/bin/openbangla-gui --check-data`. These workflows validate the build and package structure. They do not replace functional testing of actual Bangla input on a user’s desktop.
 
 == Related projects and technologies
 

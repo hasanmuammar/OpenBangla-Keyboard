@@ -60,6 +60,8 @@ This checklist separates what is implemented, what is verified, what is configur
 - [x] Bundled runtime launchers are implemented.
 - [x] GUI and input-method launchers are made executable.
 - [x] Bundled runtime paths are configured so the application can use its staged libraries.
+- [x] Linux layout and dictionary paths are resolved relative to the installed executable, so packaged binaries are relocatable across home directories.
+- [x] Installer verifies required layout and dictionary data files with `openbangla-gui --check-data`.
 - [x] IBus component registration and cache regeneration are implemented.
 - [x] User-local IBus component path persistence is implemented.
 - [x] Fcitx5 addon metadata is installed and validated.
@@ -86,7 +88,8 @@ This checklist separates what is implemented, what is verified, what is configur
 - [ ] Runtime/functional input testing is not yet covered by CI.
 - [x] Prebuilt package test run #6 completed successfully for x86_64/IBus, x86_64/Fcitx5, ARM64/IBus and ARM64/Fcitx5.
 - [x] Prebuilt package test run #7 completed successfully after the README update.
-- [x] Package validation verifies checksums, archive contents, backend metadata and a headless Qt GUI smoke test.
+- [x] Package validation verifies checksums, archive contents, backend metadata and a headless Qt GUI version smoke test.
+- [x] Package validation runs `openbangla-gui --check-data` to detect build-host absolute data paths.
 
 ## 6. Release packaging
 
@@ -142,7 +145,7 @@ Current repository facts:
 
 - [x] Resolve the prebuilt installation wrapping path before release: packaging now preserves real binaries and the installer applies the wrapper exactly once.
 - [x] Add archive-content validation to the prebuilt package test workflow.
-- [x] Add a packaged `openbangla-gui --version` smoke test using Qt's headless `offscreen` platform.
+- [x] Add packaged `openbangla-gui --version` and `--check-data` smoke tests using Qt's headless `offscreen` platform.
 - [ ] Add backend-specific smoke validation where practical.
 - [ ] Verify that Fcitx5 registration behaves correctly after installing the published archive.
 - [ ] Verify that IBus registration survives logout/reboot on a clean system.

@@ -20,6 +20,9 @@
 #include <QMessageBox>
 #include <QCommandLineParser>
 #include <QCommandLineOption>
+#include <QFileInfo>
+#include <QDebug>
+#include <QStringList>
 #include "TopBar.h"
 #include "SingleInstance.h"
 #include "Settings.h"
@@ -31,6 +34,37 @@
 #ifdef Q_OS_MACOS
   #include "macOS.h"
 #endif
+
+static int checkRuntimeDataFiles() {
+  bool ok = true;
+  const QString layoutsDir = LayoutsFilePath();
+  if (!QDir(layoutsDir).exists()) {
+    qCritical().noquote() << "Missing layout directory:" << layoutsDir;
+    ok = false;
+  }
+
+  const QStringList requiredFiles = {
+    AvroPhoneticLayoutPath(),
+    AutoCorrectFilePath(),
+#ifdef Q_OS_LINUX
+    DictionaryPath(),
+    SuffixDictPath(),
+    RegexDictPath(),
+#endif
+  };
+
+  for (const QString &path : requiredFiles) {
+    if (!QFileInfo(path).isFile()) {
+      qCritical().noquote() << "Missing required data file:" << path;
+      ok = false;
+    }
+  }
+
+  if (ok)
+    qInfo() << "OpenBangla runtime data files are present.";
+
+  return ok ? 0 : 1;
+}
 
 int main(int argc, char *argv[]) {  
   QApplication app(argc, argv);
@@ -46,9 +80,14 @@ int main(int argc, char *argv[]) {
   parser.addVersionOption();
   QCommandLineOption startInTray("tray","Start in tray");
   QCommandLineOption setupSystem("setup-system","Setup OpenBangla input source");
+  QCommandLineOption checkData("check-data", "Check installed layout and dictionary data files, then exit.");
   parser.addOption(startInTray);
   parser.addOption(setupSystem);
+  parser.addOption(checkData);
   parser.process(app);
+
+  if (parser.isSet(checkData))
+    return checkRuntimeDataFiles();
   
   LOG_INFO("Detected Desktop Environment: %s\n", desktopEnvironmentToString(detectDesktopEnvironment()).toStdString().c_str());
 

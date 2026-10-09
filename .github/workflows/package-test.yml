@@ -67,6 +67,11 @@ jobs:
           test -x "$work/bin/openbangla-gui"
           test -d "$work/lib/openbangla"
           test -d "$work/share/openbangla-keyboard"
+          test -f "$work/share/openbangla-keyboard/layouts/avrophonetic.json"
+          test -f "$work/share/openbangla-keyboard/data/autocorrect.json"
+          test -f "$work/share/openbangla-keyboard/data/dictionary.json"
+          test -f "$work/share/openbangla-keyboard/data/suffix.json"
+          test -f "$work/share/openbangla-keyboard/data/regex.json"
 
           if [[ "$BACKEND" == ibus ]]; then
             test -x "$work/libexec/ibus-engine-openbangla"
@@ -76,6 +81,7 @@ jobs:
           fi
 
           QT_QPA_PLATFORM=offscreen "$work/bin/openbangla-gui" --version
+          QT_QPA_PLATFORM=offscreen "$work/bin/openbangla-gui" --check-data
 
       - name: Upload prebuilt package
         uses: actions/upload-artifact@v5

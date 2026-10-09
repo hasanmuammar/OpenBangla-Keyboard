@@ -57,6 +57,9 @@ verify_installation() {
     "$OBK_PREFIX/bin/openbangla-gui" --version >/dev/null 2>&1 ||
         die "openbangla-gui cannot start with the installed runtime."
 
+    "$OBK_PREFIX/bin/openbangla-gui" --check-data >/dev/null 2>&1 ||
+        die "The installed runtime cannot locate its layout and dictionary data files."
+
     case "$OBK_BACKEND" in
         ibus)
             [[ -x "$OBK_PREFIX/libexec/ibus-engine-openbangla" ]] ||

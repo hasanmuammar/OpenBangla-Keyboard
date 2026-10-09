@@ -22,6 +22,14 @@
 
 UserFolders *gUserFolders = nullptr;
 
+#ifdef Q_OS_LINUX
+namespace {
+QString linuxDataDirectory() {
+    return QDir::cleanPath(QCoreApplication::applicationDirPath() + "/../share/openbangla-keyboard");
+}
+}
+#endif
+
 void UserFolders::setupLinux() {
     path = qEnvironmentVariable("XDG_DATA_HOME", dir.homePath() + "/.local/share") + "/openbangla-keyboard";
     // Create our folder in the user specific data folder
@@ -72,7 +80,7 @@ QString LayoutsFilePath() {
 #elif defined(Q_OS_WIN)
     return QCoreApplication::applicationDirPath() + "/layouts";
 #else
-    return PROJECT_DATADIR "/layouts";
+    return linuxDataDirectory() + "/layouts";
 #endif
 }
 
@@ -82,7 +90,7 @@ QString AvroPhoneticLayoutPath() {
 #elif defined(Q_OS_WIN)
     return QCoreApplication::applicationDirPath() + "/layouts/avrophonetic.json";
 #else
-    return PROJECT_DATADIR "/layouts/avrophonetic.json";
+    return linuxDataDirectory() + "/layouts/avrophonetic.json";
 #endif
 }
 
@@ -92,25 +100,25 @@ QString AutoCorrectFilePath() {
 #elif defined(Q_OS_WIN)
     return QCoreApplication::applicationDirPath() + "/data/autocorrect.json";
 #else
-    return PROJECT_DATADIR "/data/autocorrect.json";
+    return linuxDataDirectory() + "/data/autocorrect.json";
 #endif
 }
 
 #ifdef Q_OS_LINUX
     QString DatabasePath() {
-        return PROJECT_DATADIR "/data";
+        return linuxDataDirectory() + "/data";
     }
 
     QString DictionaryPath() {
-        return PROJECT_DATADIR "/data/dictionary.json";
+        return linuxDataDirectory() + "/data/dictionary.json";
     }
 
     QString SuffixDictPath() {
-        return PROJECT_DATADIR "/data/suffix.json";
+        return linuxDataDirectory() + "/data/suffix.json";
     }
 
     QString RegexDictPath() {
-        return PROJECT_DATADIR "/data/regex.json";
+        return linuxDataDirectory() + "/data/regex.json";
     }
 #endif
 
