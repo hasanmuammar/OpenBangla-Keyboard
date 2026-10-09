@@ -68,7 +68,8 @@ jobs:
           )
 
           work="$(mktemp -d)"
-          trap 'rm -rf "$work"' EXIT
+          install_home="$(mktemp -d)"
+          trap 'rm -rf "$work" "$install_home"' EXIT
           tar -xzf "$archive" -C "$work"
 
           test -x "$work/bin/openbangla-gui"
@@ -95,6 +96,45 @@ jobs:
 
           QT_QPA_PLATFORM=offscreen "$work/bin/openbangla-gui" --version
           QT_QPA_PLATFORM=offscreen "$work/bin/openbangla-gui" --check-data
+
+          # Simulate installation with a non-default absolute XDG_DATA_HOME.
+          install_prefix="$install_home/.local"
+          install_data_home="$work/custom-xdg-data"
+          install_config_home="$work/custom-xdg-config"
+          mkdir -p "$install_prefix" "$install_data_home" "$install_config_home"
+          tar -xzf "$archive" -C "$install_prefix"
+
+          HOME="$install_home" \
+          XDG_DATA_HOME="$install_data_home" \
+          XDG_CONFIG_HOME="$install_config_home" \
+          OBK_PREFIX="$install_prefix" \
+          OBK_DATA_HOME="$install_data_home" \
+          OBK_BACKEND="$BACKEND" \
+          bash -c '
+            set -Eeuo pipefail
+            source tools/portable/common.sh
+            source tools/portable/install.sh
+            install_xdg_resources
+            rewrite_install_metadata
+
+            test -f "$OBK_DATA_HOME/openbangla-keyboard/data/dictionary.json"
+            test ! -e "$OBK_PREFIX/share/openbangla-keyboard"
+            test -f "$OBK_DATA_HOME/applications/openbangla-keyboard.desktop"
+            grep -Fq "Exec=\"$OBK_PREFIX/bin/openbangla-gui\" %f" \
+              "$OBK_DATA_HOME/applications/openbangla-keyboard.desktop"
+
+            QT_QPA_PLATFORM=offscreen "$OBK_PREFIX/bin/openbangla-gui" --check-data
+
+            if [[ "$OBK_BACKEND" == ibus ]]; then
+              grep -Fq "<exec>\"$OBK_PREFIX/libexec/ibus-engine-openbangla\" --ibus</exec>" \
+                "$OBK_DATA_HOME/ibus/component/openbangla.xml"
+              grep -Fq "<icon>$OBK_DATA_HOME/openbangla-keyboard/icons/OpenBangla-Keyboard.png</icon>" \
+                "$OBK_DATA_HOME/ibus/component/openbangla.xml"
+            else
+              test -f "$OBK_DATA_HOME/fcitx5/addon/openbangla.conf"
+              test -f "$OBK_DATA_HOME/fcitx5/inputmethod/openbangla.conf"
+            fi
+          '
 
       - name: Upload prebuilt package
         uses: actions/upload-artifact@v5
