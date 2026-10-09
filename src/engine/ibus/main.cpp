@@ -1,5 +1,7 @@
 #include <ibus.h>
 #include <QDebug>
+#include <QStandardPaths>
+#include <filesystem>
 #include "riti.h"
 #include "keycode.h"
 #include "FileSystem.h"
@@ -376,13 +378,25 @@ void start_setup(bool ibus) {
   if (ibus) {
     ibus_bus_request_name(bus, "org.freedesktop.IBus.OpenBangla", 0);
   } else {
+    std::error_code executableError;
+    const auto executablePath =
+        std::filesystem::read_symlink("/proc/self/exe", executableError);
+    const std::string engineCommand =
+        "\"" + (executableError ? std::string("ibus-engine-openbangla")
+                                   : executablePath.string()) +
+        "\" --ibus";
+    const std::string iconPath =
+        (QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) +
+         "/openbangla-keyboard/icons/OpenBangla-Keyboard.png")
+            .toStdString();
+
     component = ibus_component_new("org.freedesktop.IBus.OpenBangla",
                                    "OpenBangla Keyboard",
                                    PROJECT_VERSION,
                                    "GPL 3",
                                    "See AboutBox",
                                    "http://openbangla.github.io/",
-                                   LIBEXECDIR "/ibus-engine-openbangla --ibus",
+                                   engineCommand.c_str(),
                                    "openbangla-keyboard"
     );
 
@@ -393,7 +407,7 @@ void start_setup(bool ibus) {
                                                    "bn",
                                                    "GPL 3",
                                                    "See About Dialog",
-                                                   PROJECT_DATADIR "/icons/OpenBangla-Keyboard.png",
+                                                   iconPath.c_str(),
                                                    "default"
                               ));
     ibus_bus_register_component(bus, component);

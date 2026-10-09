@@ -60,7 +60,11 @@ This checklist separates what is implemented, what is verified, what is configur
 - [x] Bundled runtime launchers are implemented.
 - [x] GUI and input-method launchers are made executable.
 - [x] Bundled runtime paths are configured so the application can use its staged libraries.
-- [x] Linux layout and dictionary paths are resolved relative to the installed executable, so packaged binaries are relocatable across home directories.
+- [x] Linux package smoke tests resolve bundled data relative to the package tree.
+- [x] Installed runtime falls back to XDG_DATA_HOME when data is relocated to the user's XDG data directory.
+- [x] Installer places shipped application data and metadata under XDG_DATA_HOME and rewrites prefix-dependent launch paths.
+- [x] Release packaging replaces CI home-directory paths in IBus and desktop metadata with install-time placeholders.
+- [ ] Test installation with a custom absolute XDG_DATA_HOME and verify both backends end-to-end.
 - [x] Installer verifies required layout and dictionary data files with `openbangla-gui --check-data`.
 - [x] IBus component registration and cache regeneration are implemented.
 - [x] User-local IBus component path persistence is implemented.

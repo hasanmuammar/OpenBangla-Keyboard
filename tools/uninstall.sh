@@ -2,9 +2,18 @@
 set -Eeuo pipefail
 
 PREFIX="${HOME}/.local"
-DATA_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}"
-CONFIG_HOME="${XDG_CONFIG_HOME:-${HOME}/.config}"
-CACHE_HOME="${XDG_CACHE_HOME:-${HOME}/.cache}"
+
+xdg_home() {
+    local variable="$1"
+    local fallback="$2"
+    local value="${!variable:-}"
+    [[ "$value" == /* ]] || value=""
+    printf '%s\\n' "${value:-$fallback}"
+}
+
+DATA_HOME="$(xdg_home XDG_DATA_HOME "$HOME/.local/share")"
+CONFIG_HOME="$(xdg_home XDG_CONFIG_HOME "$HOME/.config")"
+CACHE_HOME="$(xdg_home XDG_CACHE_HOME "$HOME/.cache")"
 
 PURGE_CACHE=0
 
@@ -193,6 +202,8 @@ main() {
 
     remove_path "$DATA_HOME/openbangla-keyboard"
     remove_path "$DATA_HOME/applications/openbangla-keyboard.desktop"
+    remove_path "$DATA_HOME/fcitx5/addon/openbangla.conf"
+    remove_path "$DATA_HOME/fcitx5/inputmethod/openbangla.conf"
     remove_path "$DATA_HOME/metainfo/io.github.openbangla.keyboard.metainfo.xml"
     remove_path "$DATA_HOME/pixmaps/openbangla-keyboard.png"
 
