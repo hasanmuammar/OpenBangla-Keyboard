@@ -17,6 +17,7 @@
  */
 
 #include <QCoreApplication>
+#include <QStandardPaths>
 #include "FileSystem.h"
 #include "Log.h"
 
@@ -25,13 +26,22 @@ UserFolders *gUserFolders = nullptr;
 #ifdef Q_OS_LINUX
 namespace {
 QString linuxDataDirectory() {
-    return QDir::cleanPath(QCoreApplication::applicationDirPath() + "/../share/openbangla-keyboard");
+    const QString bundledDirectory =
+        QDir::cleanPath(QCoreApplication::applicationDirPath() +
+                        "/../share/openbangla-keyboard");
+    if (QDir(bundledDirectory).exists()) {
+        return bundledDirectory;
+    }
+
+    return QDir::cleanPath(
+        QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) +
+        "/openbangla-keyboard");
 }
 }
 #endif
 
 void UserFolders::setupLinux() {
-    path = qEnvironmentVariable("XDG_DATA_HOME", dir.homePath() + "/.local/share") + "/openbangla-keyboard";
+    path = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/openbangla-keyboard";
     // Create our folder in the user specific data folder
     dir.mkpath(path);
     // Create user specific layouts folder

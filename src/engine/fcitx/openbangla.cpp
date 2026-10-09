@@ -461,9 +461,12 @@ void OpenBanglaEngine::populateConfig(const RawConfig &config) {
   riti_config_set_suggestion_include_english(cfg_.get(), includeEnglish);
   riti_config_set_phonetic_suggestion(cfg_.get(), showCWPhonetic);
 
-  if (!riti_config_set_database_dir(cfg_.get(), PROJECT_DATADIR "/data")) {
+  const auto databaseDir = stringutils::joinPath(
+      StandardPath::global().userDirectory(StandardPath::Type::Data),
+      "openbangla-keyboard/data");
+  if (!riti_config_set_database_dir(cfg_.get(), databaseDir.c_str())) {
     FCITX_OPENBANGLA_DEBUG()
-        << "Failed to set database directory: " << PROJECT_DATADIR << "/data";
+        << "Failed to set database directory: " << databaseDir;
   }
 
   riti_config_set_fixed_suggestion(cfg_.get(), showPrevWinFixed);

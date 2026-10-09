@@ -37,6 +37,13 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y             build-essential             cmake             ninja-build             pkg-config             rustc             cargo             libzstd-dev             qtbase5-dev             qtbase5-dev-tools             libqt5svg5-dev             libibus-1.0-dev             libfcitx5core-dev             ca-certificates
 
+      - name: Check shell syntax
+        run: |
+          bash -n tools/portable/common.sh
+          bash -n tools/portable/install.sh
+          bash -n tools/portable/package.sh
+          bash -n tools/uninstall.sh
+
       - name: Build prebuilt package
         env:
           OPENBANGLA_BUILD_USE_HOST: "1"
@@ -65,6 +72,9 @@ jobs:
           tar -xzf "$archive" -C "$work"
 
           test -x "$work/bin/openbangla-gui"
+          test -f "$work/share/applications/openbangla-keyboard.desktop"
+          grep -Fq 'Exec="@OBK_PREFIX@/bin/openbangla-gui" %f' "$work/share/applications/openbangla-keyboard.desktop"
+          ! grep -Fq '/home/runner/' "$work/share/applications/openbangla-keyboard.desktop"
           test -d "$work/lib/openbangla"
           test -d "$work/share/openbangla-keyboard"
           test -f "$work/share/openbangla-keyboard/layouts/avrophonetic.json"
@@ -76,6 +86,9 @@ jobs:
           if [[ "$BACKEND" == ibus ]]; then
             test -x "$work/libexec/ibus-engine-openbangla"
             test -f "$work/share/ibus/component/openbangla.xml"
+            grep -Fq '<exec>@OBK_PREFIX@/libexec/ibus-engine-openbangla --ibus</exec>' "$work/share/ibus/component/openbangla.xml"
+            grep -Fq '<icon>@OBK_DATA_HOME@/openbangla-keyboard/icons/OpenBangla-Keyboard.png</icon>' "$work/share/ibus/component/openbangla.xml"
+            ! grep -Fq '/home/runner/' "$work/share/ibus/component/openbangla.xml"
           else
             test -f "$work/share/fcitx5/addon/openbangla.conf"
           fi

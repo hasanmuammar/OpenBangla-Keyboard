@@ -29,6 +29,19 @@ package_openbangla() {
         rm -rf "$output_dir"
         mkdir -p "$output_dir"
 
+        component="$install_root/share/ibus/component/openbangla.xml"
+        if [[ -f "$component" ]]; then
+            sed -i -E \
+                -e 's#<exec>[^<]*</exec>#<exec>@OBK_PREFIX@/libexec/ibus-engine-openbangla --ibus</exec>#' \
+                -e 's#<icon>[^<]*</icon>#<icon>@OBK_DATA_HOME@/openbangla-keyboard/icons/OpenBangla-Keyboard.png</icon>#' \
+                "$component"
+        fi
+
+        desktop="$install_root/share/applications/openbangla-keyboard.desktop"
+        if [[ -f "$desktop" ]]; then
+            sed -i -E 's#^Exec=.*$#Exec="@OBK_PREFIX@/bin/openbangla-gui" %f#' "$desktop"
+        fi
+
         tar -C "$install_root" -czf "$output_dir/$artifact_name" .
 
         (

@@ -44,7 +44,7 @@ class OpenBanglaState;
 FCITX_CONFIGURATION(OpenBanglaConfig,
                     ExternalOption config{this, "OpenBanglaKeyboard",
                                           _("OpenBangla Keyboard"),
-                                          BIN_DIR "/openbangla-gui"};);
+                                          "openbangla-gui"};);
 
 class OpenBanglaEngine final : public InputMethodEngine {
 public:
