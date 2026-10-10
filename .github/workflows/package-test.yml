@@ -42,8 +42,12 @@ jobs:
       - name: Check shell syntax
         run: |
           bash -n tools/portable/common.sh
+          bash -n tools/portable/build.sh
+          bash -n tools/portable/bundle-runtime.sh
+          bash -n tools/portable/environment.sh
           bash -n tools/portable/install.sh
           bash -n tools/portable/package.sh
+          bash -n tools/install.sh
           bash -n tools/uninstall.sh
 
       - name: Build prebuilt package
