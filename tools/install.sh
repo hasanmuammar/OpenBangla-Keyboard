@@ -75,8 +75,9 @@ build_urls() {
     if [[ -n "$REQUESTED_VERSION" ]]; then
         RELEASE_VERSION="$REQUESTED_VERSION"
     fi
-    [[ "$RELEASE_VERSION" =~ ^[A-Za-z0-9._-]+$ ]] ||
+    if [[ ! "$RELEASE_VERSION" =~ ^[A-Za-z0-9._-]+$ ]]; then
         die "Invalid release tag: $RELEASE_VERSION. Use only letters, numbers, dots, underscores, and hyphens."
+    fi
     if [[ -n "$REQUESTED_VERSION" ]]; then
         RELEASE_BASE="https://github.com/$REPOSITORY/releases/download/$RELEASE_VERSION"
     else
@@ -109,8 +110,8 @@ download_release() {
         sha256sum -c "$(basename "$checksum")"
     ) || die "The downloaded release failed checksum verification."
 
-    # Use the unique staging directory created by prepare_paths.
-    # Never delete a fixed path before extracting the verified archive.
+    # OBK_STAGE was created uniquely by prepare_paths. Keep older staging
+    # data intact instead of recursively deleting a fixed path.
     mkdir -p "$OBK_STAGE$OBK_PREFIX"
     tar -xzf "$archive" -C "$OBK_STAGE$OBK_PREFIX"
 
