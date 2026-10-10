@@ -175,17 +175,40 @@ install_openbangla() {
     confirm_install_replacements
     mkdir -p "$OBK_PREFIX"
 
-    # Preserve the previous bundle as a sibling backup rather than deleting it.
+    # Never replace an existing library bundle without a separate, explicit choice.
     if [[ -e "$OBK_PREFIX/lib/openbangla" || -L "$OBK_PREFIX/lib/openbangla" ]]; then
-        if [[ -L "$OBK_PREFIX" || -L "$OBK_PREFIX/lib" ]]; then
+        if [[ -L "$OBK_PREFIX" || -L "$OBK_PREFIX/lib" || -L "$OBK_PREFIX/lib/openbangla" ]]; then
             die "Refusing to replace a bundled library through a symlinked install path."
         fi
-        backup="$OBK_PREFIX/lib/openbangla.backup.$(date +%Y%m%d%H%M%S)"
-        if [[ -e "$backup" || -L "$backup" ]]; then
-            die "Backup path already exists; preserving all files: $backup"
+        if [[ ! -t 0 ]]; then
+            die "An existing library bundle needs a choice: keep a backup, replace without a backup, or cancel. Rerun interactively."
         fi
-        mv -- "$OBK_PREFIX/lib/openbangla" "$backup"
-        printf 'Previous bundled libraries were preserved at: %s\n' "$backup"
+        printf 'Existing library bundle: %s\n' "$OBK_PREFIX/lib/openbangla"
+        printf 'Choose what to do with it:\n'
+        printf '  1) Replace and keep a timestamped backup\n'
+        printf '  2) Replace without keeping a backup (old files will be deleted)\n'
+        printf '  3) Cancel installation (default)\n'
+        read -r -p 'Choice [3]: ' library_choice
+        case "$library_choice" in
+            1)
+                backup="$OBK_PREFIX/lib/openbangla.backup.$(date +%Y%m%d%H%M%S)"
+                if [[ -e "$backup" || -L "$backup" ]]; then
+                    die "Backup path already exists; preserving all files: $backup"
+                fi
+                mv -- "$OBK_PREFIX/lib/openbangla" "$backup"
+                printf 'Previous bundled libraries were preserved at: %s\n' "$backup"
+                ;;
+            2)
+                printf 'This will permanently remove: %s\n' "$OBK_PREFIX/lib/openbangla"
+                read -r -p 'Confirm deletion of this exact directory? [y/N] ' delete_reply
+                [[ "$delete_reply" =~ ^[Yy]([Ee][Ss])?$ ]] ||
+                    die "Replacement cancelled; previous bundled libraries were preserved."
+                rm -rf -- "$OBK_PREFIX/lib/openbangla"
+                ;;
+            *)
+                die "Installation cancelled; previous bundled libraries were preserved."
+                ;;
+        esac
     fi
 
     cp -a "$OBK_STAGE$OBK_PREFIX/." "$OBK_PREFIX/"
