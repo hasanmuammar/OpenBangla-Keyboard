@@ -17,11 +17,11 @@ OpenBangla Keyboard Shanti's broader goal is to make the keyboard easy to instal
 
 The Flatpak deliverable must include a **dedicated graphical frontend for the installation/maintenance script**, shipped as a compiled application binary. Do not confuse this installer frontend with the existing `openbangla-gui`, which is the keyboard's runtime/configuration application.
 
-The intended user-facing workflow is to launch the installer GUI and use it for supported lifecycle operations, while the existing script remains responsible for the underlying installation logic. The GUI and script must be packaged together, with a defined and testable interface for passing actions, progress, diagnostics, and exit status. Do not duplicate installation logic in the GUI.
+The intended user-facing workflow is to launch the Rust + GTK4/libadwaita installer GUI and use it for installation, configuration, update, status, and removal of the host-side Shanti installation. The Flatpak is a lifecycle/configuration frontend, not the runtime keyboard engine itself; the existing script remains responsible for the underlying installation logic. The GUI and script must be packaged together, with a defined and testable interface for passing actions, progress, diagnostics, and exit status. Do not duplicate installation logic in the GUI.
 
 This requirement does not settle how host-level actions will be performed. Flatpak sandbox boundaries still apply: a packaged script cannot automatically write to arbitrary host paths, install host packages, or register a host IBus/Fcitx5 engine. Before implementing the frontend, the feasibility work must identify which actions can run in the sandbox, which require an explicit host-side helper or supported integration mechanism, and which cannot safely be offered from Flatpak. Do not solve this by granting broad filesystem or session-bus access without evidence.
 
-The frontend's initial scope should be limited to clear, auditable lifecycle actions (install, update, remove, and status where supported), progress/output reporting, and actionable error messages. Exact toolkit and GUI-to-script protocol remain undecided until the current scripts and host integration boundaries have been inspected.
+The frontend's initial scope should be limited to clear, auditable lifecycle actions (install, update, remove, and status where supported), progress/output reporting, and actionable error messages. The selected frontend direction is Rust with GTK4 and libadwaita. The GUI-to-script protocol remains undecided until the current scripts and host integration boundaries have been inspected.
 
 ## 3. Why investigate Flatpak?
 
@@ -100,7 +100,8 @@ This experiment does not currently aim to:
 
 - [ ] Source/runtime/resource/configuration path mapping.
 - [ ] Inspect installer/uninstaller scripts and define the GUI-to-script interface.
-- [ ] Decide the smallest viable proof of concept, including a compiled installer GUI binary and the packaged script.
+- [ ] Review `pmim-ibus` as an input-method packaging precedent and record the distinction between a Flatpak-contained application and its separately installed host IBus adapter.
+- [ ] Decide the smallest viable proof of concept, including the compiled Rust + GTK4/libadwaita installer binary, packaged scripts, and chosen host-execution model.
 - [ ] Flatpak runtime and SDK selection.
 - [ ] Flatpak manifest and build.
 - [ ] Sandboxed application smoke test.
@@ -123,7 +124,7 @@ Work through the stages in order. Complete and review one focused task at a time
 - [ ] Determine which parts would run inside Flatpak and which must integrate with the host session.
 - [ ] Assess IBus and Fcitx5 registration, D-Bus/session interaction, environment propagation, and required host-visible files.
 - [ ] Decide whether the first proof of concept should package only the GUI or include an input-method engine.
-- [ ] Select a suitable runtime/SDK and define initial architecture and test-environment coverage.
+- [ ] Select a suitable GNOME runtime/SDK and define initial architecture and test-environment coverage.
 - [ ] Record technical blockers and a minimal design before writing a manifest.
 
 **Stage 1 exit condition:** A reviewed design that describes the package contents, host/sandbox responsibilities, required permissions, and a credible test for sending Bengali keystrokes into host applications.
@@ -211,8 +212,7 @@ A checklist item should only be marked complete when there is concrete evidence,
 | Flatpak's possible distribution route | GitHub Releases with a hosted Flatpak repository and `.flatpakref`, if the experiment justifies it |
 | Flathub | Out of scope |
 | Existing portable installer | Retain; no replacement decision has been made |
-| Installer frontend | Required: dedicated compiled GUI for the installer script; separate from the existing keyboard GUI |
-| Installer frontend | Proposed Rust + GTK4/libadwaita binary; current Qt GUI remains a separate keyboard runtime app |
+| Installer frontend | Rust + GTK4/libadwaita compiled binary; lifecycle/configuration GUI, separate from the existing Qt keyboard GUI |
 | Host operations | Evaluate documented `flatpak-spawn --host` / `org.freedesktop.Flatpak` with a fixed script interface; not yet tested |
 | Implementation status | Planning only; no manifest or Flatpak build yet |
 | Immediate next task | Map current executable, runtime, resource, configuration, and data paths |
@@ -226,6 +226,7 @@ A checklist item should only be marked complete when there is concrete evidence,
 | 2026-10-10 | Clarified that Flatpak is only a candidate distribution format; the broader goal is easy, safe installation and maintenance on the target systems. |
 | 2026-10-10 | Reviewed established Flatpak host-operation patterns, including ProtonUp-Qt host-spawn use and targeted permissions, Flatseal's permission-provider model, and GTK4/libadwaita lifecycle UI references. Proposed a Rust installer frontend and recorded host-command security/dependency constraints. |
 | 2026-10-10 | Added requirement for a compiled installer GUI shipped with the script; distinguished it from the existing keyboard GUI and recorded the sandbox/host boundary as unresolved. |
+| 2026-10-10 | Selected Rust + GTK4/libadwaita as the installer frontend direction and reviewed PMIM IBus Flatpak's split sandbox/host adapter model. Documented that PMIM is not a general host-access bypass and still requires separate host-side IBus integration. |
 
 ## 13. Related projects and implementation precedents
 
@@ -283,6 +284,26 @@ For Shanti, the recommended proof of concept is therefore:
 
 **Important evidence boundary:** The projects above demonstrate real Flatpak patterns, and the Flatpak documentation describes the host-command mechanism. They do not yet prove that Shanti's existing script can run successfully from the sandbox boundary or that its external host dependencies are consistently present on Bluefin/Dakota and Bazzite.
 
+### PMIM IBus Flatpak: split sandbox/host integration
+
+- **Flathub package:** [`io.github.fm_elpac.pmim_ibus`](https://github.com/flathub/io.github.fm_elpac.pmim_ibus)
+- **Application source and installation instructions:** [`fm-elpac/pmim-ibus`](https://github.com/fm-elpac/pmim-ibus)
+- **Manifest:** [`io.github.fm_elpac.pmim_ibus.yml`](https://github.com/flathub/io.github.fm_elpac.pmim_ibus/blob/master/io.github.fm_elpac.pmim_ibus.yml)
+- **Host IBus setup instructions:** [`doc/安装.md`](https://github.com/fm-elpac/pmim-ibus/blob/main/doc/%E5%AE%89%E8%A3%85.md)
+
+PMIM is a particularly relevant input-method precedent, but it does **not** simply switch off the Flatpak sandbox. Its manifest grants IPC, X11, PulseAudio, network, DRI and creation access to `xdg-run/pmim`; it does not request `org.freedesktop.Flatpak` or use `flatpak-spawn --host` for general host command execution.
+
+Its published installation instructions explicitly say that the IBus interface module (`librush`) must be installed separately. The host IBus component XML then launches the `ibrus` executable with `--flatpak`; the packaged example points to a binary under the Flatpak app's per-application configuration directory, while the manual instructions describe placing the component XML under the host IBus component directory. The shared `xdg-run/pmim` path is the intended communication boundary between the Flatpak app and the host-side adapter. The exact host setup varies by distribution and may require a package or system configuration step.
+
+**What this teaches Shanti:** split the product into an unprivileged Flatpak frontend/data/configuration side and a minimal host-side integration layer when needed. It is a useful pattern for IBus engine execution. However, PMIM's README and installation instructions show that the Flatpak alone is **not** a fully self-contained, one-click host input-method installation. Its manual/AUR/RPM host setup is an explicit prerequisite, so it does not by itself solve Shanti's desired install/update/remove lifecycle.
+
+For Shanti's proposed installer, compare two different models rather than calling either a sandbox bypass:
+
+1. **Flatpak host command:** the installer invokes its staged lifecycle scripts using the documented `flatpak-spawn --host` mechanism. This can keep the UI and shipped script in one Flatpak, but permission to talk to `org.freedesktop.Flatpak` lets trusted app code launch host commands as the current user. It is a broad trust grant even if the UI exposes only fixed operations.
+2. **Separate host adapter:** install/register a narrowly scoped helper or IBus/Fcitx module on the host, then communicate with it through a defined IPC interface. This can make the engine boundary clearer, like PMIM's `librush`, but requires a separate trustworthy way to install/update that helper and adds lifecycle complexity.
+
+PMIM proves that a Flatpak GUI/data process can participate in an input-method design alongside a host-side engine adapter. It does **not** prove that host registration files, IBus modules, Fcitx5 modules, or a user's `~/.local` installation can be changed automatically from a normal Flatpak without a host integration mechanism.
+
 ### IBus Rime AppImage
 
 - **Project:** [hchunhui/ibus-rime.AppImage](https://github.com/hchunhui/ibus-rime.AppImage)
@@ -294,7 +315,7 @@ This project packages the Chinese Rime engine as an AppImage. Its documented flo
 1. The closest Flatpak precedent is the Fcitx5 framework plus extension architecture—not a generic Flatpak application that automatically registers an engine with any host input-method framework.
 2. We must distinguish a fully Flatpak-contained input-method stack from an engine intended to integrate with the host's existing IBus/Fcitx5 session. They have different boundaries and compatibility requirements.
 3. Shanti's current IBus build installs a component descriptor plus an engine executable. Its Fcitx5 build installs a native module plus metadata. These are not interchangeable packaging shapes, so each backend needs its own feasibility result.
-4. The lifecycle frontend is planned as a Rust + GTK4/libadwaita Flatpak using the documented host-command mechanism only if the security and dependency review passes. Separately establish how target systems expose host IBus/Fcitx5 and what registration files are required. Do not choose final manifest permissions until both paths are assessed.
+4. The lifecycle frontend is planned as a Rust + GTK4/libadwaita Flatpak. PMIM provides an alternative precedent using a separately installed host IBus adapter and a narrow shared runtime directory. Choose between `flatpak-spawn --host` and a separate host adapter only after comparing the required host-side file changes, external dependencies, update/removal ownership, and trust boundaries for Shanti.
 
 ### Sources reviewed
 
