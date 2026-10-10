@@ -4,6 +4,11 @@ set -e
 LC_ALL=C
 export LC_ALL
 
+if [ -z "$FLATPAK_ID" ] || [ ! -r /.flatpak-info ]; then
+    printf '[FAIL] this probe must be run inside its Flatpak sandbox; refusing to report a host-shell run as a permission test.\n' >&2
+    exit 2
+fi
+
 app_data=$HOME/.local/share
 app_config=$HOME/.config
 app_cache=$HOME/.cache
