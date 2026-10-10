@@ -65,6 +65,17 @@ relocate_xdg_resource() {
 
     [[ -e "$source" || -L "$source" ]] || return 0
 
+    [[ ! -L "$destination" ]] ||
+        die "Refusing to write through a symlinked XDG resource path: $destination"
+    if [[ -e "$destination" ]]; then
+        if [[ -d "$source" && ! -L "$source" && ! -d "$destination" ]]; then
+            die "Resource destination has the wrong type; preserving source: $destination"
+        fi
+        if [[ ( ! -d "$source" || -L "$source" ) && -d "$destination" ]]; then
+            die "Resource destination is a directory; preserving source: $destination"
+        fi
+    fi
+
     if [[ -d "$source" && ! -L "$source" ]]; then
         if [[ "$relative" == "openbangla-keyboard" ]]; then
             merge_openbangla_data "$source" "$destination"
@@ -99,6 +110,8 @@ confirm_legacy_xdg_migration() {
     while IFS= read -r relative; do
         source="$OBK_PREFIX/share/$relative"
         [[ -e "$source" || -L "$source" ]] || continue
+        [[ ! -L "$source" ]] ||
+            die "Refusing to migrate a symlinked legacy resource path: $source"
         if [[ "$found" -eq 0 ]]; then
             printf 'An existing installation stores these resources in the legacy location:\n'
         fi
@@ -126,6 +139,17 @@ migrate_legacy_xdg_resources() {
         source="$OBK_PREFIX/share/$relative"
         [[ -e "$source" || -L "$source" ]] || continue
         destination="$OBK_DATA_HOME/$relative"
+
+        [[ ! -L "$destination" ]] ||
+            die "Refusing to migrate over a symlinked XDG resource path: $destination"
+        if [[ -e "$destination" ]]; then
+            if [[ -d "$source" && ! -d "$destination" ]]; then
+                die "Resource destination has the wrong type; source was preserved: $destination"
+            fi
+            if [[ ! -d "$source" && -d "$destination" ]]; then
+                die "Resource destination is a directory; source was preserved: $destination"
+            fi
+        fi
 
         if [[ ! -e "$destination" && ! -L "$destination" ]]; then
             mkdir -p "$(dirname "$destination")"
@@ -224,7 +248,10 @@ confirm_install_replacements() {
         "$OBK_DATA_HOME/fcitx5/inputmethod/openbangla.conf" \
         "$OBK_DATA_HOME/metainfo/io.github.openbangla.keyboard.metainfo.xml" \
         "$OBK_DATA_HOME/pixmaps/openbangla-keyboard.png"; do
-        if [[ -e "$path" || -L "$path" ]]; then
+        if [[ -L "$path" ]]; then
+            die "Refusing to overwrite a symlinked installation path: $path"
+        fi
+        if [[ -e "$path" ]]; then
             if [[ "$found" -eq 0 ]]; then
                 printf 'These existing OpenBangla paths may be replaced by the installation:\n'
             fi
@@ -236,7 +263,10 @@ confirm_install_replacements() {
     for size in 16 32 48 128 512 1024; do
         for icon_root in "$OBK_PREFIX/share/icons" "$OBK_DATA_HOME/icons"; do
             path="$icon_root/hicolor/${size}x${size}/apps/openbangla-keyboard.png"
-            if [[ -e "$path" || -L "$path" ]]; then
+            if [[ -L "$path" ]]; then
+                die "Refusing to overwrite a symlinked icon path: $path"
+            fi
+            if [[ -e "$path" ]]; then
                 if [[ "$found" -eq 0 ]]; then
                     printf 'These existing OpenBangla paths may be replaced by the installation:\n'
                 fi
