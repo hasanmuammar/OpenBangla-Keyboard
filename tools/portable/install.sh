@@ -106,7 +106,7 @@ xdg_resource_relatives() {
 confirm_legacy_xdg_migration() {
     [[ "$OBK_DATA_HOME" != "$OBK_PREFIX/share" ]] || return 0
 
-    local migration_marker="$OBK_DATA_HOME/openbangla-keyboard/.legacy-xdg-migration-v1-complete"
+    local migration_marker="$OBK_DATA_HOME/.openbangla-keyboard-xdg-migration-v1-complete"
     if [[ -e "$migration_marker" || -L "$migration_marker" ]]; then
         [[ -f "$migration_marker" && ! -L "$migration_marker" ]] ||
             die "Refusing to trust an unexpected legacy-migration marker path: $migration_marker"
@@ -142,7 +142,7 @@ migrate_legacy_xdg_resources() {
     [[ "$OBK_DATA_HOME" != "$OBK_PREFIX/share" ]] || return 0
 
     local relative source destination preserved_legacy=0
-    local migration_marker="$OBK_DATA_HOME/openbangla-keyboard/.legacy-xdg-migration-v1-complete"
+    local migration_marker="$OBK_DATA_HOME/.openbangla-keyboard-xdg-migration-v1-complete"
     if [[ -e "$migration_marker" || -L "$migration_marker" ]]; then
         [[ -f "$migration_marker" && ! -L "$migration_marker" ]] ||
             die "Refusing to trust an unexpected legacy-migration marker path: $migration_marker"
@@ -188,16 +188,12 @@ migrate_legacy_xdg_resources() {
     done < <(xdg_resource_relatives)
 
     if [[ "$preserved_legacy" -eq 1 ]]; then
-        mkdir -p "$OBK_DATA_HOME/openbangla-keyboard"
-        if [[ -L "$OBK_DATA_HOME/openbangla-keyboard" ]]; then
-            die "Refusing to write migration state through a symlink."
-        fi
         if [[ ! -e "$migration_marker" && ! -L "$migration_marker" ]]; then
             printf '%s\n' 'Legacy XDG resources were copied/merged; original sources were preserved.' > "$migration_marker"
         elif [[ ! -f "$migration_marker" || -L "$migration_marker" ]]; then
             die "Refusing to overwrite an unexpected migration marker: $migration_marker"
         fi
-        printf 'Some legacy resources were copied/merged and their original paths were preserved for review. Migration will not repeat automatically.\n'
+        printf 'Some legacy resources were copied/merged and their original paths were preserved for review. Migration will not repeat automatically. Marker: %s\n' "$migration_marker"
     fi
 }
 
