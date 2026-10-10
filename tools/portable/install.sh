@@ -252,6 +252,8 @@ rewrite_install_metadata() {
 
 confirm_install_replacements() {
     local path found=0 reply
+    local config_home
+    config_home="$(xdg_dir XDG_CONFIG_HOME "$HOME/.config")"
 
     for path in \
         "$OBK_PREFIX/bin/openbangla-gui" \
@@ -273,7 +275,8 @@ confirm_install_replacements() {
         "$OBK_DATA_HOME/fcitx5/addon/openbangla.conf" \
         "$OBK_DATA_HOME/fcitx5/inputmethod/openbangla.conf" \
         "$OBK_DATA_HOME/metainfo/io.github.openbangla.keyboard.metainfo.xml" \
-        "$OBK_DATA_HOME/pixmaps/openbangla-keyboard.png"; do
+        "$OBK_DATA_HOME/pixmaps/openbangla-keyboard.png" \
+        "$config_home/environment.d/90-openbangla-ibus.conf"; do
         if [[ -L "$path" ]]; then
             die "Refusing to overwrite a symlinked installation path: $path"
         fi
