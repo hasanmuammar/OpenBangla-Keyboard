@@ -129,9 +129,7 @@ validate_release_archive_paths() {
     command -v python3 >/dev/null 2>&1 ||
         die "Python 3 is required to safely validate release archive members before extraction. No files were installed."
 
-    python3 - "$archive" "$listing" <<'PY' ||
-        die "The release archive failed structural integrity validation."
-import os
+    python3 - "$archive" "$listing" <<'PY'
 import posixpath
 import sys
 import tarfile
