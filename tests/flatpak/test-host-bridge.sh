@@ -12,7 +12,7 @@ command -v python3 >/dev/null 2>&1 || {
 work="$(mktemp -d "${TMPDIR:-/tmp}/shanti-host-probe-test.XXXXXXXX")"
 cleanup() {
     rm -f -- "$work/mockbin/ibus" "$work/mockbin/fcitx5" \
-        "$work/mockbin/fcitx5-remote" "$work/probe.json" "$work/probe-both.json" \
+        "$work/mockbin/fcitx5-remote" "$work/mockbin/pgrep" "$work/probe.json" "$work/probe-both.json" \
         "$work/probe-invalid.json" 2>/dev/null || true
     rmdir -- "$work/mockbin" 2>/dev/null || true
     rmdir -- "$work" 2>/dev/null || true
@@ -54,7 +54,15 @@ cat > "$work/mockbin/fcitx5-remote" <<'MOCK'
 [[ "${1:-}" == -n ]] && { printf '%s\n' 'keyboard-us'; exit 0; }
 exit 2
 MOCK
-chmod +x "$work/mockbin/ibus" "$work/mockbin/fcitx5" "$work/mockbin/fcitx5-remote"
+cat > "$work/mockbin/pgrep" <<'MOCK'
+#!/usr/bin/env bash
+case " $* " in
+    *" ibus-daemon "*) exit 0 ;;
+    *" fcitx5 "*) exit 0 ;;
+    *) exit 1 ;;
+esac
+MOCK
+chmod +x "$work/mockbin/ibus" "$work/mockbin/fcitx5" "$work/mockbin/fcitx5-remote" "$work/mockbin/pgrep"
 PATH="$work/mockbin:$PATH" \
 XDG_DATA_HOME="$work/data \"quoted\" \\ backslash" \
 XDG_CONFIG_HOME="$work/config custom" \
@@ -67,8 +75,10 @@ with open(sys.argv[1], encoding="utf-8") as f:
 assert report["host"]["xdg"]["data_home_source"] == "environment"
 assert '"quoted"' in report["host"]["xdg"]["data_home"]
 assert "backslash" in report["host"]["xdg"]["data_home"]
+assert report["backends"]["ibus"]["process_active"] is True
 assert report["backends"]["ibus"]["session_reachable"] is True
 assert report["backends"]["ibus"]["current_engine"] == "mock-engine"
+assert report["backends"]["fcitx5"]["process_active"] is True
 assert report["backends"]["fcitx5"]["session_reachable"] is True
 assert report["backends"]["fcitx5"]["current_im"] == "keyboard-us"
 assert report["suggested_backend"] is None
