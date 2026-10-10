@@ -253,6 +253,24 @@ jobs:
           test ! -e "$bundle"
           test -f "$outside/keep.txt"
           test "$(cat "$outside/keep.txt")" = 'outside data must survive'
+
+          # Simulate a nested mount point and verify that recursive removal fails closed.
+          mount_tree="$test_home/.local/lib/openbangla"
+          mkdir -p "$mount_tree/nested"
+          mock_bin="$test_home/mock-bin"
+          mkdir -p "$mock_bin"
+          cat > "$mock_bin/mountpoint" <<'MOCK'
+          #!/usr/bin/env bash
+          for arg in "$@"; do target="$arg"; done
+          [[ "${target:-}" == "${MOCK_MOUNT_POINT:?}" ]]
+          MOCK
+          chmod +x "$mock_bin/mountpoint"
+          if MOCK_BIN="$mock_bin" MOCK_MOUNT_POINT="$mount_tree/nested" HOME="$test_home" bash -c 'source tools/uninstall.sh; PATH="$MOCK_BIN:$PATH"; remove_path "$PREFIX/lib/openbangla"'; then
+            echo "Uninstaller unexpectedly removed a tree containing a mount point." >&2
+            exit 1
+          fi
+          test -d "$mount_tree/nested"
+          echo "Uninstaller refused recursive removal across a mount boundary."
           echo "Uninstaller removed only the named tree and left symlink targets untouched."
 
       - name: Upload prebuilt package
