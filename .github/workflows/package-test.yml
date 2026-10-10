@@ -50,6 +50,59 @@ jobs:
           bash -n tools/install.sh
           bash -n tools/uninstall.sh
 
+      - name: Verify release integrity helpers
+        run: |
+          set -Eeuo pipefail
+          test_root="$(mktemp -d)"
+          mkdir -p "$test_root/payload/bin" "$test_root/payload/lib/openbangla" "$test_root/payload/share/openbangla-keyboard"
+          printf '%s\n' 'gui fixture' > "$test_root/payload/bin/openbangla-gui"
+          printf '%s\n' 'runtime fixture' > "$test_root/payload/lib/openbangla/runtime.so"
+          printf '%s\n' 'data fixture' > "$test_root/payload/share/openbangla-keyboard/data.json"
+          chmod +x "$test_root/payload/bin/openbangla-gui"
+          tar -czf "$test_root/good.tar.gz" -C "$test_root/payload" .
+          (cd "$test_root" && sha256sum good.tar.gz > good.tar.gz.sha256)
+
+          INSTALL_TEST_ROOT="$test_root" bash -c '
+            set -Eeuo pipefail
+            source tools/install.sh
+            validate_release_checksum "$INSTALL_TEST_ROOT/good.tar.gz" "$INSTALL_TEST_ROOT/good.tar.gz.sha256" good.tar.gz
+            validate_release_archive_paths "$INSTALL_TEST_ROOT/good.tar.gz" "$INSTALL_TEST_ROOT/good.list"
+            mkdir -p "$INSTALL_TEST_ROOT/extracted/lib"
+            printf "%s\\n" fixture > "$INSTALL_TEST_ROOT/extracted/lib/library.so"
+            ln -s library.so "$INSTALL_TEST_ROOT/extracted/lib/local-link.so"
+            validate_extracted_symlinks "$INSTALL_TEST_ROOT/extracted"
+          '
+
+          digest="$(sha256sum "$test_root/good.tar.gz")"
+          digest="${digest%% *}"
+          printf '%s  wrong-name.tar.gz\n' "$digest" > "$test_root/wrong-name.sha256"
+          if INSTALL_TEST_ROOT="$test_root" bash -c 'source tools/install.sh; validate_release_checksum "$INSTALL_TEST_ROOT/good.tar.gz" "$INSTALL_TEST_ROOT/wrong-name.sha256" good.tar.gz'; then
+            echo "Checksum validator accepted a checksum for a different filename." >&2
+            exit 1
+          fi
+
+          python3 - "$test_root/unsafe.tar.gz" <<'PY'
+          import io
+          import sys
+          import tarfile
+          with tarfile.open(sys.argv[1], "w:gz") as archive:
+              info = tarfile.TarInfo("../escape.txt")
+              payload = b"must not be extracted"
+              info.size = len(payload)
+              archive.addfile(info, io.BytesIO(payload))
+          PY
+          if INSTALL_TEST_ROOT="$test_root" bash -c 'source tools/install.sh; validate_release_archive_paths "$INSTALL_TEST_ROOT/unsafe.tar.gz" "$INSTALL_TEST_ROOT/unsafe.list"'; then
+            echo "Archive validator accepted a path traversal entry." >&2
+            exit 1
+          fi
+
+          ln -s /etc/passwd "$test_root/extracted/lib/escape-link.so"
+          if INSTALL_TEST_ROOT="$test_root" bash -c 'source tools/install.sh; validate_extracted_symlinks "$INSTALL_TEST_ROOT/extracted"'; then
+            echo "Symlink validator accepted a link outside the extraction root." >&2
+            exit 1
+          fi
+          echo "Release checksum, archive-path, and symlink-containment tests passed."
+
       - name: Build prebuilt package
         env:
           OPENBANGLA_BUILD_USE_HOST: "1"
