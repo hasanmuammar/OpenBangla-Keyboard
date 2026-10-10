@@ -272,7 +272,7 @@ These examples are implementation precedents, not a claim that their exact permi
 
 Official references: [Flatpak sandbox-permission guidance](https://docs.flatpak.org/en/latest/sandbox-permissions.html), [`flatpak-spawn` command reference](https://docs.flatpak.org/en/latest/flatpak-command-reference.html), and [libflatpak `HostCommand` API](https://docs.flatpak.org/en/latest/libflatpak-api-reference.html).
 
-### What “host access” actually means
+### Why host-command execution is not the default
 
 Flatpak does not require an unofficial exploit to run a host-side operation. The documented `flatpak-spawn --host` mechanism uses the Flatpak session-bus interface and requires permission to talk to `org.freedesktop.Flatpak`. The corresponding host-command API deliberately lets a trusted application run a command outside its sandbox. This is a supported escape hatch, but it is a **major trust boundary**, not a narrow permission to run only Shanti's installer script: a compromised or misused GUI could launch other commands as the logged-in user. It does not, by itself, grant root access or bypass ordinary Unix user permissions.
 
@@ -309,10 +309,9 @@ Its published installation instructions explicitly say that the IBus interface m
 
 **What this teaches Shanti:** split the product into an unprivileged Flatpak frontend/data/configuration side and a minimal host-side integration layer when needed. It is a useful pattern for IBus engine execution. However, PMIM's README and installation instructions show that the Flatpak alone is **not** a fully self-contained, one-click host input-method installation. Its manual/AUR/RPM host setup is an explicit prerequisite, so it does not by itself solve Shanti's desired install/update/remove lifecycle.
 
-For Shanti's proposed installer, compare two different models rather than calling either a sandbox bypass:
+For Shanti, the default is a third, simpler model: **run the manager and file operations inside the sandbox with narrow permissions to the host user directories that Shanti owns**. No host-command permission is needed merely to place executables, resources, or registration files. A user logout/login or manual input-method restart can be the first-release refresh path.
 
-1. **Flatpak host command:** the installer invokes its staged lifecycle scripts using the documented `flatpak-spawn --host` mechanism. This can keep the UI and shipped script in one Flatpak, but permission to talk to `org.freedesktop.Flatpak` lets trusted app code launch host commands as the current user. It is a broad trust grant even if the UI exposes only fixed operations.
-2. **Separate host adapter:** install/register a narrowly scoped helper or IBus/Fcitx module on the host, then communicate with it through a defined IPC interface. This can make the engine boundary clearer, like PMIM's `librush`, but requires a separate trustworthy way to install/update that helper and adds lifecycle complexity.
+Only if a tested requirement remains—for example, the project decides that it must refresh the host daemon immediately and cannot do that through a suitable narrow D-Bus API—should we evaluate a host-command fallback using `flatpak-spawn --host`. That is a separate trust decision, not a prerequisite for file placement. A separate host adapter like PMIM's `librush` is another option, but adds its own installation and update lifecycle; Shanti already has a user-local host engine payload, so the adapter route should not be chosen without evidence.
 
 PMIM proves that a Flatpak GUI/data process can participate in an input-method design alongside a host-side engine adapter. It does **not** prove that host registration files, IBus modules, Fcitx5 modules, or a user's `~/.local` installation can be changed automatically from a normal Flatpak without a host integration mechanism.
 
