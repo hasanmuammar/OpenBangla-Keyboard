@@ -113,7 +113,7 @@ This experiment does not currently aim to:
 - [ ] Clean installation, update, and removal tests.
 - [ ] Flatpak release publication.
 
-**Current evidence boundary:** No Flatpak manifest or packaging implementation has been added, and no Flatpak build or host-typing test has been run. The project is still in the planning phase.
+**Current evidence boundary:** A read-only host probe and a local regression test now exist. No Flatpak manifest/build, inside-Flatpak host-spawn test, modifying bridge operation, Rust frontend, or host-typing test has been run. The project remains experimental.
 
 ## 8. Work plan and checklist
 
@@ -132,7 +132,7 @@ Work through the stages in order. Complete and review one focused task at a time
 
 **Stage 1 exit condition:** A reviewed design that describes the package contents, host/sandbox responsibilities, required permissions, and a credible test for sending Bengali keystrokes into host applications.
 
-**Next task:** Implement the documented host bridge and the required non-interactive options/planning support while preserving the existing interactive CLI. Test host XDG/environment mapping and a read-only probe first. Defer the Flatpak manifest until the bridge contract works on a target system.
+**Next task:** Stage the read-only probe under the Flatpak's persistent app data, invoke it from inside the sandbox through `flatpak-spawn --host`, and verify the host path and host XDG values on a target system. Keep modifying operations disabled until this passes.
 
 ### Stage 2 — Minimal buildable proof of concept
 
@@ -218,10 +218,12 @@ A checklist item should only be marked complete when there is concrete evidence,
 | Existing portable installer | Retain; no replacement decision has been made |
 | Installer frontend | Rust + GTK4/libadwaita compiled binary; lifecycle/configuration GUI, separate from the existing Qt keyboard GUI |
 | Host operations | Evaluate documented `flatpak-spawn --host` / `org.freedesktop.Flatpak` with a fixed script interface; not yet tested |
-| Host-operation contract | Drafted in `docs/wiki/Flatpak-Installer-Protocol.md`; not implemented or tested |
+| Host-operation contract | Drafted in `docs/wiki/Flatpak-Installer-Protocol.md`; lifecycle plan/apply not implemented |
+| Read-only host probe | Implemented at `tools/flatpak/host-bridge.sh`; local regression test at `tests/flatpak/test-host-bridge.sh` passed |
+| Inside-Flatpak host bridge | Not tested; host-spawn path and host XDG inheritance remain unverified |
 | Host execution candidate | `flatpak-spawn --host` with host XDG paths explicitly restored; trust and runtime environment remain test requirements |
-| Implementation status | Planning plus source review; no manifest, bridge, or Flatpak build yet |
-| Immediate next task | Implement and test a read-only host bridge/probe, then add plan/apply and non-interactive lifecycle support |
+| Implementation status | Source review + read-only probe/test only; no manifest, Flatpak build, or GUI yet |
+| Immediate next task | Test staged probe invocation through `flatpak-spawn --host` and verify host path/XDG mapping inside an actual Flatpak |
 
 ## 12. Progress log
 
@@ -235,6 +237,7 @@ A checklist item should only be marked complete when there is concrete evidence,
 | 2026-10-10 | Selected Rust + GTK4/libadwaita as the installer frontend direction and reviewed PMIM IBus Flatpak's split sandbox/host adapter model. Documented that PMIM is not a general host-access bypass and still requires separate host-side IBus integration. |
 | 2026-10-10 | Clarified the target architecture: IBus or Fcitx5 is already installed on the host; the Flatpak manages Shanti's host-compatible user-local engine payload and registration rather than shipping a private input-method framework. |
 | 2026-10-10 | Added `Flatpak-Installer-Protocol.md` with a proposed plan/apply JSONL contract, host-environment/XDG handling, explicit decisions for install and removal, current CLI gaps, and bridge acceptance tests. No script or runtime code was changed. |
+| 2026-10-10 | Added the read-only `tools/flatpak/host-bridge.sh` probe and `tests/flatpak/test-host-bridge.sh`. Local syntax, JSON, custom-XDG escaping, mocked backend-ambiguity, and fail-closed tests passed. No modifying action is implemented; actual Flatpak host-spawn behaviour remains unverified. |
 
 ## 13. Related projects and implementation precedents
 
