@@ -55,7 +55,7 @@ relocate_xdg_resource() {
     else
         mkdir -p "$(dirname "$destination")"
         cp -a "$source" "$destination"
-        rm -f "$source"
+        # Preserve the source file until the user chooses to remove it.
     fi
 }
 
