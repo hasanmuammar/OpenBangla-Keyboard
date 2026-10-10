@@ -3,8 +3,13 @@
 merge_openbangla_data() {
     local source="$1"
     local destination="$2"
-    local item name layout
+    local item name layout target
 
+    [[ ! -L "$destination" ]] ||
+        die "Refusing to merge through a symlinked data directory: $destination"
+    if [[ -e "$destination" && ! -d "$destination" ]]; then
+        die "Data merge destination is not a directory: $destination"
+    fi
     mkdir -p "$destination"
     shopt -s nullglob
     for item in "$source"/*; do
@@ -13,27 +18,63 @@ merge_openbangla_data() {
 
         case "$name" in
             layouts)
+                [[ ! -L "$destination/layouts" ]] ||
+                    die "Refusing to merge through a symlinked layouts directory."
                 mkdir -p "$destination/layouts"
                 for layout in "$item"/*; do
                     [[ -e "$layout" || -L "$layout" ]] || continue
-                    # Do not overwrite user-created/custom layouts on upgrade.
-                    [[ -e "$destination/layouts/${layout##*/}" ]] ||
-                        cp -a "$layout" "$destination/layouts/"
+                    target="$destination/layouts/${layout##*/}"
+                    [[ ! -L "$target" ]] ||
+                        die "Refusing to overwrite a symlinked layout: $target"
+                    [[ -e "$target" ]] || cp -a "$layout" "$destination/layouts/"
                 done
                 ;;
-            data|icons)
-                mkdir -p "$destination/$name"
-                cp -a "$item/." "$destination/$name/"
+            data)
+                [[ ! -L "$destination/data" ]] ||
+                    die "Refusing to merge through a symlinked data directory."
+                mkdir -p "$destination/data"
+                for layout in "$item"/*; do
+                    [[ -e "$layout" || -L "$layout" ]] || continue
+                    name="${layout##*/}"
+                    target="$destination/data/$name"
+                    [[ ! -L "$target" ]] ||
+                        die "Refusing to overwrite a symlinked application data file: $target"
+                    if [[ "$name" == autocorrect.json && -e "$target" ]]; then
+                        continue
+                    fi
+                    case "$name" in
+                        dictionary.json|suffix.json|regex.json)
+                            cp -a "$layout" "$target"
+                            ;;
+                        *)
+                            [[ -e "$target" ]] || cp -a "$layout" "$target"
+                            ;;
+                    esac
+                done
+                ;;
+            icons)
+                [[ ! -L "$destination/icons" ]] ||
+                    die "Refusing to merge through a symlinked icons directory."
+                mkdir -p "$destination/icons"
+                for layout in "$item"/*; do
+                    [[ -e "$layout" || -L "$layout" ]] || continue
+                    target="$destination/icons/${layout##*/}"
+                    [[ ! -L "$target" ]] ||
+                        die "Refusing to overwrite a symlinked icon: $target"
+                    cp -a "$layout" "$target"
+                done
                 ;;
             *)
-                # Preserve user-owned state files such as autocorrect.json.
-                [[ -e "$destination/$name" || -L "$destination/$name" ]] ||
-                    cp -a "$item" "$destination/"
+                target="$destination/$name"
+                [[ ! -L "$target" ]] ||
+                    die "Refusing to overwrite a symlinked user data path: $target"
+                [[ -e "$target" || -L "$target" ]] || cp -a "$item" "$destination/"
                 ;;
         esac
     done
     shopt -u nullglob
-    rm -rf "$source"
+    # Source is retained: merge rules intentionally preserve conflicting
+    # custom layouts and autocorrect data, so deleting it would lose user data.
 }
 
 relocate_xdg_resource() {
@@ -44,18 +85,26 @@ relocate_xdg_resource() {
     [[ "$source" != "$destination" ]] || return 0
     [[ -e "$source" || -L "$source" ]] || return 0
 
+    if [[ -L "$destination" ]]; then
+        die "Refusing to write through a symlinked XDG resource path: $destination"
+    fi
+
     if [[ -d "$source" && ! -L "$source" ]]; then
         if [[ "$relative" == "openbangla-keyboard" ]]; then
             merge_openbangla_data "$source" "$destination"
         else
+            if [[ -e "$destination" && ! -d "$destination" ]]; then
+                die "Resource destination has the wrong type; source was preserved: $destination"
+            fi
             mkdir -p "$destination"
             cp -a "$source/." "$destination/"
-            rm -rf "$source"
         fi
     else
+        if [[ -e "$destination" || -L "$destination" ]]; then
+            die "Resource already exists at the XDG destination; refusing to overwrite it: $destination"
+        fi
         mkdir -p "$(dirname "$destination")"
         cp -a "$source" "$destination"
-        rm -f "$source"
     fi
 }
 
