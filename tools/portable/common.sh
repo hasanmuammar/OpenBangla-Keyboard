@@ -17,13 +17,27 @@ xdg_dir() {
     local variable="$1"
     local fallback="$2"
     local value="${!variable:-}"
-    # XDG base-directory variables are ignored when they are not absolute.
-    [[ "$value" == /* ]] || value=""
+    # Normalize paths and resolve existing symlinked parent directories so
+    # validation and actual filesystem operations refer to the same location.
+    if [[ "$value" == /* ]]; then
+        value="$(realpath -m -- "$value" 2>/dev/null)" || value=""
+    fi
+    # Ignore invalid XDG base directories, including paths that normalize to root.
+    [[ "$value" == /* && "$value" != "/" ]] || value=""
     printf '%s\n' "${value:-$fallback}"
 }
 
 prepare_paths() {
-    local data_home cache_home
+    local data_home cache_home canonical_home
+    [[ "${HOME:-}" == /* && -d "$HOME" ]] ||
+        die "HOME must be an existing absolute directory."
+    canonical_home="$(realpath -e -- "$HOME")" ||
+        die "Could not normalize HOME safely."
+    [[ "$canonical_home" != "/" ]] ||
+        die "Refusing to use filesystem root as HOME."
+    HOME="$canonical_home"
+    export HOME
+
     data_home="$(xdg_dir XDG_DATA_HOME "$HOME/.local/share")"
     cache_home="$(xdg_dir XDG_CACHE_HOME "$HOME/.cache")"
 
@@ -34,8 +48,9 @@ prepare_paths() {
     OBK_WORKSPACE="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 
     mkdir -p "$OBK_BUILD" "$OBK_DATA_HOME/ibus/component"
-    # Create a unique staging directory. Never clear a fixed path that may
-    # be empty, stale, overridden, or otherwise unexpected.
+
+    # Never clear a possibly stale staging directory. Create a new one for
+    # each invocation so a missing/unset path can never expand to /*.
     OBK_STAGE="$(mktemp -d "$OBK_CACHE/stage.XXXXXXXX")" ||
         die "Could not create a fresh OpenBangla staging directory."
 
