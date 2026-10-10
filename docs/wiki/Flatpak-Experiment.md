@@ -19,7 +19,7 @@ The Flatpak deliverable must include a **dedicated graphical frontend for the in
 
 The intended user-facing workflow is to launch the Rust + GTK4/libadwaita installer GUI and use it for installation, configuration, update, status, and removal of the host-side Shanti installation. The Flatpak is a lifecycle/configuration frontend, not the runtime keyboard engine itself; the existing script remains responsible for the underlying installation logic. The GUI and script must be packaged together, with a defined and testable interface for passing actions, progress, diagnostics, and exit status. Do not duplicate installation logic in the GUI.
 
-This requirement does not settle how host-level actions will be performed. Flatpak sandbox boundaries still apply: a packaged script cannot automatically write to arbitrary host paths, install host packages, or register a host IBus/Fcitx5 engine. Before implementing the frontend, the feasibility work must identify which actions can run in the sandbox, which require an explicit host-side helper or supported integration mechanism, and which cannot safely be offered from Flatpak. Do not solve this by granting broad filesystem or session-bus access without evidence.
+Design assumption: the target host already has its normal input-method framework installed—IBus or Fcitx5. The Shanti Flatpak must not package or replace that framework. It manages the user-local Shanti engine installation and its registration with the existing host framework. This requirement still leaves a host-integration question: Flatpak does not automatically gain permission to write host installation paths or invoke host-side registration/restart tools. Evaluate narrowly scoped filesystem access and the documented host-command mechanism, and grant only what the chosen lifecycle design demonstrably needs.
 
 The frontend's initial scope should be limited to clear, auditable lifecycle actions (install, update, remove, and status where supported), progress/output reporting, and actionable error messages. The selected frontend direction is Rust with GTK4 and libadwaita. The GUI-to-script protocol remains undecided until the current scripts and host integration boundaries have been inspected.
 
@@ -122,8 +122,9 @@ Work through the stages in order. Complete and review one focused task at a time
 - [ ] Map the existing executable, bundled runtime/Qt libraries, resources, engine files, configuration paths, and user data paths.
 - [ ] Identify native dependencies and how the current installer arranges files.
 - [ ] Determine which parts would run inside Flatpak and which must integrate with the host session.
-- [ ] Assess IBus and Fcitx5 registration, D-Bus/session interaction, environment propagation, and required host-visible files.
-- [ ] Decide whether the first proof of concept should package only the GUI or include an input-method engine.
+- [ ] Assume the host already provides either IBus or Fcitx5; map the exact user-local engine/module and registration paths for each backend.
+- [ ] Assess required host commands or narrow D-Bus interactions to refresh/restart the existing framework, plus environment propagation and host-visible files.
+- [ ] Keep the input-method framework out of the Flatpak; decide how the host-compatible Shanti engine payload is installed and registered by the GUI.
 - [ ] Select a suitable GNOME runtime/SDK and define initial architecture and test-environment coverage.
 - [ ] Record technical blockers and a minimal design before writing a manifest.
 
@@ -208,7 +209,8 @@ A checklist item should only be marked complete when there is concrete evidence,
 | Overall project goal | Easy, reliable, safe installation, updates, removal, and package integrity on target systems |
 | Target environments | Modern atomic Linux operating systems, especially Bluefin/Dakota, Bazzite, and similar systems |
 | Comparison target | A conventional Linux desktop, where practical |
-| Input methods | Investigate IBus and Fcitx5 separately |
+| Host prerequisite | Existing host IBus or Fcitx5 installation; Shanti Flatpak does not install either framework |
+| Input methods | Support/registration for IBus and Fcitx5 assessed separately |
 | Flatpak's possible distribution route | GitHub Releases with a hosted Flatpak repository and `.flatpakref`, if the experiment justifies it |
 | Flathub | Out of scope |
 | Existing portable installer | Retain; no replacement decision has been made |
@@ -227,6 +229,7 @@ A checklist item should only be marked complete when there is concrete evidence,
 | 2026-10-10 | Reviewed established Flatpak host-operation patterns, including ProtonUp-Qt host-spawn use and targeted permissions, Flatseal's permission-provider model, and GTK4/libadwaita lifecycle UI references. Proposed a Rust installer frontend and recorded host-command security/dependency constraints. |
 | 2026-10-10 | Added requirement for a compiled installer GUI shipped with the script; distinguished it from the existing keyboard GUI and recorded the sandbox/host boundary as unresolved. |
 | 2026-10-10 | Selected Rust + GTK4/libadwaita as the installer frontend direction and reviewed PMIM IBus Flatpak's split sandbox/host adapter model. Documented that PMIM is not a general host-access bypass and still requires separate host-side IBus integration. |
+| 2026-10-10 | Clarified the target architecture: IBus or Fcitx5 is already installed on the host; the Flatpak manages Shanti's host-compatible user-local engine payload and registration rather than shipping a private input-method framework. |
 
 ## 13. Related projects and implementation precedents
 
@@ -268,11 +271,12 @@ Flatpak does not require an unofficial exploit to run a host-side operation. The
 For Shanti, the recommended proof of concept is therefore:
 
 1. Build a dedicated Rust + GTK4 + libadwaita installer frontend as the Flatpak's primary binary. Do not confuse it with the existing Qt `openbangla-gui`, which is the keyboard's runtime/configuration application.
-2. Keep the existing lifecycle script as the authority for install/uninstall behaviour initially; do not reimplement its file-management logic in parallel in the GUI.
-3. Stage the required script tree and its companion files into the Flatpak's writable per-application data directory, preserving the layout expected by the scripts. The current `tools/install.sh` sources `tools/portable/common.sh` and `tools/portable/install.sh`, reads `release-tag.txt`, and relies on other files under the repository tree, so copying only `install.sh` is not enough. Run the staged script as a host process through the documented host-command mechanism, using an argument vector rather than interpolating input into a shell command.
-4. Before making this the real installer, verify how the host script gets its interpreter and external tools. The current script uses host commands and tools including Bash, curl or wget, Python 3, SHA-256 utilities, and archive/file-management utilities. Do not assume a Flatpak runtime's binaries automatically exist on the host or are ABI-compatible host tools.
-5. Replace terminal-only prompts with explicit, validated operation flags or a structured request/response protocol before wiring the script to a GUI. The current scripts can ask questions on a TTY when replacing an existing install or handling user data; a GUI must present these choices directly and pass an unambiguous answer.
-6. Treat installation, update, configuration, and removal as distinct operations. Removing Shanti should preserve user data by default; any cache/data purge must be a separate, explicit user choice. Updating the Flatpak frontend itself remains a Flatpak remote operation and is separate from updating the installed keyboard.
+2. Keep the existing host lifecycle script as the authority for install/uninstall behaviour initially; do not reimplement its file-management logic in parallel in the GUI.
+3. Stage the complete required script tree and companion files into the Flatpak's writable per-application data directory, preserving the layout expected by the scripts. The current `tools/install.sh` sources `tools/portable/common.sh` and `tools/portable/install.sh`, reads `release-tag.txt`, and relies on other repository files, so copying only `install.sh` is not enough. Invoke the staged script as a host process through the documented `flatpak-spawn --host` mechanism, using an argument vector rather than interpolating input into a shell command.
+4. The host script must install only the user-local Shanti engine and registration files for the already-installed IBus or Fcitx5 framework. It must not install/replace IBus or Fcitx5, use system paths, or request root privileges for this design.
+5. Verify host-side tools and ABI requirements. The existing script uses tools including Bash, curl or wget, Python 3, SHA-256 utilities, and archive/file-management utilities. Run it with the host's tools, not binaries assumed to be available from the Flatpak runtime. Confirm that the downloaded engine can run as a host process, and that the Fcitx5 module matches the host Fcitx5 ABI.
+6. Replace terminal-only prompts with explicit, validated operation flags or a structured request/response protocol before wiring the script to a GUI. Existing scripts can ask questions on a TTY when replacing an installation or handling user data; the GUI must present these choices directly and pass an unambiguous answer.
+7. Treat installation, update, configuration, status, and removal as distinct operations. Removal should preserve user data by default; cache/data purging must be an explicit separate choice. Updating the Flatpak frontend itself remains a Flatpak remote operation and is separate from updating the host-installed keyboard.
 
 ### Initial permission policy
 
@@ -280,7 +284,7 @@ For Shanti, the recommended proof of concept is therefore:
 - The host-command permission must be explicitly documented to users. Treat the Flatpak as high-trust because the host helper runs with the user's normal host permissions.
 - Keep host actions fixed to the shipped maintenance scripts and validated operation arguments. Do not provide a generic “run command” or “open terminal as host” feature.
 - No `sudo` and no system-wide installation are required for the existing user-local design; do not silently elevate privileges.
-- Host IBus/Fcitx registration remains an integration requirement that must be tested separately. The installer frontend's ability to launch does not prove that either engine works in host applications.
+- The host IBus/Fcitx5 service is an expected prerequisite, not something this Flatpak should install. Host-side Shanti registration and framework refresh still require validation. The installer frontend's ability to launch does not prove that either engine works in host applications.
 
 **Important evidence boundary:** The projects above demonstrate real Flatpak patterns, and the Flatpak documentation describes the host-command mechanism. They do not yet prove that Shanti's existing script can run successfully from the sandbox boundary or that its external host dependencies are consistently present on Bluefin/Dakota and Bazzite.
 
@@ -315,7 +319,7 @@ This project packages the Chinese Rime engine as an AppImage. Its documented flo
 1. The closest Flatpak precedent is the Fcitx5 framework plus extension architecture—not a generic Flatpak application that automatically registers an engine with any host input-method framework.
 2. We must distinguish a fully Flatpak-contained input-method stack from an engine intended to integrate with the host's existing IBus/Fcitx5 session. They have different boundaries and compatibility requirements.
 3. Shanti's current IBus build installs a component descriptor plus an engine executable. Its Fcitx5 build installs a native module plus metadata. These are not interchangeable packaging shapes, so each backend needs its own feasibility result.
-4. The lifecycle frontend is planned as a Rust + GTK4/libadwaita Flatpak. PMIM provides an alternative precedent using a separately installed host IBus adapter and a narrow shared runtime directory. Choose between `flatpak-spawn --host` and a separate host adapter only after comparing the required host-side file changes, external dependencies, update/removal ownership, and trust boundaries for Shanti.
+4. The host's IBus or Fcitx5 is an assumed prerequisite. Shanti's Flatpak is a manager for a host-compatible, user-local engine payload—not a replacement input-method framework. PMIM provides an alternative precedent using a separately installed host IBus adapter and a narrow shared runtime directory. For Shanti, compare limited host filesystem access plus narrowly scoped framework refresh mechanisms with the documented `flatpak-spawn --host` approach; choose only after testing which host actions are actually required.
 
 ### Sources reviewed
 
