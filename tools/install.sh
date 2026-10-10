@@ -125,38 +125,93 @@ validate_release_checksum() {
 }
 
 validate_release_archive_paths() {
-    local archive="$1" listing="$2" member clean component
-    local -a components=()
-    local -A seen=()
+    local archive="$1" listing="$2"
+    command -v python3 >/dev/null 2>&1 ||
+        die "Python 3 is required to safely validate release archive members before extraction. No files were installed."
 
-    tar -tzf "$archive" > "$listing" ||
-        die "The downloaded release is not a readable tar.gz archive."
+    python3 - "$archive" "$listing" <<'PY' ||
+        die "The release archive failed structural integrity validation."
+import os
+import posixpath
+import sys
+import tarfile
 
-    while IFS= read -r member || [[ -n "$member" ]]; do
-        [[ "$member" != /* ]] ||
-            die "Refusing an archive containing an absolute path: $member"
-        clean="$member"
-        while [[ "$clean" == ./* ]]; do clean="${clean#./}"; done
-        clean="${clean%/}"
-        [[ -z "$clean" || "$clean" == "." ]] && continue
+archive_path, listing_path = sys.argv[1:3]
+allowed_roots = {"bin", "lib", "libexec", "share"}
+seen = set()
+symlinks = {}
+listing = []
+total_size = 0
+max_members = 50000
+max_total_size = 2 * 1024 * 1024 * 1024
 
-        IFS=/ read -r -a components <<< "$clean"
-        for component in "${components[@]}"; do
-            [[ -n "$component" && "$component" != "." && "$component" != ".." ]] ||
-                die "Refusing an archive containing a traversal path: $member"
-        done
+def fail(message):
+    print("Archive validation failed: " + message, file=sys.stderr)
+    raise SystemExit(1)
 
-        case "$clean" in
-            bin|bin/*|lib|lib/*|libexec|libexec/*|share|share/*) ;;
-            *) die "Refusing an archive containing an unexpected top-level path: $member" ;;
-        esac
+try:
+    with tarfile.open(archive_path, mode="r:gz") as archive:
+        members = archive.getmembers()
+        if len(members) > max_members:
+            fail(f"too many archive members ({len(members)})")
 
-        [[ -z "${seen[$clean]:-}" ]] ||
-            die "Refusing an archive containing a duplicate path: $member"
-        seen["$clean"]=1
-    done < "$listing"
+        for member in members:
+            name = member.name
+            if name.startswith("/"):
+                fail(f"absolute member path: {name!r}")
+            if any(ch in name for ch in "\n\r\t"):
+                fail("member names containing control separators are not accepted")
+            while name.startswith("./"):
+                name = name[2:]
+            name = name.rstrip("/")
+            if name in ("", "."):
+                continue
+
+            parts = name.split("/")
+            if any(part in ("", ".", "..") for part in parts):
+                fail(f"path traversal or non-canonical path: {member.name!r}")
+            if parts[0] not in allowed_roots:
+                fail(f"unexpected top-level path: {member.name!r}")
+            if name in seen:
+                fail(f"duplicate archive path: {name!r}")
+            seen.add(name)
+            listing.append(name)
+
+            if member.issym():
+                target = member.linkname
+                if not target or posixpath.isabs(target):
+                    fail(f"absolute or empty symbolic-link target: {name!r} -> {target!r}")
+                resolved = posixpath.normpath(posixpath.join(posixpath.dirname(name), target))
+                if resolved in ("", ".", "..") or resolved.startswith("../") or posixpath.isabs(resolved):
+                    fail(f"symbolic link escapes extraction root: {name!r} -> {target!r}")
+                if resolved.split("/", 1)[0] not in allowed_roots:
+                    fail(f"symbolic link targets an unexpected top-level path: {name!r} -> {target!r}")
+                symlinks[name] = resolved
+            elif member.islnk():
+                fail(f"hard links are not accepted in release archives: {name!r}")
+            elif not (member.isfile() or member.isdir()):
+                fail(f"special or unsupported archive entry type: {name!r}")
+
+            if member.size < 0:
+                fail(f"negative member size: {name!r}")
+            total_size += member.size
+            if total_size > max_total_size:
+                fail("expanded archive exceeds the 2 GiB safety limit")
+
+        for name in seen:
+            parent = posixpath.dirname(name)
+            while parent not in ("", "."):
+                if parent in symlinks:
+                    fail(f"archive member is nested under a symbolic link: {name!r} (parent {parent!r})")
+                parent = posixpath.dirname(parent)
+
+    with open(listing_path, "w", encoding="utf-8") as stream:
+        stream.write("\n".join(sorted(listing)))
+        stream.write("\n")
+except (tarfile.TarError, OSError, EOFError) as exc:
+    fail(f"cannot read archive: {exc}")
+PY
 }
-
 validate_extracted_symlinks() {
     local root="$1" link target resolved
     [[ -d "$root" && ! -L "$root" ]] ||
