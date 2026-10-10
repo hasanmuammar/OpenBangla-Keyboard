@@ -118,7 +118,8 @@ jobs:
             rewrite_install_metadata
 
             test -f "$OBK_DATA_HOME/openbangla-keyboard/data/dictionary.json"
-            test ! -e "$OBK_PREFIX/share/openbangla-keyboard"
+            # The installer must preserve source files instead of silently deleting them.
+            test -f "$OBK_PREFIX/share/openbangla-keyboard/data/dictionary.json"
             test -f "$OBK_DATA_HOME/applications/openbangla-keyboard.desktop"
             grep -Fq "Exec=\"$OBK_PREFIX/bin/openbangla-gui\" %f" \
               "$OBK_DATA_HOME/applications/openbangla-keyboard.desktop"
