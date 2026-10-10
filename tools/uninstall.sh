@@ -8,7 +8,7 @@ xdg_home() {
     local fallback="$2"
     local value="${!variable:-}"
     [[ "$value" == /* && "$value" != "/" ]] || value=""
-    printf '%s\\n' "${value:-$fallback}"
+    printf '%s\n' "${value:-$fallback}"
 }
 
 DATA_HOME="$(xdg_home XDG_DATA_HOME "$HOME/.local/share")"
@@ -180,6 +180,22 @@ main() {
         shift
     done
 
+    if [[ $PURGE_DATA -eq 1 ]]; then
+        [[ -t 0 ]] || die "--purge-data requires an interactive confirmation; user data will be preserved."
+        printf 'User data may include custom layouts and autocorrect data. Target: %s\n' "$DATA_HOME/openbangla-keyboard"
+        read -r -p 'Delete this user-data directory as well? [y/N] ' data_reply
+        [[ "$data_reply" =~ ^[Yy]([Ee][Ss])?$ ]] || PURGE_DATA=0
+    fi
+
+    if [[ $PURGE_CACHE -eq 1 ]]; then
+        [[ -t 0 ]] || die "--purge-cache requires an interactive confirmation; cache data will be preserved."
+        printf 'Build/staging cache target: %s\n' "$CACHE_HOME/openbangla-keyboard"
+        read -r -p 'Delete this cache directory as well? [y/N] ' cache_reply
+        [[ "$cache_reply" =~ ^[Yy]([Ee][Ss])?$ ]] || PURGE_CACHE=0
+    fi
+
+    [[ -t 0 ]] || die "Interactive confirmation is required before uninstalling."
+
     printf 'Review these OpenBangla program and registration paths before continuing:\n'
     for path in \
         "$PREFIX/bin/openbangla-gui" \
@@ -227,13 +243,7 @@ main() {
     remove_path "$PREFIX/lib/openbangla"
 
     if [[ $PURGE_DATA -eq 1 ]]; then
-        printf 'This will permanently remove user data, including custom layouts and autocorrect data, at:\n  %s\n' "$DATA_HOME/openbangla-keyboard"
-        read -r -p 'Confirm deletion of this user-data directory? [y/N] ' data_reply
-        if [[ "$data_reply" =~ ^[Yy]([Ee][Ss])?$ ]]; then
-            remove_path "$DATA_HOME/openbangla-keyboard"
-        else
-            printf 'User data preserved.\n'
-        fi
+        remove_path "$DATA_HOME/openbangla-keyboard"
     fi
 
     remove_path "$DATA_HOME/applications/openbangla-keyboard.desktop"
