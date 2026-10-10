@@ -1,10 +1,41 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+[[ $# -eq 4 ]] || {
+    echo "Usage: bundle-runtime.sh RUNTIME_LIB_DIR RUNTIME_PLUGIN_DIR STAGE_DIR QT_LIB_DIR" >&2
+    exit 2
+}
+
 runtime_lib_dir="$1"
 runtime_plugin_dir="$2"
 stage_dir="$3"
 qt_lib_dir="$4"
+
+[[ "$stage_dir" == /* && "$stage_dir" != "/" && -d "$stage_dir" && ! -L "$stage_dir" ]] || {
+    echo "Refusing to bundle runtime into an invalid staging directory: $stage_dir" >&2
+    exit 1
+}
+stage_root="$(realpath -e -- "$stage_dir")" || {
+    echo "Could not resolve the staging directory: $stage_dir" >&2
+    exit 1
+}
+runtime_lib_dir="$(realpath -m -- "$runtime_lib_dir")" || {
+    echo "Could not resolve the runtime library directory." >&2
+    exit 1
+}
+runtime_plugin_dir="$(realpath -m -- "$runtime_plugin_dir")" || {
+    echo "Could not resolve the runtime plugin directory." >&2
+    exit 1
+}
+
+[[ "$runtime_lib_dir" == "$stage_root/"* && ! -L "$runtime_lib_dir" ]] || {
+    echo "Refusing to remove or replace files outside the staged runtime: $runtime_lib_dir" >&2
+    exit 1
+}
+[[ "$runtime_plugin_dir" == "$runtime_lib_dir/"* && ! -L "$runtime_plugin_dir" ]] || {
+    echo "Refusing to remove or replace files outside the staged runtime plugins: $runtime_plugin_dir" >&2
+    exit 1
+}
 
 host_library() {
     case "$1" in
@@ -37,7 +68,7 @@ bundle_libproxy_backend() {
 
         target="$runtime_lib_dir/libpxbackend-1.0.so"
         if [[ -L "$target" ]]; then
-            rm -f "$target"
+            rm -f -- "$target"
         fi
 
         cp -a "$(readlink -f "$module")" "$target"
