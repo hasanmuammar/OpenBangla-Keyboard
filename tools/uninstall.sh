@@ -16,16 +16,19 @@ CONFIG_HOME="$(xdg_home XDG_CONFIG_HOME "$HOME/.config")"
 CACHE_HOME="$(xdg_home XDG_CACHE_HOME "$HOME/.cache")"
 
 PURGE_CACHE=0
+PURGE_DATA=0
 
 usage() {
     cat <<'EOF'
-Usage: tools/uninstall.sh [--purge-cache]
+Usage: tools/uninstall.sh [--purge-cache] [--purge-data]
 
 Remove the current user's OpenBangla Keyboard installation.
 
 Options:
   --purge-cache   Also remove the build/staging cache at
                   ~/.cache/openbangla-keyboard (or XDG_CACHE_HOME).
+  --purge-data    Also remove OpenBangla user data, including custom layouts
+                  and autocorrect data. This is not removed by default.
   -h, --help      Show this help.
 EOF
 }
@@ -44,17 +47,6 @@ remove_path() {
 
     if [[ -e "$path" || -L "$path" ]]; then
         rm -rf -- "$path"
-        log "Removed $path"
-    fi
-}
-
-remove_matching_file() {
-    local root="$1"
-    local relative="$2"
-    local path="$root/$relative"
-
-    if [[ -e "$path" || -L "$path" ]]; then
-        rm -f -- "$path"
         log "Removed $path"
     fi
 }
@@ -174,6 +166,9 @@ main() {
             --purge-cache)
                 PURGE_CACHE=1
                 ;;
+            --purge-data)
+                PURGE_DATA=1
+                ;;
             -h|--help)
                 usage
                 exit 0
@@ -185,27 +180,33 @@ main() {
         shift
     done
 
-    printf 'Review these OpenBangla-specific paths before continuing:\n'
+    printf 'Review these OpenBangla program and registration paths before continuing:\n'
     for path in \
         "$PREFIX/bin/openbangla-gui" \
         "$PREFIX/bin/openbangla-gui.bin" \
         "$PREFIX/libexec/ibus-engine-openbangla" \
         "$PREFIX/libexec/ibus-engine-openbangla.bin" \
         "$PREFIX/lib/openbangla" \
-        "$DATA_HOME/openbangla-keyboard" \
         "$DATA_HOME/applications/openbangla-keyboard.desktop" \
+        "$DATA_HOME/ibus/component/openbangla.xml" \
         "$DATA_HOME/fcitx5/addon/openbangla.conf" \
         "$DATA_HOME/fcitx5/inputmethod/openbangla.conf" \
         "$DATA_HOME/metainfo/io.github.openbangla.keyboard.metainfo.xml" \
         "$DATA_HOME/pixmaps/openbangla-keyboard.png" \
-        "$CONFIG_HOME/environment.d/90-openbangla-ibus.conf"; do
+        "$CONFIG_HOME/environment.d/90-openbangla-ibus.conf" \
+        "$CONFIG_HOME/fcitx5/profile"; do
         printf '  %s\n' "$path"
     done
     for size in 16 32 48 128 512 1024; do
         printf '  %s\n' "$DATA_HOME/icons/hicolor/${size}x${size}/apps/openbangla-keyboard.png"
     done
     if [[ $PURGE_CACHE -eq 1 ]]; then
-        printf '  %s\n' "$CACHE_HOME/openbangla-keyboard"
+        printf 'Requested cache purge target: %s\n' "$CACHE_HOME/openbangla-keyboard"
+    fi
+    if [[ $PURGE_DATA -eq 1 ]]; then
+        printf 'Requested user-data purge target: %s\n' "$DATA_HOME/openbangla-keyboard"
+    else
+        printf 'Preserving user data by default: %s\n' "$DATA_HOME/openbangla-keyboard"
     fi
     if [[ -d "$PREFIX" ]]; then
         printf 'Matching Fcitx files under %s:\n' "$PREFIX"
@@ -214,7 +215,7 @@ main() {
                -path '*/fcitx5/inputmethod/openbangla.conf' -o \
                -path '*/fcitx5/addon/openbangla.conf' \) -print 2>/dev/null || true
     fi
-    printf 'The script will also remove OpenBangla registrations from input-method settings.\n'
+    printf 'The script will remove the listed program files and registrations. User data is preserved unless you separately confirm --purge-data.\n'
     read -r -p 'Proceed with these removals? [y/N] ' reply
     [[ "$reply" =~ ^[Yy]([Ee][Ss])?$ ]] ||
         exit 0
@@ -225,7 +226,16 @@ main() {
     remove_path "$PREFIX/libexec/ibus-engine-openbangla.bin"
     remove_path "$PREFIX/lib/openbangla"
 
-    remove_path "$DATA_HOME/openbangla-keyboard"
+    if [[ $PURGE_DATA -eq 1 ]]; then
+        printf 'This will permanently remove user data, including custom layouts and autocorrect data, at:\n  %s\n' "$DATA_HOME/openbangla-keyboard"
+        read -r -p 'Confirm deletion of this user-data directory? [y/N] ' data_reply
+        if [[ "$data_reply" =~ ^[Yy]([Ee][Ss])?$ ]]; then
+            remove_path "$DATA_HOME/openbangla-keyboard"
+        else
+            printf 'User data preserved.\n'
+        fi
+    fi
+
     remove_path "$DATA_HOME/applications/openbangla-keyboard.desktop"
     remove_path "$DATA_HOME/fcitx5/addon/openbangla.conf"
     remove_path "$DATA_HOME/fcitx5/inputmethod/openbangla.conf"
