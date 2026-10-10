@@ -152,9 +152,10 @@ Keyboard runtime settings are currently handled by the existing Qt `openbangla-g
 
 ## 7. Acceptance tests for the bridge
 
-- [ ] Host path for the staged bridge resolves correctly from inside the Flatpak, including on Bluefin/Dakota where home is commonly under `/var/home`.
-- [ ] Host XDG values are correct when default and custom XDG paths are used; app-private XDG paths are never used for the host install.
-- [ ] Probe detects IBus, Fcitx5, both, or neither without modifying files; the UI handles ambiguous cases by asking.
+- [ ] Inside the sandbox, the manager can access only the exact granted host user paths needed for the installation; test path creation, replacement and backup semantics with disposable Shanti-owned test directories.
+- [ ] Host XDG values are resolved from `HOST_XDG_*` when available, and every destination is checked against granted filesystem paths. Custom XDG paths outside the approved grant set must fail safely rather than use Flatpak-private paths.
+- [ ] Probe reports readable/accessible registration paths and current installed-file status without claiming to detect host daemon processes through sandbox `/proc`.
+- [ ] The UI asks the user to confirm IBus or Fcitx5 when the active host backend cannot be determined through a narrow, validated signal.
 - [ ] Missing dependencies prevent all modifications and produce an actionable report.
 - [ ] Plan lists exact target paths and choices, and does not change the filesystem.
 - [ ] Stale plans, unknown arguments, unsupported backends and missing decisions fail closed.
@@ -168,15 +169,17 @@ Keyboard runtime settings are currently handled by the existing Qt `openbangla-g
 
 ### Implemented in the repository
 
-- `tools/flatpak/host-bridge.sh` implements only `--protocol 1 probe`. It emits one JSON report and deliberately rejects other operations. It checks whether the current user's `ibus-daemon` or `fcitx5` process is already running before querying the corresponding client, avoiding an unnecessary client call that could trigger D-Bus activation.
-- `tests/flatpak/test-host-bridge.sh` covers the report shape, absolute path resolution, custom XDG paths containing quotes/backslashes, mock active IBus/Fcitx5 sessions, ambiguous-backend handling, inactive-daemon behavior, and rejection of an unimplemented `apply` operation.
-- The test script was run against the local bridge copy in a Linux shell and passed. This is a local shell/mock test, not a test inside Flatpak or on Bluefin/Dakota or Bazzite.
+- `tools/flatpak/host-bridge.sh` currently implements only `--protocol 1 probe`. It is a **host-context diagnostic candidate**, not an in-sandbox detector: its process checks cannot see host daemons from Flatpak's process namespace. It has no install/update/remove actions.
+- `tests/flatpak/test-host-bridge.sh` covers JSON output, XDG path handling, mocked process states and fail-closed behavior. These are local shell/mock tests, not tests of filesystem permissions inside an actual Flatpak.
+- The preferred filesystem-only design in Section 3 revises the earlier host-command-first approach. A dedicated in-sandbox filesystem permission probe and a minimal manifest have not yet been implemented or tested.
 
 ### Still unverified or not implemented
 
-- Calling the staged bridge through `flatpak-spawn --host` from inside the actual Flatpak.
-- Confirming that the staged bridge path resolves from both the sandbox and host, and that the spawned process receives host XDG values rather than app-private XDG values.
-- Live IBus/Fcitx5 discovery on the target desktop sessions.
+- Exact Flatpak path grants and their behavior when a target directory is absent.
+- Correct handling of `HOST_XDG_*` versus private `XDG_*` values inside a running Flatpak.
+- The manager's ability to create/replace/back up/remove only Shanti-owned files under the granted paths.
+- Backend refresh and host registration behavior after file placement, including relogin/restart requirements.
+- Whether a narrowly scoped D-Bus interaction can refresh a framework immediately; logout/login remains the fallback.
 - Plan/apply, non-interactive install/update/remove support, the Rust frontend, and the Flatpak manifest.
 
-**Next task:** verify the bridge staging and host-environment boundary in a minimal Flatpak on a target system. Keep modifying actions disabled until this is demonstrated. After that, add non-interactive plan/apply support behind tests while retaining the existing interactive CLI behaviour for current users.
+**Next task:** create a minimal manifest with only the candidate path grants, add an in-sandbox probe that checks exposed paths and host XDG mapping, and validate directory creation/write behavior using disposable Shanti-specific test paths. Do not implement modifying lifecycle operations or request host-command access as part of that test.
