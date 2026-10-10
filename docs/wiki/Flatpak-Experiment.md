@@ -130,7 +130,7 @@ Work through the stages in order. Complete and review one focused task at a time
 
 **Stage 1 exit condition:** A reviewed design that describes the package contents, host/sandbox responsibilities, required permissions, and a credible test for sending Bengali keystrokes into host applications.
 
-**Next task:** Map the current executable, runtime, resource, configuration, and data paths. No manifest should be added before this assessment is recorded.
+**Next task:** Define the GUI-driven host-operation contract for the existing user-local installer: required subcommands/options, non-interactive prompts, host dependencies, progress/exit reporting, and backend-specific registration refresh. Keep the manifest deferred until this contract and its permission model are reviewed.
 
 ### Stage 2 — Minimal buildable proof of concept
 
@@ -217,7 +217,7 @@ A checklist item should only be marked complete when there is concrete evidence,
 | Installer frontend | Rust + GTK4/libadwaita compiled binary; lifecycle/configuration GUI, separate from the existing Qt keyboard GUI |
 | Host operations | Evaluate documented `flatpak-spawn --host` / `org.freedesktop.Flatpak` with a fixed script interface; not yet tested |
 | Implementation status | Planning only; no manifest or Flatpak build yet |
-| Immediate next task | Map current executable, runtime, resource, configuration, and data paths |
+| Immediate next task | Define a non-interactive GUI-to-host-installer contract, host dependencies, and minimal permissions for user-local IBus/Fcitx5 registration |
 
 ## 12. Progress log
 
