@@ -72,6 +72,9 @@ download() {
 
 build_urls() {
     local asset="openbangla-keyboard_linux_${OBK_ARCH}_${OBK_BACKEND}.tar.gz"
+    if [[ ! "$RELEASE_VERSION" =~ ^[A-Za-z0-9._-]+$ ]]; then
+        die "Invalid release tag: $RELEASE_VERSION. Use only letters, numbers, dots, underscores, and hyphens."
+    fi
     if [[ -n "$REQUESTED_VERSION" ]]; then
         RELEASE_VERSION="$REQUESTED_VERSION"
         RELEASE_BASE="https://github.com/$REPOSITORY/releases/download/$RELEASE_VERSION"
@@ -85,11 +88,14 @@ build_urls() {
 }
 
 download_release() {
-    local download_dir="$OBK_CACHE/downloads/$RELEASE_VERSION"
+    local download_root="$OBK_CACHE/downloads"
+    local download_dir
+    mkdir -p "$download_root"
+    download_dir="$(mktemp -d "$download_root/$RELEASE_VERSION.XXXXXXXX")" ||
+        die "Could not create a fresh download directory."
     local archive="$download_dir/$OBK_ASSET"
     local checksum="$archive.sha256"
 
-    mkdir -p "$download_dir"
     log "Downloading the prebuilt OpenBangla Keyboard for $OBK_ARCH / $OBK_BACKEND."
 
     download "$OBK_DOWNLOAD_URL" "$archive" ||
