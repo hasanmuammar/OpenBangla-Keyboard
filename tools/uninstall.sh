@@ -63,74 +63,44 @@ log() {
 }
 
 is_allowed_openbangla_target() {
-    local path="$1"
+    local path="$1" relative directory
 
     case "$path" in
-        "$PREFIX/bin/openbangla-gui"|
-        "$PREFIX/bin/openbangla-gui.bin"|
-        "$PREFIX/libexec/ibus-engine-openbangla"|
-        "$PREFIX/libexec/ibus-engine-openbangla.bin"|
-        "$PREFIX/lib/openbangla"|
-        "$DATA_HOME/openbangla-keyboard"|
-        "$DATA_HOME/applications/openbangla-keyboard.desktop"|
-        "$DATA_HOME/ibus/component/openbangla.xml"|
-        "$DATA_HOME/fcitx5/addon/openbangla.conf"|
-        "$DATA_HOME/fcitx5/inputmethod/openbangla.conf"|
-        "$DATA_HOME/metainfo/io.github.openbangla.keyboard.metainfo.xml"|
-        "$DATA_HOME/pixmaps/openbangla-keyboard.png"|
-        "$DATA_HOME/.openbangla-keyboard-xdg-migration-v1-complete"|
-        "$CONFIG_HOME/environment.d/90-openbangla-ibus.conf"|
-        "$CONFIG_HOME/fcitx5/profile"|
-        "$CACHE_HOME/openbangla-keyboard")
+        "$PREFIX/bin/openbangla-gui"|"$PREFIX/bin/openbangla-gui.bin"|"$PREFIX/libexec/ibus-engine-openbangla"|"$PREFIX/libexec/ibus-engine-openbangla.bin"|"$PREFIX/lib/openbangla"|"$DATA_HOME/openbangla-keyboard"|"$DATA_HOME/applications/openbangla-keyboard.desktop"|"$DATA_HOME/ibus/component/openbangla.xml"|"$DATA_HOME/fcitx5/addon/openbangla.conf"|"$DATA_HOME/fcitx5/inputmethod/openbangla.conf"|"$DATA_HOME/metainfo/io.github.openbangla.keyboard.metainfo.xml"|"$DATA_HOME/pixmaps/openbangla-keyboard.png"|"$DATA_HOME/.openbangla-keyboard-xdg-migration-v1-complete"|"$CONFIG_HOME/environment.d/90-openbangla-ibus.conf"|"$CONFIG_HOME/fcitx5/profile"|"$CACHE_HOME/openbangla-keyboard")
+            return 0
+            ;;
+        "$DATA_HOME/icons/hicolor/16x16/apps/openbangla-keyboard.png"|"$DATA_HOME/icons/hicolor/32x32/apps/openbangla-keyboard.png"|"$DATA_HOME/icons/hicolor/48x48/apps/openbangla-keyboard.png"|"$DATA_HOME/icons/hicolor/128x128/apps/openbangla-keyboard.png"|"$DATA_HOME/icons/hicolor/512x512/apps/openbangla-keyboard.png"|"$DATA_HOME/icons/hicolor/1024x1024/apps/openbangla-keyboard.png"|"$PREFIX/lib/fcitx5/openbangla.so"|"$PREFIX/lib64/fcitx5/openbangla.so"|"$PREFIX/lib/fcitx5/addon/openbangla.conf"|"$PREFIX/lib/fcitx5/inputmethod/openbangla.conf"|"$PREFIX/share/fcitx5/addon/openbangla.conf"|"$PREFIX/share/fcitx5/inputmethod/openbangla.conf")
             return 0
             ;;
     esac
 
-    case "$path" in
-        "$DATA_HOME/icons/hicolor/16x16/apps/openbangla-keyboard.png"|
-        "$DATA_HOME/icons/hicolor/32x32/apps/openbangla-keyboard.png"|
-        "$DATA_HOME/icons/hicolor/48x48/apps/openbangla-keyboard.png"|
-        "$DATA_HOME/icons/hicolor/128x128/apps/openbangla-keyboard.png"|
-        "$DATA_HOME/icons/hicolor/512x512/apps/openbangla-keyboard.png"|
-        "$DATA_HOME/icons/hicolor/1024x1024/apps/openbangla-keyboard.png"|
-        "$PREFIX/lib/fcitx5/openbangla.so"|
-        "$PREFIX/lib64/fcitx5/openbangla.so"|
-        "$PREFIX/lib/fcitx5/addon/openbangla.conf"|
-        "$PREFIX/lib/fcitx5/inputmethod/openbangla.conf"|
-        "$PREFIX/share/fcitx5/addon/openbangla.conf"|
-        "$PREFIX/share/fcitx5/inputmethod/openbangla.conf")
-            return 0
-            ;;
-    esac
-
-    # Debian-family and some multiarch builds install modules one directory
-    # below lib/. Restrict the wildcard to exactly that one directory level.
+    # Multiarch builds place Fcitx modules one directory below lib/. Limit
+    # the wildcard to exactly that one directory level.
     case "$path" in
         "$PREFIX"/lib/*/fcitx5/openbangla.so)
-            local relative="${path#"$PREFIX"/lib/}"
-            local directory="${relative%/fcitx5/openbangla.so}"
+            relative="${path#"$PREFIX"/lib/}"
+            directory="${relative%/fcitx5/openbangla.so}"
             [[ -n "$directory" && "$directory" != */* ]] && return 0
             ;;
         "$PREFIX"/lib64/*/fcitx5/openbangla.so)
-            local relative="${path#"$PREFIX"/lib64/}"
-            local directory="${relative%/fcitx5/openbangla.so}"
+            relative="${path#"$PREFIX"/lib64/}"
+            directory="${relative%/fcitx5/openbangla.so}"
             [[ -n "$directory" && "$directory" != */* ]] && return 0
             ;;
         "$PREFIX"/lib/*/fcitx5/addon/openbangla.conf)
-            local relative="${path#"$PREFIX"/lib/}"
-            local directory="${relative%/fcitx5/addon/openbangla.conf}"
+            relative="${path#"$PREFIX"/lib/}"
+            directory="${relative%/fcitx5/addon/openbangla.conf}"
             [[ -n "$directory" && "$directory" != */* ]] && return 0
             ;;
         "$PREFIX"/lib/*/fcitx5/inputmethod/openbangla.conf)
-            local relative="${path#"$PREFIX"/lib/}"
-            local directory="${relative%/fcitx5/inputmethod/openbangla.conf}"
+            relative="${path#"$PREFIX"/lib/}"
+            directory="${relative%/fcitx5/inputmethod/openbangla.conf}"
             [[ -n "$directory" && "$directory" != */* ]] && return 0
             ;;
     esac
 
     return 1
 }
-
 remove_path() {
     local path="$1"
     local allowed=0 root normalized normalized_parent normalized_root cache_target parent
