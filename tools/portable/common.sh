@@ -31,10 +31,13 @@ prepare_paths() {
     OBK_DATA_HOME="$data_home"
     OBK_CACHE="$cache_home/openbangla-keyboard"
     OBK_BUILD="$OBK_CACHE/build"
-    OBK_STAGE="$OBK_CACHE/stage"
     OBK_WORKSPACE="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 
-    export OBK_PREFIX OBK_DATA_HOME OBK_CACHE OBK_BUILD OBK_STAGE OBK_WORKSPACE
+    mkdir -p "$OBK_BUILD" "$OBK_DATA_HOME/ibus/component"
+    # Create a unique staging directory. Never clear a fixed path that may
+    # be empty, stale, overridden, or otherwise unexpected.
+    OBK_STAGE="$(mktemp -d "$OBK_CACHE/stage.XXXXXXXX")" ||
+        die "Could not create a fresh OpenBangla staging directory."
 
-    mkdir -p "$OBK_BUILD" "$OBK_STAGE" "$OBK_DATA_HOME/ibus/component"
+    export OBK_PREFIX OBK_DATA_HOME OBK_CACHE OBK_BUILD OBK_STAGE OBK_WORKSPACE
 }
