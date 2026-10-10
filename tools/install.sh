@@ -74,6 +74,10 @@ build_urls() {
     local asset="openbangla-keyboard_linux_${OBK_ARCH}_${OBK_BACKEND}.tar.gz"
     if [[ -n "$REQUESTED_VERSION" ]]; then
         RELEASE_VERSION="$REQUESTED_VERSION"
+    fi
+    [[ "$RELEASE_VERSION" =~ ^[A-Za-z0-9._-]+$ ]] ||
+        die "Invalid release tag: $RELEASE_VERSION. Use only letters, numbers, dots, underscores, and hyphens."
+    if [[ -n "$REQUESTED_VERSION" ]]; then
         RELEASE_BASE="https://github.com/$REPOSITORY/releases/download/$RELEASE_VERSION"
     else
         RELEASE_BASE="https://github.com/$REPOSITORY/releases/latest/download"
@@ -85,11 +89,14 @@ build_urls() {
 }
 
 download_release() {
-    local download_dir="$OBK_CACHE/downloads/$RELEASE_VERSION"
+    local download_root="$OBK_CACHE/downloads"
+    local download_dir
+    mkdir -p "$download_root"
+    download_dir="$(mktemp -d "$download_root/$RELEASE_VERSION.XXXXXXXX")" ||
+        die "Could not create a fresh download directory."
     local archive="$download_dir/$OBK_ASSET"
     local checksum="$archive.sha256"
 
-    mkdir -p "$download_dir"
     log "Downloading the prebuilt OpenBangla Keyboard for $OBK_ARCH / $OBK_BACKEND."
 
     download "$OBK_DOWNLOAD_URL" "$archive" ||
@@ -102,8 +109,8 @@ download_release() {
         sha256sum -c "$(basename "$checksum")"
     ) || die "The downloaded release failed checksum verification."
 
-    OBK_STAGE="$download_dir/stage"
-    rm -rf "$OBK_STAGE"
+    # Use the unique staging directory created by prepare_paths.
+    # Never delete a fixed path before extracting the verified archive.
     mkdir -p "$OBK_STAGE$OBK_PREFIX"
     tar -xzf "$archive" -C "$OBK_STAGE$OBK_PREFIX"
 
