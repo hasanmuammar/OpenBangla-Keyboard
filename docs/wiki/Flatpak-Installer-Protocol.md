@@ -152,8 +152,11 @@ Keyboard runtime settings are currently handled by the existing Qt `openbangla-g
 
 ## 7. Acceptance tests for the bridge
 
-- [ ] Inside the sandbox, the manager can access only the exact granted host user paths needed for the installation; test path creation, replacement and backup semantics with disposable Shanti-owned test directories.
-- [ ] Host XDG values are resolved from `HOST_XDG_*` when available, and every destination is checked against granted filesystem paths. Custom XDG paths outside the approved grant set must fail safely rather than use Flatpak-private paths.
+- [ ] The disposable manifest builds successfully against Freedesktop SDK/runtime 26.08.
+- [ ] The probe runs inside Flatpak (verifies `FLATPAK_ID` and `/.flatpak-info`) and succeeds on its four exact test-only filesystem grants.
+- [ ] The probe reports sandbox-private `XDG_DATA_HOME` separately from resolved host XDG paths.
+- [ ] A dedicated disposable user with custom XDG paths confirms that the `xdg-data`, `xdg-config`, and `xdg-cache` aliases follow those host XDG roots.
+- [ ] Production install paths are not touched by the probe; only temporary child files under `shanti-flatpak-permission-probe` roots are created and removed.
 - [ ] Probe reports readable/accessible registration paths and current installed-file status without claiming to detect host daemon processes through sandbox `/proc`.
 - [ ] The UI asks the user to confirm IBus or Fcitx5 when the active host backend cannot be determined through a narrow, validated signal.
 - [ ] Missing dependencies prevent all modifications and produce an actionable report.
@@ -169,17 +172,19 @@ Keyboard runtime settings are currently handled by the existing Qt `openbangla-g
 
 ### Implemented in the repository
 
-- `tools/flatpak/host-bridge.sh` currently implements only `--protocol 1 probe`. It is a **host-context diagnostic candidate**, not an in-sandbox detector: its process checks cannot see host daemons from Flatpak's process namespace. It has no install/update/remove actions.
-- `tests/flatpak/test-host-bridge.sh` covers JSON output, XDG path handling, mocked process states and fail-closed behavior. These are local shell/mock tests, not tests of filesystem permissions inside an actual Flatpak.
-- The preferred filesystem-only design in Section 3 revises the earlier host-command-first approach. A dedicated in-sandbox filesystem permission probe and a minimal manifest have not yet been implemented or tested.
+- `tools/flatpak/permission-probe.yml` is a disposable manifest for app ID `io.github.hasanmuammar.ShantiFilesystemProbe`, using Freedesktop SDK/runtime `26.08`.
+- Its only filesystem grants are the test-only `~/.local/shanti-flatpak-permission-probe`, `xdg-data/shanti-flatpak-permission-probe`, `xdg-config/shanti-flatpak-permission-probe`, and `xdg-cache/shanti-flatpak-permission-probe` roots, each with `:create`. The manifest has no network, host-command, system-bus, home-wide, or host-wide permission.
+- `tools/flatpak/filesystem-permission-probe.sh` writes and reads one marker under each disposable root, removes its marker and temporary child non-recursively, prints both sandbox-private and host XDG paths, and refuses to run unless `FLATPAK_ID` and `/.flatpak-info` confirm it is inside Flatpak.
+- `tools/flatpak/README.md` provides build/run guidance; `.github/workflows/flatpak-permission-probe.yml` builds and runs the probe on GitHub Actions for matching pushes or manual dispatch.
+- The script's file operations were smoke-tested in an isolated temporary-directory simulation, but **that is not a Flatpak sandbox test**. This environment did not have `flatpak` or `flatpak-builder` available, so the real sandbox build/run result must be checked in GitHub Actions.
 
 ### Still unverified or not implemented
 
-- Exact Flatpak path grants and their behavior when a target directory is absent.
-- Correct handling of `HOST_XDG_*` versus private `XDG_*` values inside a running Flatpak.
-- The manager's ability to create/replace/back up/remove only Shanti-owned files under the granted paths.
+- Whether the manifest builds and all four declared filesystem grants work in a real Flatpak sandbox.
+- Whether `xdg-data`, `xdg-config`, and `xdg-cache` aliases follow custom host XDG locations on target systems.
+- Whether production paths such as `~/.local/bin`, `~/.local/lib/openbangla`, IBus registration, Fcitx5 metadata/modules, and user configuration can each be granted without broader access.
+- The manager's ability to create/replace/back up/remove only Shanti-owned production files under tested grants.
 - Backend refresh and host registration behavior after file placement, including relogin/restart requirements.
-- Whether a narrowly scoped D-Bus interaction can refresh a framework immediately; logout/login remains the fallback.
-- Plan/apply, non-interactive install/update/remove support, the Rust frontend, and the Flatpak manifest.
+- Plan/apply, non-interactive install/update/remove support, the Rust frontend, and the production Flatpak manifest.
 
-**Next task:** create a minimal manifest with only the candidate path grants, add an in-sandbox probe that checks exposed paths and host XDG mapping, and validate directory creation/write behavior using disposable Shanti-specific test paths. Do not implement modifying lifecycle operations or request host-command access as part of that test.
+**Next task:** inspect the CI run for the disposable manifest, fix any real sandbox failures, then refine a production path-grant list from the actual installer targets. Keep modifying lifecycle operations disabled until grant behavior and path ownership are demonstrated.
