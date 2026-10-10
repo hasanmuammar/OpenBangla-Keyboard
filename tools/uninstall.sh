@@ -209,6 +209,7 @@ main() {
         "$DATA_HOME/fcitx5/inputmethod/openbangla.conf" \
         "$DATA_HOME/metainfo/io.github.openbangla.keyboard.metainfo.xml" \
         "$DATA_HOME/pixmaps/openbangla-keyboard.png" \
+        "$DATA_HOME/.openbangla-keyboard-xdg-migration-v1-complete" \
         "$CONFIG_HOME/environment.d/90-openbangla-ibus.conf" \
         "$CONFIG_HOME/fcitx5/profile"; do
         printf '  %s\n' "$path"
@@ -251,6 +252,7 @@ main() {
     remove_path "$DATA_HOME/fcitx5/inputmethod/openbangla.conf"
     remove_path "$DATA_HOME/metainfo/io.github.openbangla.keyboard.metainfo.xml"
     remove_path "$DATA_HOME/pixmaps/openbangla-keyboard.png"
+    remove_path "$DATA_HOME/.openbangla-keyboard-xdg-migration-v1-complete"
 
     for size in 16 32 48 128 512 1024; do
         remove_path "$DATA_HOME/icons/hicolor/${size}x${size}/apps/openbangla-keyboard.png"
