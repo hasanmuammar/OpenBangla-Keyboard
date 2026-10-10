@@ -168,21 +168,55 @@ install_openbangla() {
 
     mkdir -p "$OBK_PREFIX"
 
-    if [[ -d "$OBK_PREFIX/lib/openbangla" ]]; then
-        rm -rf "$OBK_PREFIX/lib/openbangla"
+    if [[ -e "$OBK_PREFIX/lib/openbangla" || -L "$OBK_PREFIX/lib/openbangla" ]]; then
+        if [[ -L "$OBK_PREFIX" || -L "$OBK_PREFIX/lib" || -L "$OBK_PREFIX/lib/openbangla" ]]; then
+            die "Refusing to replace a bundled library through a symlinked install path."
+        fi
+        if [[ ! -t 0 ]]; then
+            die "An existing library bundle needs an explicit choice. Rerun interactively to review it; nothing was removed."
+        fi
+        printf 'Existing library bundle: %s\n' "$OBK_PREFIX/lib/openbangla"
+        printf 'Choose what to do with it:\n'
+        printf '  1) Replace and keep a timestamped backup\n'
+        printf '  2) Replace without a backup (permanent deletion, separately confirmed)\n'
+        printf '  3) Cancel installation (default)\n'
+        read -r -p 'Choice [3]: ' library_choice
+        case "$library_choice" in
+            1)
+                backup="$OBK_PREFIX/lib/openbangla.backup.$(date +%Y%m%d%H%M%S)"
+                [[ ! -e "$backup" && ! -L "$backup" ]] ||
+                    die "Backup path already exists; preserving all files: $backup"
+                mv -- "$OBK_PREFIX/lib/openbangla" "$backup"
+                printf 'Previous libraries preserved at: %s\n' "$backup"
+                ;;
+            2)
+                printf 'This permanently deletes the exact directory: %s\n' "$OBK_PREFIX/lib/openbangla"
+                read -r -p 'Confirm deletion of this directory? [y/N] ' delete_reply
+                [[ "$delete_reply" =~ ^[Yy]([Ee][Ss])?$ ]] ||
+                    die "Installation cancelled; existing libraries were preserved."
+                rm -rf -- "$OBK_PREFIX/lib/openbangla"
+                ;;
+            *)
+                die "Installation cancelled; existing libraries were preserved."
+                ;;
+        esac
     fi
 
     cp -a "$OBK_STAGE$OBK_PREFIX/." "$OBK_PREFIX/"
     install_xdg_resources
 
     if [[ -x "$OBK_PREFIX/bin/openbangla-gui" ]]; then
-        mv -f "$OBK_PREFIX/bin/openbangla-gui" "$OBK_PREFIX/bin/openbangla-gui.bin"
+        [[ ! -e "$OBK_PREFIX/bin/openbangla-gui.bin" && ! -L "$OBK_PREFIX/bin/openbangla-gui.bin" ]] ||
+            die "Existing GUI backup would be overwritten; review it before installing: $OBK_PREFIX/bin/openbangla-gui.bin"
+        mv -- "$OBK_PREFIX/bin/openbangla-gui" "$OBK_PREFIX/bin/openbangla-gui.bin"
         cp "$OBK_WORKSPACE/tools/portable/launch-bundled.sh" "$OBK_PREFIX/bin/openbangla-gui"
         chmod +x "$OBK_PREFIX/bin/openbangla-gui"
     fi
 
     if [[ -x "$OBK_PREFIX/libexec/ibus-engine-openbangla" ]]; then
-        mv -f "$OBK_PREFIX/libexec/ibus-engine-openbangla" "$OBK_PREFIX/libexec/ibus-engine-openbangla.bin"
+        [[ ! -e "$OBK_PREFIX/libexec/ibus-engine-openbangla.bin" && ! -L "$OBK_PREFIX/libexec/ibus-engine-openbangla.bin" ]] ||
+            die "Existing IBus engine backup would be overwritten; review it before installing: $OBK_PREFIX/libexec/ibus-engine-openbangla.bin"
+        mv -- "$OBK_PREFIX/libexec/ibus-engine-openbangla" "$OBK_PREFIX/libexec/ibus-engine-openbangla.bin"
         cp "$OBK_WORKSPACE/tools/portable/launch-bundled.sh" "$OBK_PREFIX/libexec/ibus-engine-openbangla"
         chmod +x "$OBK_PREFIX/libexec/ibus-engine-openbangla"
     fi
