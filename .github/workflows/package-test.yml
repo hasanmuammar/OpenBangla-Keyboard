@@ -151,6 +151,34 @@ jobs:
               test -f "$OBK_DATA_HOME/fcitx5/addon/openbangla.conf"
               test -f "$OBK_DATA_HOME/fcitx5/inputmethod/openbangla.conf"
             fi
+
+            # Regression test: merge collisions must not delete skipped user data.
+            migration_prefix="$install_home/migration/.local"
+            migration_data="$install_home/migration/xdg"
+            legacy_data="$migration_prefix/share/openbangla-keyboard"
+            target_data="$migration_data/openbangla-keyboard"
+            mkdir -p "$legacy_data/layouts" "$legacy_data/data" \
+              "$target_data/layouts" "$target_data/data"
+            printf 'legacy custom layout\n' > "$legacy_data/layouts/custom.json"
+            printf 'destination custom layout\n' > "$target_data/layouts/custom.json"
+            printf 'legacy autocorrect\n' > "$legacy_data/data/autocorrect.json"
+            printf 'destination autocorrect\n' > "$target_data/data/autocorrect.json"
+
+            OBK_PREFIX="$migration_prefix"
+            OBK_DATA_HOME="$migration_data"
+            migrate_legacy_xdg_resources
+
+            test -f "$legacy_data/layouts/custom.json"
+            test -f "$legacy_data/data/autocorrect.json"
+            test "$(cat "$target_data/layouts/custom.json")" = "destination custom layout"
+            test "$(cat "$target_data/data/autocorrect.json")" = "destination autocorrect"
+            test -f "$migration_data/.openbangla-keyboard-xdg-migration-v1-complete"
+
+            # A subsequent run must not re-import stale legacy files.
+            printf 'new destination layout\n' > "$target_data/layouts/custom.json"
+            migrate_legacy_xdg_resources
+            test "$(cat "$target_data/layouts/custom.json")" = "new destination layout"
+            test -f "$legacy_data/layouts/custom.json"
           '
 
       - name: Upload prebuilt package
