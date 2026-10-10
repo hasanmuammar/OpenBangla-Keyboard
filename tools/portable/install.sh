@@ -123,11 +123,30 @@ confirm_install_replacements() {
         "$OBK_PREFIX/libexec/ibus-engine-openbangla.bin" \
         "$OBK_PREFIX/lib/openbangla" \
         "$OBK_PREFIX/share/openbangla-keyboard" \
+        "$OBK_PREFIX/share/applications/openbangla-keyboard.desktop" \
+        "$OBK_PREFIX/share/ibus/component/openbangla.xml" \
+        "$OBK_PREFIX/share/fcitx5/addon/openbangla.conf" \
+        "$OBK_PREFIX/share/fcitx5/inputmethod/openbangla.conf" \
+        "$OBK_PREFIX/share/metainfo/io.github.openbangla.keyboard.metainfo.xml" \
+        "$OBK_PREFIX/share/pixmaps/openbangla-keyboard.png" \
         "$OBK_DATA_HOME/openbangla-keyboard" \
         "$OBK_DATA_HOME/applications/openbangla-keyboard.desktop" \
         "$OBK_DATA_HOME/ibus/component/openbangla.xml" \
         "$OBK_DATA_HOME/fcitx5/addon/openbangla.conf" \
-        "$OBK_DATA_HOME/fcitx5/inputmethod/openbangla.conf"; do
+        "$OBK_DATA_HOME/fcitx5/inputmethod/openbangla.conf" \
+        "$OBK_DATA_HOME/metainfo/io.github.openbangla.keyboard.metainfo.xml" \
+        "$OBK_DATA_HOME/pixmaps/openbangla-keyboard.png"; do
+        if [[ -e "$path" || -L "$path" ]]; then
+            if [[ "$found" -eq 0 ]]; then
+                printf 'These existing OpenBangla paths may be replaced by the installation:\n'
+            fi
+            printf '  %s\n' "$path"
+            found=1
+        fi
+    done
+
+    for size in 16 32 48 128 512 1024; do
+        path="$OBK_DATA_HOME/icons/hicolor/${size}x${size}/apps/openbangla-keyboard.png"
         if [[ -e "$path" || -L "$path" ]]; then
             if [[ "$found" -eq 0 ]]; then
                 printf 'These existing OpenBangla paths may be replaced by the installation:\n'
