@@ -62,6 +62,56 @@ log() {
     printf '==> %s\n' "$*"
 }
 
+is_allowed_openbangla_target() {
+    local path="$1"
+
+    case "$path" in
+        "$PREFIX/bin/openbangla-gui"|
+        "$PREFIX/bin/openbangla-gui.bin"|
+        "$PREFIX/libexec/ibus-engine-openbangla"|
+        "$PREFIX/libexec/ibus-engine-openbangla.bin"|
+        "$PREFIX/lib/openbangla"|
+        "$DATA_HOME/openbangla-keyboard"|
+        "$DATA_HOME/applications/openbangla-keyboard.desktop"|
+        "$DATA_HOME/ibus/component/openbangla.xml"|
+        "$DATA_HOME/fcitx5/addon/openbangla.conf"|
+        "$DATA_HOME/fcitx5/inputmethod/openbangla.conf"|
+        "$DATA_HOME/metainfo/io.github.openbangla.keyboard.metainfo.xml"|
+        "$DATA_HOME/pixmaps/openbangla-keyboard.png"|
+        "$DATA_HOME/.openbangla-keyboard-xdg-migration-v1-complete"|
+        "$CONFIG_HOME/environment.d/90-openbangla-ibus.conf"|
+        "$CONFIG_HOME/fcitx5/profile"|
+        "$CACHE_HOME/openbangla-keyboard")
+            return 0
+            ;;
+    esac
+
+    case "$path" in
+        "$DATA_HOME/icons/hicolor/16x16/apps/openbangla-keyboard.png"|
+        "$DATA_HOME/icons/hicolor/32x32/apps/openbangla-keyboard.png"|
+        "$DATA_HOME/icons/hicolor/48x48/apps/openbangla-keyboard.png"|
+        "$DATA_HOME/icons/hicolor/128x128/apps/openbangla-keyboard.png"|
+        "$DATA_HOME/icons/hicolor/512x512/apps/openbangla-keyboard.png"|
+        "$DATA_HOME/icons/hicolor/1024x1024/apps/openbangla-keyboard.png")
+            return 0
+            ;;
+        "$PREFIX"/lib/fcitx5/openbangla.so|
+        "$PREFIX"/lib/*/fcitx5/openbangla.so|
+        "$PREFIX"/lib64/fcitx5/openbangla.so|
+        "$PREFIX"/lib64/*/fcitx5/openbangla.so|
+        "$PREFIX"/lib/fcitx5/addon/openbangla.conf|
+        "$PREFIX"/lib/fcitx5/inputmethod/openbangla.conf|
+        "$PREFIX"/lib/*/fcitx5/addon/openbangla.conf|
+        "$PREFIX"/lib/*/fcitx5/inputmethod/openbangla.conf|
+        "$PREFIX"/share/fcitx5/addon/openbangla.conf|
+        "$PREFIX"/share/fcitx5/inputmethod/openbangla.conf)
+            return 0
+            ;;
+    esac
+
+    return 1
+}
+
 remove_path() {
     local path="$1"
     local allowed=0 root normalized normalized_parent normalized_root cache_target parent
@@ -76,6 +126,11 @@ remove_path() {
     normalized="$normalized_parent/${path##*/}"
     [[ "$normalized" != "/" ]] ||
         die "Refusing to remove the filesystem root."
+
+    # Constrain removal to the exact application paths this uninstaller owns;
+    # membership somewhere below ~/.local or an XDG root is not sufficient.
+    is_allowed_openbangla_target "$normalized" ||
+        die "Refusing to remove a path that is not an explicit OpenBangla target: $path"
 
     # Reject symlinked parent components even when their targets happen to
     # remain inside a managed root; those paths may contain unrelated user data.
