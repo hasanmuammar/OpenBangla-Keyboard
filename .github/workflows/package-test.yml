@@ -3,6 +3,8 @@ name: Prebuilt package test
 on:
   push:
     branches: ["develop"]
+  pull_request:
+    branches: ["develop"]
   workflow_dispatch:
 
 jobs:
@@ -40,8 +42,12 @@ jobs:
       - name: Check shell syntax
         run: |
           bash -n tools/portable/common.sh
+          bash -n tools/portable/build.sh
+          bash -n tools/portable/bundle-runtime.sh
+          bash -n tools/portable/environment.sh
           bash -n tools/portable/install.sh
           bash -n tools/portable/package.sh
+          bash -n tools/install.sh
           bash -n tools/uninstall.sh
 
       - name: Build prebuilt package
@@ -69,7 +75,8 @@ jobs:
 
           work="$(mktemp -d)"
           install_home="$(mktemp -d)"
-          trap 'rm -rf "$work" "$install_home"' EXIT
+          # GitHub-hosted runners are disposable; leave these temporary paths
+          # for runner teardown rather than issuing an automatic recursive delete.
           tar -xzf "$archive" -C "$work"
 
           test -x "$work/bin/openbangla-gui"
@@ -99,25 +106,35 @@ jobs:
 
           # Simulate installation with a non-default absolute XDG_DATA_HOME.
           install_prefix="$install_home/.local"
+          install_stage="$install_home/stage"
+          staged_root="$install_stage$install_prefix"
           install_data_home="$work/custom-xdg-data"
           install_config_home="$work/custom-xdg-config"
-          mkdir -p "$install_prefix" "$install_data_home" "$install_config_home"
-          tar -xzf "$archive" -C "$install_prefix"
+          mkdir -p "$staged_root" "$install_prefix" "$install_data_home" "$install_config_home"
+          tar -xzf "$archive" -C "$staged_root"
+          for item in bin lib libexec; do
+            if [[ -e "$staged_root/$item" ]]; then
+              cp -a "$staged_root/$item" "$install_prefix/"
+            fi
+          done
 
           HOME="$install_home" \
           XDG_DATA_HOME="$install_data_home" \
           XDG_CONFIG_HOME="$install_config_home" \
           OBK_PREFIX="$install_prefix" \
+          OBK_STAGE="$install_stage" \
           OBK_DATA_HOME="$install_data_home" \
           OBK_BACKEND="$BACKEND" \
           bash -c '
             set -Eeuo pipefail
             source tools/portable/common.sh
             source tools/portable/install.sh
-            install_xdg_resources
+            install_xdg_resources "$OBK_STAGE$OBK_PREFIX/share"
             rewrite_install_metadata
 
             test -f "$OBK_DATA_HOME/openbangla-keyboard/data/dictionary.json"
+            # Custom XDG_DATA_HOME must receive resources without a shadowing
+            # copy left under the install prefix.
             test ! -e "$OBK_PREFIX/share/openbangla-keyboard"
             test -f "$OBK_DATA_HOME/applications/openbangla-keyboard.desktop"
             grep -Fq "Exec=\"$OBK_PREFIX/bin/openbangla-gui\" %f" \
@@ -134,6 +151,34 @@ jobs:
               test -f "$OBK_DATA_HOME/fcitx5/addon/openbangla.conf"
               test -f "$OBK_DATA_HOME/fcitx5/inputmethod/openbangla.conf"
             fi
+
+            # Regression test: merge collisions must not delete skipped user data.
+            migration_prefix="$HOME/migration/.local"
+            migration_data="$HOME/migration/xdg"
+            legacy_data="$migration_prefix/share/openbangla-keyboard"
+            target_data="$migration_data/openbangla-keyboard"
+            mkdir -p "$legacy_data/layouts" "$legacy_data/data" \
+              "$target_data/layouts" "$target_data/data"
+            printf "%s\n" "legacy custom layout" > "$legacy_data/layouts/custom.json"
+            printf "%s\n" "destination custom layout" > "$target_data/layouts/custom.json"
+            printf "%s\n" "legacy autocorrect" > "$legacy_data/data/autocorrect.json"
+            printf "%s\n" "destination autocorrect" > "$target_data/data/autocorrect.json"
+
+            OBK_PREFIX="$migration_prefix"
+            OBK_DATA_HOME="$migration_data"
+            migrate_legacy_xdg_resources
+
+            test -f "$legacy_data/layouts/custom.json"
+            test -f "$legacy_data/data/autocorrect.json"
+            test "$(cat "$target_data/layouts/custom.json")" = "destination custom layout"
+            test "$(cat "$target_data/data/autocorrect.json")" = "destination autocorrect"
+            test -f "$migration_data/.openbangla-keyboard-xdg-migration-v1-complete"
+
+            # A subsequent run must not re-import stale legacy files.
+            printf "%s\n" "new destination layout" > "$target_data/layouts/custom.json"
+            migrate_legacy_xdg_resources
+            test "$(cat "$target_data/layouts/custom.json")" = "new destination layout"
+            test -f "$legacy_data/layouts/custom.json"
           '
 
       - name: Upload prebuilt package
