@@ -247,9 +247,15 @@ rewrite_install_metadata() {
 }
 
 confirm_install_replacements() {
-    local path found=0 reply
+    local path found=0 reply directory
     local config_home
     config_home="$(xdg_dir XDG_CONFIG_HOME "$HOME/.config")"
+
+    # Do not write through symlinked program-install directories.
+    for directory in "$OBK_PREFIX" "$OBK_PREFIX/bin" "$OBK_PREFIX/lib" "$OBK_PREFIX/libexec"; do
+        [[ ! -L "$directory" ]] ||
+            die "Refusing to install through a symlinked program directory: $directory"
+    done
 
     for path in \
         "$OBK_PREFIX/bin/openbangla-gui" \
@@ -294,6 +300,22 @@ confirm_install_replacements() {
             found=1
         fi
     done
+
+    if [[ "$OBK_BACKEND" == fcitx ]]; then
+        path="$OBK_PREFIX/lib/fcitx5/openbangla.so"
+        if [[ -L "$OBK_PREFIX/lib/fcitx5" || -L "$path" ]]; then
+            die "Refusing to overwrite the Fcitx module through a symlinked path: $path"
+        fi
+        if [[ -e "$path" ]]; then
+            [[ -f "$path" ]] ||
+                die "Existing Fcitx module path is not a regular file: $path"
+            if [[ "$found" -eq 0 ]]; then
+                printf 'These existing OpenBangla paths may be replaced by the installation:\n'
+            fi
+            printf '  %s\n' "$path"
+            found=1
+        fi
+    fi
 
     for size in 16 32 48 128 512 1024; do
         for icon_root in "$OBK_PREFIX/share/icons" "$OBK_DATA_HOME/icons"; do
