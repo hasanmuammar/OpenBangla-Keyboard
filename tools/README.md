@@ -2,9 +2,17 @@
 
 The fork-specific installation workflow is under `tools/portable/`.
 
-`tools/install.sh` is the normal user-facing installer. It detects the desktop environment and CPU architecture, downloads the matching prebuilt Linux release, verifies its checksum, and installs it for the current user.
+`tools/install.sh` is the normal user-facing installer. It detects desktop environment and CPU architecture, downloads the matching prebuilt Linux release, strictly validates the single-record SHA-256 checksum, checks archive paths and symbolic-link containment before modifying the installed program, and verifies that the staged payload includes the files required for the selected backend.
 
-`tools/uninstall.sh` removes the user-local installation and backend registration. Use `--purge-cache` to remove the build and staging cache as well.
+The checksum is fetched next to the archive, so it detects accidental corruption but is not, by itself, an independent publisher-authentication mechanism. New release builds also publish GitHub/Sigstore provenance attestations. Users with the GitHub CLI can require signed provenance verification with:
+
+```bash
+bash tools/install.sh --version TAG --verify-provenance
+```
+
+This requires a published, attested release tag and fails closed if the attestation does not match this repository's release workflow and the selected tag. It remains optional so the ordinary install flow does not require the GitHub CLI.
+
+`tools/uninstall.sh` removes the user-local installation and backend registration. User data and caches are preserved unless separately requested with `--purge-data` or `--purge-cache`; removals are constrained to explicit OpenBangla targets.
 
 The portable installer is the primary installation path for this fork.
 
