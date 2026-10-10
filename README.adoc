@@ -3,7 +3,7 @@
 **Shanti — Highly Experimental, Vibe-Coded Fork of OpenBangla Keyboard for Modern Linux Operating Systems, including Bazzite, Bluefin and similar atomic/image-based systems.**
 
 
-### U+26A0 STATUS : HIGHLY EXPERIMENTAL & CAN DAMAGE YOUR SYSTEM 
+### ⚠️ STATUS : HIGHLY EXPERIMENTAL & CAN DAMAGE YOUR SYSTEM 
 
 image:https://img.shields.io/badge/platform-Linux-333333?logo=linux&logoColor=white[Linux] image:https://img.shields.io/badge/input%20method-IBus%20%7C%20Fcitx5-0F6CBD[Input methods] image:https://img.shields.io/badge/build-CMake-064F8C?logo=cmake&logoColor=white[CMake] image:https://img.shields.io/badge/UI-Qt5-41CD52?logo=qt&logoColor=white[Qt5] image:https://img.shields.io/badge/C%2B%2B%20%7C%20Rust-00599C?logo=rust&logoColor=white[C++ and Rust]
 
