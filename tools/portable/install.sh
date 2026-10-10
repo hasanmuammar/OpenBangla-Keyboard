@@ -5,7 +5,20 @@ merge_openbangla_data() {
     local destination="$2"
     local item name layout target
 
+    [[ ! -L "$destination" ]] ||
+        die "Refusing to merge through a symlinked data directory: $destination"
+    if [[ -e "$destination" && ! -d "$destination" ]]; then
+        die "Data merge destination is not a directory: $destination"
+    fi
     mkdir -p "$destination"
+    for name in layouts data icons; do
+        target="$destination/$name"
+        [[ ! -L "$target" ]] ||
+            die "Refusing to merge through a symlinked data subdirectory: $target"
+        if [[ -e "$target" && ! -d "$target" ]]; then
+            die "Data merge subdirectory has the wrong type: $target"
+        fi
+    done
     shopt -s nullglob
     for item in "$source"/*; do
         [[ -e "$item" || -L "$item" ]] || continue
@@ -27,8 +40,13 @@ merge_openbangla_data() {
                     [[ -e "$layout" || -L "$layout" ]] || continue
                     name="${layout##*/}"
                     target="$destination/data/$name"
+                    [[ ! -L "$target" ]] ||
+                        die "Refusing to overwrite a symlinked application data file: $target"
+                    if [[ -e "$target" && ! -f "$target" ]]; then
+                        die "Application data target is not a regular file: $target"
+                    fi
                     # Autocorrect can contain user edits; retain it if present.
-                    if [[ "$name" == autocorrect.json && ( -e "$target" || -L "$target" ) ]]; then
+                    if [[ "$name" == autocorrect.json && -e "$target" ]]; then
                         continue
                     fi
                     case "$name" in
@@ -45,7 +63,16 @@ merge_openbangla_data() {
                 ;;
             icons)
                 mkdir -p "$destination/icons"
-                cp -a "$item/." "$destination/icons/"
+                for layout in "$item"/*; do
+                    [[ -e "$layout" || -L "$layout" ]] || continue
+                    target="$destination/icons/${layout##*/}"
+                    [[ ! -L "$target" ]] ||
+                        die "Refusing to overwrite a symlinked icon file: $target"
+                    if [[ -e "$target" && ! -f "$target" ]]; then
+                        die "Icon target is not a regular file: $target"
+                    fi
+                    cp -a "$layout" "$target"
+                done
                 ;;
             *)
                 # Preserve user-owned state files and other custom additions.
