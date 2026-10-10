@@ -179,6 +179,48 @@ jobs:
             migrate_legacy_xdg_resources
             test "$(cat "$target_data/layouts/custom.json")" = "new destination layout"
             test -f "$legacy_data/layouts/custom.json"
+
+            # Regression test: refuse writes through a symlinked parent directory.
+            guard_root="$HOME/symlink-parent-guard"
+            guard_real="$guard_root/real"
+            guard_link="$guard_root/linked"
+            mkdir -p "$guard_real"
+            ln -s "$guard_real" "$guard_link"
+            if ( source tools/portable/common.sh; assert_no_symlink_components "$guard_link/new-file" ); then
+              echo "Symlinked parent path was unexpectedly accepted." >&2
+              exit 1
+            fi
+            test ! -e "$guard_real/new-file"
+
+            # Regression test: a migration with no destination copies and retains the source.
+            migration_prefix_copy="$HOME/migration-copy/.local"
+            migration_data_copy="$HOME/migration-copy/xdg"
+            legacy_desktop_copy="$migration_prefix_copy/share/applications/openbangla-keyboard.desktop"
+            destination_desktop_copy="$migration_data_copy/applications/openbangla-keyboard.desktop"
+            mkdir -p "$(dirname "$legacy_desktop_copy")"
+            printf "%s\n" "legacy desktop resource" > "$legacy_desktop_copy"
+            OBK_PREFIX="$migration_prefix_copy"
+            OBK_DATA_HOME="$migration_data_copy"
+            migrate_legacy_xdg_resources
+            test -f "$legacy_desktop_copy"
+            test -f "$destination_desktop_copy"
+            test "$(cat "$legacy_desktop_copy")" = "legacy desktop resource"
+            test "$(cat "$destination_desktop_copy")" = "legacy desktop resource"
+
+            # Regression test: replaced application databases have a recoverable backup.
+            database_root="$HOME/database-backup-test"
+            database_data="$database_root/xdg"
+            database_source="$database_root/source"
+            database_destination="$database_data/openbangla-keyboard"
+            mkdir -p "$database_source/data" "$database_destination/data"
+            printf "%s\n" "custom dictionary entries" > "$database_destination/data/dictionary.json"
+            printf "%s\n" "new shipped dictionary" > "$database_source/data/dictionary.json"
+            OBK_DATA_HOME="$database_data"
+            merge_openbangla_data "$database_source" "$database_destination"
+            test "$(cat "$database_destination/data/dictionary.json")" = "new shipped dictionary"
+            dictionary_backup="$(find "$database_data/.openbangla-keyboard-backups" -type f -name dictionary.json -print -quit)"
+            test -n "$dictionary_backup"
+            test "$(cat "$dictionary_backup")" = "custom dictionary entries"
           '
 
       - name: Upload prebuilt package
