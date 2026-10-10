@@ -7,7 +7,7 @@ xdg_home() {
     local variable="$1"
     local fallback="$2"
     local value="${!variable:-}"
-    [[ "$value" == /* ]] || value=""
+    [[ "$value" == /* && "$value" != "/" ]] || value=""
     printf '%s\\n' "${value:-$fallback}"
 }
 
@@ -185,12 +185,37 @@ main() {
         shift
     done
 
+    printf 'Review these OpenBangla-specific paths before continuing:\n'
+    for path in \
+        "$PREFIX/bin/openbangla-gui" \
+        "$PREFIX/bin/openbangla-gui.bin" \
+        "$PREFIX/libexec/ibus-engine-openbangla" \
+        "$PREFIX/libexec/ibus-engine-openbangla.bin" \
+        "$PREFIX/lib/openbangla" \
+        "$DATA_HOME/openbangla-keyboard" \
+        "$DATA_HOME/applications/openbangla-keyboard.desktop" \
+        "$DATA_HOME/fcitx5/addon/openbangla.conf" \
+        "$DATA_HOME/fcitx5/inputmethod/openbangla.conf" \
+        "$DATA_HOME/metainfo/io.github.openbangla.keyboard.metainfo.xml" \
+        "$DATA_HOME/pixmaps/openbangla-keyboard.png" \
+        "$CONFIG_HOME/environment.d/90-openbangla-ibus.conf"; do
+        printf '  %s\n' "$path"
+    done
+    for size in 16 32 48 128 512 1024; do
+        printf '  %s\n' "$DATA_HOME/icons/hicolor/${size}x${size}/apps/openbangla-keyboard.png"
+    done
     if [[ $PURGE_CACHE -eq 1 ]]; then
-        printf 'This will remove the current-user OpenBangla installation and its build cache.\n'
-    else
-        printf 'This will remove the current-user OpenBangla installation.\n'
+        printf '  %s\n' "$CACHE_HOME/openbangla-keyboard"
     fi
-    read -r -p 'Continue? [y/N] ' reply
+    if [[ -d "$PREFIX" ]]; then
+        printf 'Matching Fcitx files under %s:\n' "$PREFIX"
+        find "$PREFIX" -type f \
+            \( -path '*/fcitx5/openbangla.so' -o \
+               -path '*/fcitx5/inputmethod/openbangla.conf' -o \
+               -path '*/fcitx5/addon/openbangla.conf' \) -print 2>/dev/null || true
+    fi
+    printf 'The script will also remove OpenBangla registrations from input-method settings.\n'
+    read -r -p 'Proceed with these removals? [y/N] ' reply
     [[ "$reply" =~ ^[Yy]([Ee][Ss])?$ ]] ||
         exit 0
 
