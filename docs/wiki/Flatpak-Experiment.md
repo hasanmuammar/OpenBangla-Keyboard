@@ -209,3 +209,46 @@ A checklist item should only be marked complete when there is concrete evidence,
 | 2026-10-10 | Created the isolated experiment branch and initial plan. No Flatpak packaging implementation was added. |
 | 2026-10-10 | Expanded the page to clarify targets, scope, non-goals, stage exit conditions, acceptance criteria, and current evidence boundaries. |
 | 2026-10-10 | Clarified that Flatpak is only a candidate distribution format; the broader goal is easy, safe installation and maintenance on the target systems. |
+
+## 8. Related projects and implementation precedents
+
+This is an initial source review of existing projects. Their existence shows that input-method packaging has been attempted with Flatpak or AppImage; it does not establish that Shanti can use the same integration model.
+
+### Fcitx5 Flatpak and engine extensions
+
+- **Main project:** [fcitx/flatpak-fcitx5](https://github.com/fcitx/flatpak-fcitx5)
+- **Main manifest:** [org.fcitx.Fcitx5.yaml](https://github.com/fcitx/flatpak-fcitx5/blob/master/org.fcitx.Fcitx5.yaml)
+- **Rime extension manifest:** [org.fcitx.Fcitx5.Addon.Rime.yaml](https://github.com/fcitx/flatpak-fcitx5/blob/master/org.fcitx.Fcitx5.Addon.Rime.yaml)
+- **Official setup notes:** [Install Fcitx 5 from Flatpak](https://fcitx-im.org/wiki/Install_Fcitx_5/en)
+
+The Fcitx project packages the Fcitx5 framework as a Flatpak and distributes engines as extension packages. The main manifest declares an extension point under `/app/addons`; the Rime manifest is an extension built against that framework and supplies its own dependencies and data. The framework manifest grants session-bus, Wayland/X11 and other explicit permissions, and gives Fcitx its configuration directories.
+
+**Important limitation:** this model packages the framework and its engine extensions together within the Flatpak environment. The Fcitx documentation explicitly warns that a Flatpak Fcitx installation cannot supply the input-method module libraries required by host applications; a suitable host-side input-method module is still needed. Therefore, it is not proof that a separately packaged Shanti engine can be discovered by a host-installed IBus or Fcitx5.
+
+### Fcitx5 Chinese-engine extension example
+
+- **Project:** [Brli/flatpak.fcitx5-mcbopomofo](https://github.com/Brli/flatpak.fcitx5-mcbopomofo)
+
+This repository describes a Flatpak build for the Chinese Bopomofo engine, based on the extension layout from the main Fcitx Flatpak project. Its README demonstrates building an extension into a local Flatpak repository and exporting it as a bundle. This is a useful reference for extension packaging, but it targets the Flatpak Fcitx ecosystem rather than directly proving host integration for a third-party standalone engine.
+
+### IBus Rime AppImage
+
+- **Project:** [hchunhui/ibus-rime.AppImage](https://github.com/hchunhui/ibus-rime.AppImage)
+
+This project packages the Chinese Rime engine as an AppImage. Its documented flow runs the AppImage to install/register the engine, then restarts IBus and adds Rime through the input-method settings. The README notes that some distributions may request administrator authentication. This is a useful comparison for portable packaging, but it is **not a Flatpak solution** and does not meet a requirement to avoid host-side installation or privileged integration.
+
+### What these precedents mean for Shanti
+
+1. The closest Flatpak precedent is the Fcitx5 framework plus extension architecture—not a generic Flatpak application that automatically registers an engine with any host input-method framework.
+2. We must distinguish a fully Flatpak-contained input-method stack from an engine intended to integrate with the host's existing IBus/Fcitx5 session. They have different boundaries and compatibility requirements.
+3. Shanti's current IBus build installs a component descriptor plus an engine executable. Its Fcitx5 build installs a native module plus metadata. These are not interchangeable packaging shapes, so each backend needs its own feasibility result.
+4. The next investigation should establish whether the target systems use host IBus/Fcitx5, a Flatpak-contained framework, or a mix; then determine what host-side module and registration files are required. Do not choose a manifest or permissions until this is known.
+
+### Sources reviewed
+
+- Fcitx Flatpak main manifest and extension point: [org.fcitx.Fcitx5.yaml](https://github.com/fcitx/flatpak-fcitx5/blob/master/org.fcitx.Fcitx5.yaml)
+- Rime extension manifest: [org.fcitx.Fcitx5.Addon.Rime.yaml](https://github.com/fcitx/flatpak-fcitx5/blob/master/org.fcitx.Fcitx5.Addon.Rime.yaml)
+- Fcitx documentation: [Install Fcitx 5](https://fcitx-im.org/wiki/Install_Fcitx_5/en)
+- Chinese engine extension example: [flatpak.fcitx5-mcbopomofo](https://github.com/Brli/flatpak.fcitx5-mcbopomofo)
+- IBus Rime AppImage: [ibus-rime.AppImage](https://github.com/hchunhui/ibus-rime.AppImage)
+
