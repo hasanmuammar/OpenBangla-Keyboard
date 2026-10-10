@@ -246,8 +246,8 @@ jobs:
           outside="$test_home/outside"
           bundle="$test_home/.local/lib/openbangla"
           mkdir -p "$outside" "$bundle"
-          printf '%s\\n' 'outside data must survive' > "$outside/keep.txt"
-          printf '%s\\n' 'bundle file' > "$bundle/bundle.txt"
+          printf '%s\n' 'outside data must survive' > "$outside/keep.txt"
+          printf '%s\n' 'bundle file' > "$bundle/bundle.txt"
           ln -s "$outside/keep.txt" "$bundle/external-link"
           HOME="$test_home" bash -c 'source tools/uninstall.sh; remove_path "$PREFIX/lib/openbangla"'
           test ! -e "$bundle"
