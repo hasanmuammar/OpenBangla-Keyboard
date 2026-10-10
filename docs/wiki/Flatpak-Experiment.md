@@ -21,7 +21,7 @@ The intended user-facing workflow is to launch the Rust + GTK4/libadwaita instal
 
 Design assumption: the target host already has its normal input-method framework installed—IBus or Fcitx5. The Shanti Flatpak must not package or replace that framework. It manages the user-local Shanti engine installation and its registration with the existing host framework. This requirement still leaves a host-integration question: Flatpak does not automatically gain permission to write host installation paths or invoke host-side registration/restart tools. Evaluate narrowly scoped filesystem access and the documented host-command mechanism, and grant only what the chosen lifecycle design demonstrably needs.
 
-The frontend's initial scope should be limited to clear, auditable lifecycle actions (install, update, remove, and status where supported), progress/output reporting, and actionable error messages. The selected frontend direction is Rust with GTK4 and libadwaita. The GUI-to-script protocol remains undecided until the current scripts and host integration boundaries have been inspected.
+The frontend's initial scope should be limited to clear, auditable lifecycle actions (install, update, remove, status, and manager-owned configuration), progress/output reporting, and actionable error messages. The selected frontend direction is Rust with GTK4 and libadwaita. A proposed host-operation contract is recorded in [Flatpak-Installer-Protocol.md](./Flatpak-Installer-Protocol.md); it is not yet implemented.
 
 ## 3. Why investigate Flatpak?
 
@@ -99,9 +99,11 @@ This experiment does not currently aim to:
 ### Not started or not yet verified
 
 - [ ] Source/runtime/resource/configuration path mapping.
-- [ ] Inspect installer/uninstaller scripts and define the GUI-to-script interface.
-- [ ] Review `pmim-ibus` as an input-method packaging precedent and record the distinction between a Flatpak-contained application and its separately installed host IBus adapter.
-- [ ] Decide the smallest viable proof of concept, including the compiled Rust + GTK4/libadwaita installer binary, packaged scripts, and chosen host-execution model.
+- [x] Review the existing installer/uninstaller CLI, its TTY-only choices, release pinning, and host dependencies.
+- [x] Review `pmim-ibus` as an input-method packaging precedent and distinguish its Flatpak-contained process from its separately installed host IBus adapter.
+- [x] Draft a versioned GUI-to-host-operation contract in [Flatpak-Installer-Protocol.md](./Flatpak-Installer-Protocol.md); it remains a proposal until implemented and tested.
+- [ ] Implement the host bridge and non-interactive script support behind tests.
+- [ ] Finalise the proof-of-concept permission model and test host execution on target systems.
 - [ ] Flatpak runtime and SDK selection.
 - [ ] Flatpak manifest and build.
 - [ ] Sandboxed application smoke test.
@@ -130,7 +132,7 @@ Work through the stages in order. Complete and review one focused task at a time
 
 **Stage 1 exit condition:** A reviewed design that describes the package contents, host/sandbox responsibilities, required permissions, and a credible test for sending Bengali keystrokes into host applications.
 
-**Next task:** Define the GUI-driven host-operation contract for the existing user-local installer: required subcommands/options, non-interactive prompts, host dependencies, progress/exit reporting, and backend-specific registration refresh. Keep the manifest deferred until this contract and its permission model are reviewed.
+**Next task:** Implement the documented host bridge and the required non-interactive options/planning support while preserving the existing interactive CLI. Test host XDG/environment mapping and a read-only probe first. Defer the Flatpak manifest until the bridge contract works on a target system.
 
 ### Stage 2 — Minimal buildable proof of concept
 
@@ -216,8 +218,10 @@ A checklist item should only be marked complete when there is concrete evidence,
 | Existing portable installer | Retain; no replacement decision has been made |
 | Installer frontend | Rust + GTK4/libadwaita compiled binary; lifecycle/configuration GUI, separate from the existing Qt keyboard GUI |
 | Host operations | Evaluate documented `flatpak-spawn --host` / `org.freedesktop.Flatpak` with a fixed script interface; not yet tested |
-| Implementation status | Planning only; no manifest or Flatpak build yet |
-| Immediate next task | Define a non-interactive GUI-to-host-installer contract, host dependencies, and minimal permissions for user-local IBus/Fcitx5 registration |
+| Host-operation contract | Drafted in `docs/wiki/Flatpak-Installer-Protocol.md`; not implemented or tested |
+| Host execution candidate | `flatpak-spawn --host` with host XDG paths explicitly restored; trust and runtime environment remain test requirements |
+| Implementation status | Planning plus source review; no manifest, bridge, or Flatpak build yet |
+| Immediate next task | Implement and test a read-only host bridge/probe, then add plan/apply and non-interactive lifecycle support |
 
 ## 12. Progress log
 
@@ -230,6 +234,7 @@ A checklist item should only be marked complete when there is concrete evidence,
 | 2026-10-10 | Added requirement for a compiled installer GUI shipped with the script; distinguished it from the existing keyboard GUI and recorded the sandbox/host boundary as unresolved. |
 | 2026-10-10 | Selected Rust + GTK4/libadwaita as the installer frontend direction and reviewed PMIM IBus Flatpak's split sandbox/host adapter model. Documented that PMIM is not a general host-access bypass and still requires separate host-side IBus integration. |
 | 2026-10-10 | Clarified the target architecture: IBus or Fcitx5 is already installed on the host; the Flatpak manages Shanti's host-compatible user-local engine payload and registration rather than shipping a private input-method framework. |
+| 2026-10-10 | Added `Flatpak-Installer-Protocol.md` with a proposed plan/apply JSONL contract, host-environment/XDG handling, explicit decisions for install and removal, current CLI gaps, and bridge acceptance tests. No script or runtime code was changed. |
 
 ## 13. Related projects and implementation precedents
 
