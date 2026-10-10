@@ -13,7 +13,17 @@ OpenBangla Keyboard Shanti's broader goal is to make the keyboard easy to instal
 
 **Flatpak is only a candidate distribution format—not the project's main goal and not a predetermined replacement for the existing installer.** This page records a bounded technical investigation to determine whether Flatpak is a useful additional option. The portable, user-local installer remains an existing distribution path and must not be silently replaced or disrupted. A conventional Linux desktop can be used as a comparison environment where practical; compatibility on any target remains unproven until tested.
 
-## 2. Why investigate Flatpak?
+## 2. Installer GUI requirement
+
+The Flatpak deliverable must include a **dedicated graphical frontend for the installation/maintenance script**, shipped as a compiled application binary. Do not confuse this installer frontend with the existing `openbangla-gui`, which is the keyboard's runtime/configuration application.
+
+The intended user-facing workflow is to launch the installer GUI and use it for supported lifecycle operations, while the existing script remains responsible for the underlying installation logic. The GUI and script must be packaged together, with a defined and testable interface for passing actions, progress, diagnostics, and exit status. Do not duplicate installation logic in the GUI.
+
+This requirement does not settle how host-level actions will be performed. Flatpak sandbox boundaries still apply: a packaged script cannot automatically write to arbitrary host paths, install host packages, or register a host IBus/Fcitx5 engine. Before implementing the frontend, the feasibility work must identify which actions can run in the sandbox, which require an explicit host-side helper or supported integration mechanism, and which cannot safely be offered from Flatpak. Do not solve this by granting broad filesystem or session-bus access without evidence.
+
+The frontend's initial scope should be limited to clear, auditable lifecycle actions (install, update, remove, and status where supported), progress/output reporting, and actionable error messages. Exact toolkit and GUI-to-script protocol remain undecided until the current scripts and host integration boundaries have been inspected.
+
+## 3. Why investigate Flatpak?
 
 The reason to investigate Flatpak is to assess whether it can improve distribution and lifecycle management for some users. It is one option alongside the existing portable installer; it should be adopted only if evidence shows it is practical and worth maintaining. An input method is not an ordinary standalone GUI application: its engine, registration files, session services, and desktop input-method framework must work together.
 
@@ -21,7 +31,7 @@ A GUI that launches successfully inside a sandbox is therefore not sufficient ev
 
 No compatibility, security, or maintenance benefit should be assumed before it has been tested.
 
-## 3. Target and scope
+## 4. Target and scope
 
 ### Overall project target
 
@@ -53,7 +63,7 @@ Support for one backend must not be taken as proof of support for the other. The
 - Repository signing, update behaviour, and removal instructions must be addressed before distribution is considered ready.
 - **Flathub submission is not part of this plan.**
 
-## 4. Goals
+## 5. Goals
 
 1. **Serve the overall project goal.** Any packaging format must make installation, updates, removal, and integrity more reliable for the target systems; Flatpak is worthwhile only if it helps achieve that goal.
 2. **Establish feasibility first.** Map the current application layout, executable, bundled Qt/runtime libraries, resources, configuration and data paths, and native dependencies before choosing a packaging design.
@@ -65,7 +75,7 @@ Support for one backend must not be taken as proof of support for the other. The
 8. **Plan safe distribution and maintenance.** Evaluate repository hosting, signing, releases, updates, application removal, and remote removal.
 9. **Make claims match evidence.** Keep the package labelled experimental until the stated acceptance checks have been completed.
 
-## 5. Non-goals
+## 6. Non-goals
 
 This experiment does not currently aim to:
 
@@ -77,7 +87,7 @@ This experiment does not currently aim to:
 - Add broad host filesystem or session-bus access merely to make a test pass.
 - Publish a user-facing Flatpak release before build, host-typing, installation, update, and removal behaviour have been evaluated.
 
-## 6. Current status
+## 7. Current status
 
 ### Completed
 
@@ -89,7 +99,8 @@ This experiment does not currently aim to:
 ### Not started or not yet verified
 
 - [ ] Source/runtime/resource/configuration path mapping.
-- [ ] Decision on the smallest viable proof of concept.
+- [ ] Inspect installer/uninstaller scripts and define the GUI-to-script interface.
+- [ ] Decide the smallest viable proof of concept, including a compiled installer GUI binary and the packaged script.
 - [ ] Flatpak runtime and SDK selection.
 - [ ] Flatpak manifest and build.
 - [ ] Sandboxed application smoke test.
@@ -101,7 +112,7 @@ This experiment does not currently aim to:
 
 **Current evidence boundary:** No Flatpak manifest or packaging implementation has been added, and no Flatpak build or host-typing test has been run. The project is still in the planning phase.
 
-## 7. Work plan and checklist
+## 8. Work plan and checklist
 
 Work through the stages in order. Complete and review one focused task at a time; do not treat the checklist as permission to implement every stage at once.
 
@@ -121,7 +132,7 @@ Work through the stages in order. Complete and review one focused task at a time
 
 ### Stage 2 — Minimal buildable proof of concept
 
-- [ ] Add a manifest for the smallest target justified by Stage 1.
+- [ ] Add a manifest for the smallest target justified by Stage 1, including the compiled installer GUI and script where justified.
 - [ ] Build from a clean checkout in a reproducible environment.
 - [ ] Verify application startup and resource lookup inside the sandbox.
 - [ ] Inspect the resulting package contents and permissions.
@@ -162,12 +173,13 @@ Work through the stages in order. Complete and review one focused task at a time
 
 **Stage 5 exit condition:** A decision based on recorded evidence. A GUI launch alone is not grounds to replace the portable installer.
 
-## 8. Acceptance criteria
+## 9. Acceptance criteria
 
 Do not describe the Flatpak experiment as successful until the relevant claims are backed by recorded test results.
 
 - [ ] Build succeeds reproducibly from a clean checkout.
-- [ ] The application starts in the sandbox and finds its required resources.
+- [ ] The compiled installer GUI starts in the sandbox and finds its required resources.
+- [ ] The GUI invokes the packaged script through a defined interface and reports exit status/errors correctly.
 - [ ] Bengali typing works in ordinary host applications for every backend claimed as supported.
 - [ ] Required host integration and sandbox permissions are documented and minimised.
 - [ ] Installation, update, application removal, and remote removal have been tested.
@@ -177,7 +189,7 @@ Do not describe the Flatpak experiment as successful until the relevant claims a
 
 A checklist item should only be marked complete when there is concrete evidence, such as a CI run, a reproducible test procedure, or recorded manual test results.
 
-## 9. Safety and maintenance constraints
+## 10. Safety and maintenance constraints
 
 - Keep all Flatpak work isolated on `experiment/flatpak-ibus` until a separate integration decision is made.
 - Do not change the existing portable installer as a side effect of this experiment.
@@ -187,7 +199,7 @@ A checklist item should only be marked complete when there is concrete evidence,
 - Do not publish a release or claim backend support without corresponding evidence.
 - Record failures and limitations rather than silently working around them.
 
-## 10. Decision record
+## 11. Decision record
 
 | Item | Current decision |
 |---|---|
@@ -199,18 +211,20 @@ A checklist item should only be marked complete when there is concrete evidence,
 | Flatpak's possible distribution route | GitHub Releases with a hosted Flatpak repository and `.flatpakref`, if the experiment justifies it |
 | Flathub | Out of scope |
 | Existing portable installer | Retain; no replacement decision has been made |
+| Installer frontend | Required: dedicated compiled GUI for the installer script; separate from the existing keyboard GUI |
 | Implementation status | Planning only; no manifest or Flatpak build yet |
 | Immediate next task | Map current executable, runtime, resource, configuration, and data paths |
 
-## 11. Progress log
+## 12. Progress log
 
 | Date | Update |
 |---|---|
 | 2026-10-10 | Created the isolated experiment branch and initial plan. No Flatpak packaging implementation was added. |
 | 2026-10-10 | Expanded the page to clarify targets, scope, non-goals, stage exit conditions, acceptance criteria, and current evidence boundaries. |
 | 2026-10-10 | Clarified that Flatpak is only a candidate distribution format; the broader goal is easy, safe installation and maintenance on the target systems. |
+| 2026-10-10 | Added requirement for a compiled installer GUI shipped with the script; distinguished it from the existing keyboard GUI and recorded the sandbox/host boundary as unresolved. |
 
-## 8. Related projects and implementation precedents
+## 13. Related projects and implementation precedents
 
 This is an initial source review of existing projects. Their existence shows that input-method packaging has been attempted with Flatpak or AppImage; it does not establish that Shanti can use the same integration model.
 
