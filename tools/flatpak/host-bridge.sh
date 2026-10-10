@@ -120,7 +120,6 @@ json_command_available() {
 }
 
 # Required for install/remove with the currently shipped shell implementation.
-required_commands=(bash curl wget python3 sha256sum tar realpath find mountpoint cp mv rm install sed awk grep cmp mktemp uname id)
 missing_required=()
 for cmd in bash python3 sha256sum tar realpath find mountpoint cp mv rm install sed awk grep cmp mktemp uname id; do
     command -v -- "$cmd" >/dev/null 2>&1 || missing_required+=("$cmd")
