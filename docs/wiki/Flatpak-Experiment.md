@@ -1,22 +1,21 @@
-# Flatpak Experiment — OpenBangla Keyboard Shanti
+# Flatpak Distribution Experiment — OpenBangla Keyboard Shanti
 
 > **Project status:** Highly Experimental · Vibe-Coded  
 > **Phase:** Planning and feasibility assessment  
 > **Working branch:** `experiment/flatpak-ibus`  
-> **Distribution goal:** GitHub Releases, backed by a hosted Flatpak repository and a `.flatpakref`  
+> **Project goal:** Easy, reliable, safe installation and maintenance of Shanti on its target Linux systems  
+> **Experiment:** Evaluate Flatpak as one possible distribution format  
 > **Flathub:** Out of scope
 
 ## 1. Overview
 
-This page tracks a separate experiment to determine whether OpenBangla Keyboard Shanti can be packaged and distributed as a Flatpak while retaining usable Bengali input-method integration with the desktop session.
+OpenBangla Keyboard Shanti's broader goal is to make the keyboard easy to install, update, and remove safely on its target Linux systems, while preserving reliable Bengali input and package/download integrity. The project is aimed particularly at **modern atomic Linux operating systems**, including **Bluefin/Dakota, Bazzite, and similar systems**.
 
-The project is aimed particularly at **modern atomic Linux operating systems**, including **Bluefin/Dakota, Bazzite, and similar systems**. A conventional Linux desktop should also be used as a comparison where practical. These are target environments for investigation, not a claim that compatibility has already been demonstrated.
-
-The experiment is exploratory. It does **not** commit the project to replacing its existing portable, user-local installation method. The current installer must remain available and must not be changed by Flatpak work unless a separate decision is made.
+**Flatpak is only a candidate distribution format—not the project's main goal and not a predetermined replacement for the existing installer.** This page records a bounded technical investigation to determine whether Flatpak is a useful additional option. The portable, user-local installer remains an existing distribution path and must not be silently replaced or disrupted. A conventional Linux desktop can be used as a comparison environment where practical; compatibility on any target remains unproven until tested.
 
 ## 2. Why investigate Flatpak?
 
-A Flatpak may offer a more repeatable way to package application files and distribute updates across supported systems. However, an input method is not an ordinary standalone GUI application: its engine, registration files, session services, and desktop input-method framework must work together.
+The reason to investigate Flatpak is to assess whether it can improve distribution and lifecycle management for some users. It is one option alongside the existing portable installer; it should be adopted only if evidence shows it is practical and worth maintaining. An input method is not an ordinary standalone GUI application: its engine, registration files, session services, and desktop input-method framework must work together.
 
 A GUI that launches successfully inside a sandbox is therefore not sufficient evidence that the keyboard works. The key feasibility question is whether a Flatpak-based package can make Bengali typing work reliably in **ordinary host applications**, with permissions that are limited and documented.
 
@@ -24,13 +23,18 @@ No compatibility, security, or maintenance benefit should be assumed before it h
 
 ## 3. Target and scope
 
-### Primary target
+### Overall project target
 
-- Modern atomic Linux operating systems, especially Bluefin/Dakota, Bazzite, and similar systems.
-- A user-local, understandable installation and update experience.
-- Distribution through GitHub Releases, using a hosted Flatpak repository and a `.flatpakref`.
+- Make Shanti easier to install, update, and remove safely on modern atomic Linux operating systems, especially Bluefin/Dakota, Bazzite, and similar systems.
+- Preserve reliable Bengali input and strengthen installation/package integrity.
+- Keep the existing portable installer available unless evidence and a separate decision justify changing that approach.
 
-### Secondary validation target
+### This experiment's scope
+
+- Evaluate Flatpak as an optional additional distribution format, not as the project goal.
+- If feasible, use GitHub Releases with a hosted Flatpak repository and a `.flatpakref`.
+
+### Validation target
 
 - At least one conventional Linux desktop environment, where available, to identify which behaviours are specific to the primary target systems.
 
@@ -51,21 +55,22 @@ Support for one backend must not be taken as proof of support for the other. The
 
 ## 4. Goals
 
-1. **Establish feasibility first.** Map the current application layout, executable, bundled Qt/runtime libraries, resources, configuration and data paths, and native dependencies before choosing a packaging design.
-2. **Keep the existing installer intact.** Do not replace, silently modify, or make Flatpak a prerequisite for the portable build and installer.
-3. **Prove host typing works.** Determine how the engine and its registration communicate with the host IBus or Fcitx5 session, and test Bengali typing in host applications.
-4. **Use the smallest workable package.** Start with the narrowest proof of concept that answers a real technical question; do not add a full packaging and release pipeline before feasibility is understood.
-5. **Minimise sandbox permissions.** Grant only the access supported by demonstrated requirements. Document any unavoidable exceptions.
-6. **Make builds reproducible.** If feasible, build from a clean checkout in a controlled environment and automate the relevant checks in GitHub Actions.
-7. **Plan safe distribution and maintenance.** Evaluate repository hosting, signing, releases, updates, application removal, and remote removal.
-8. **Make claims match evidence.** Keep the package labelled experimental until the stated acceptance checks have been completed.
+1. **Serve the overall project goal.** Any packaging format must make installation, updates, removal, and integrity more reliable for the target systems; Flatpak is worthwhile only if it helps achieve that goal.
+2. **Establish feasibility first.** Map the current application layout, executable, bundled Qt/runtime libraries, resources, configuration and data paths, and native dependencies before choosing a packaging design.
+3. **Keep the existing installer intact.** Do not replace, silently modify, or make Flatpak a prerequisite for the portable build and installer.
+4. **Prove host typing works.** Determine how the engine and its registration communicate with the host IBus or Fcitx5 session, and test Bengali typing in host applications.
+5. **Use the smallest workable package.** Start with the narrowest proof of concept that answers a real technical question; do not add a full packaging and release pipeline before feasibility is understood.
+6. **Minimise sandbox permissions.** Grant only the access supported by demonstrated requirements. Document any unavoidable exceptions.
+7. **Make builds reproducible.** If feasible, build from a clean checkout in a controlled environment and automate the relevant checks in GitHub Actions.
+8. **Plan safe distribution and maintenance.** Evaluate repository hosting, signing, releases, updates, application removal, and remote removal.
+9. **Make claims match evidence.** Keep the package labelled experimental until the stated acceptance checks have been completed.
 
 ## 5. Non-goals
 
 This experiment does not currently aim to:
 
 - Submit the application to Flathub.
-- Replace or deprecate the existing portable installer.
+- Make Flatpak the project's primary goal or assume it should replace the existing portable installer.
 - Redesign the application UI.
 - Claim support for every Linux distribution or desktop environment.
 - Assume that launching the GUI proves input-method integration.
@@ -187,10 +192,11 @@ A checklist item should only be marked complete when there is concrete evidence,
 | Item | Current decision |
 |---|---|
 | Project status | Highly Experimental · Vibe-Coded |
-| Primary target | Modern atomic Linux operating systems, especially Bluefin/Dakota, Bazzite, and similar systems |
+| Overall project goal | Easy, reliable, safe installation, updates, removal, and package integrity on target systems |
+| Target environments | Modern atomic Linux operating systems, especially Bluefin/Dakota, Bazzite, and similar systems |
 | Comparison target | A conventional Linux desktop, where practical |
 | Input methods | Investigate IBus and Fcitx5 separately |
-| Distribution | GitHub Releases with a hosted Flatpak repository and `.flatpakref` |
+| Flatpak's possible distribution route | GitHub Releases with a hosted Flatpak repository and `.flatpakref`, if the experiment justifies it |
 | Flathub | Out of scope |
 | Existing portable installer | Retain; no replacement decision has been made |
 | Implementation status | Planning only; no manifest or Flatpak build yet |
@@ -202,3 +208,4 @@ A checklist item should only be marked complete when there is concrete evidence,
 |---|---|
 | 2026-10-10 | Created the isolated experiment branch and initial plan. No Flatpak packaging implementation was added. |
 | 2026-10-10 | Expanded the page to clarify targets, scope, non-goals, stage exit conditions, acceptance criteria, and current evidence boundaries. |
+| 2026-10-10 | Clarified that Flatpak is only a candidate distribution format; the broader goal is easy, safe installation and maintenance on the target systems. |
