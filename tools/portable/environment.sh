@@ -209,7 +209,7 @@ run_builder() {
     esac
 
     if [[ "$OBK_BUILDER" == docker ]]; then
-        docker run --rm             -v "$OBK_CACHE:/cache:rw"             -v "$OBK_STAGE:/stage:rw"             ubuntu:24.04             chown -R "$(id -u):$(id -g)" /cache /stage
+        docker run --rm             -v "$OBK_CACHE:/cache:rw"             -v "$OBK_STAGE:/stage:rw"             ubuntu:24.04             chown -R "$(id -u):$(id -g)" /cache/build /stage
     fi
 }
 
