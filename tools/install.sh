@@ -140,6 +140,7 @@ seen = set()
 symlinks = {}
 listing = []
 total_size = 0
+member_count = 0
 max_members = 50000
 max_total_size = 2 * 1024 * 1024 * 1024
 
@@ -149,11 +150,10 @@ def fail(message):
 
 try:
     with tarfile.open(archive_path, mode="r:gz") as archive:
-        members = archive.getmembers()
-        if len(members) > max_members:
-            fail(f"too many archive members ({len(members)})")
-
-        for member in members:
+        for member in archive:
+            member_count += 1
+            if member_count > max_members:
+                fail(f"too many archive members (more than {max_members})")
             name = member.name
             if name.startswith("/"):
                 fail(f"absolute member path: {name!r}")
