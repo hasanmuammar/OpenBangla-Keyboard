@@ -159,10 +159,10 @@ jobs:
             target_data="$migration_data/openbangla-keyboard"
             mkdir -p "$legacy_data/layouts" "$legacy_data/data" \
               "$target_data/layouts" "$target_data/data"
-            printf 'legacy custom layout\n' > "$legacy_data/layouts/custom.json"
-            printf 'destination custom layout\n' > "$target_data/layouts/custom.json"
-            printf 'legacy autocorrect\n' > "$legacy_data/data/autocorrect.json"
-            printf 'destination autocorrect\n' > "$target_data/data/autocorrect.json"
+            printf "%s\n" "legacy custom layout" > "$legacy_data/layouts/custom.json"
+            printf "%s\n" "destination custom layout" > "$target_data/layouts/custom.json"
+            printf "%s\n" "legacy autocorrect" > "$legacy_data/data/autocorrect.json"
+            printf "%s\n" "destination autocorrect" > "$target_data/data/autocorrect.json"
 
             OBK_PREFIX="$migration_prefix"
             OBK_DATA_HOME="$migration_data"
@@ -175,7 +175,7 @@ jobs:
             test -f "$migration_data/.openbangla-keyboard-xdg-migration-v1-complete"
 
             # A subsequent run must not re-import stale legacy files.
-            printf 'new destination layout\n' > "$target_data/layouts/custom.json"
+            printf "%s\n" "new destination layout" > "$target_data/layouts/custom.json"
             migrate_legacy_xdg_resources
             test "$(cat "$target_data/layouts/custom.json")" = "new destination layout"
             test -f "$legacy_data/layouts/custom.json"
