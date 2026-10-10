@@ -3,7 +3,7 @@
 merge_openbangla_data() {
     local source="$1"
     local destination="$2"
-    local item name layout
+    local item name layout target
 
     mkdir -p "$destination"
     shopt -s nullglob
@@ -16,32 +16,53 @@ merge_openbangla_data() {
                 mkdir -p "$destination/layouts"
                 for layout in "$item"/*; do
                     [[ -e "$layout" || -L "$layout" ]] || continue
-                    # Do not overwrite user-created/custom layouts on upgrade.
-                    [[ -e "$destination/layouts/${layout##*/}" ]] ||
+                    # Never overwrite user-created/custom layouts on upgrade.
+                    [[ -e "$destination/layouts/${layout##*/}" || -L "$destination/layouts/${layout##*/}" ]] ||
                         cp -a "$layout" "$destination/layouts/"
                 done
                 ;;
-            data|icons)
-                mkdir -p "$destination/$name"
-                cp -a "$item/." "$destination/$name/"
+            data)
+                mkdir -p "$destination/data"
+                for layout in "$item"/*; do
+                    [[ -e "$layout" || -L "$layout" ]] || continue
+                    name="${layout##*/}"
+                    target="$destination/data/$name"
+                    # Autocorrect can contain user edits; retain it if present.
+                    if [[ "$name" == autocorrect.json && ( -e "$target" || -L "$target" ) ]]; then
+                        continue
+                    fi
+                    case "$name" in
+                        dictionary.json|suffix.json|regex.json)
+                            # These are shipped application databases and may be updated.
+                            cp -a "$layout" "$target"
+                            ;;
+                        *)
+                            # Preserve user-added data files.
+                            [[ -e "$target" || -L "$target" ]] || cp -a "$layout" "$target"
+                            ;;
+                    esac
+                done
+                ;;
+            icons)
+                mkdir -p "$destination/icons"
+                cp -a "$item/." "$destination/icons/"
                 ;;
             *)
-                # Preserve user-owned state files such as autocorrect.json.
+                # Preserve user-owned state files and other custom additions.
                 [[ -e "$destination/$name" || -L "$destination/$name" ]] ||
                     cp -a "$item" "$destination/"
                 ;;
         esac
     done
     shopt -u nullglob
-    # Keep the source tree; installation must not silently delete directories.
 }
 
 relocate_xdg_resource() {
     local relative="$1"
-    local source="$OBK_PREFIX/share/$relative"
+    local source_root="$2"
+    local source="$source_root/$relative"
     local destination="$OBK_DATA_HOME/$relative"
 
-    [[ "$source" != "$destination" ]] || return 0
     [[ -e "$source" || -L "$source" ]] || return 0
 
     if [[ -d "$source" && ! -L "$source" ]]; then
@@ -50,26 +71,92 @@ relocate_xdg_resource() {
         else
             mkdir -p "$destination"
             cp -a "$source/." "$destination/"
-            # Preserve the source until the user chooses to remove it.
         fi
     else
         mkdir -p "$(dirname "$destination")"
         cp -a "$source" "$destination"
-        # Preserve the source file until the user chooses to remove it.
     fi
 }
 
-install_xdg_resources() {
-    [[ "$OBK_DATA_HOME" == "$OBK_PREFIX/share" ]] && return 0
-
-    local relative size
-    for relative in         openbangla-keyboard         applications/openbangla-keyboard.desktop         metainfo/io.github.openbangla.keyboard.metainfo.xml         pixmaps/openbangla-keyboard.png         ibus/component/openbangla.xml         fcitx5/addon/openbangla.conf         fcitx5/inputmethod/openbangla.conf; do
-        relocate_xdg_resource "$relative"
-    done
-
+xdg_resource_relatives() {
+    printf '%s\n' \
+        openbangla-keyboard \
+        applications/openbangla-keyboard.desktop \
+        metainfo/io.github.openbangla.keyboard.metainfo.xml \
+        pixmaps/openbangla-keyboard.png \
+        ibus/component/openbangla.xml \
+        fcitx5/addon/openbangla.conf \
+        fcitx5/inputmethod/openbangla.conf
     for size in 16 32 48 128 512 1024; do
-        relocate_xdg_resource "icons/hicolor/${size}x${size}/apps/openbangla-keyboard.png"
+        printf '%s\n' "icons/hicolor/${size}x${size}/apps/openbangla-keyboard.png"
     done
+}
+
+confirm_legacy_xdg_migration() {
+    [[ "$OBK_DATA_HOME" != "$OBK_PREFIX/share" ]] || return 0
+
+    local relative source destination found=0 reply
+    while IFS= read -r relative; do
+        source="$OBK_PREFIX/share/$relative"
+        [[ -e "$source" || -L "$source" ]] || continue
+        if [[ "$found" -eq 0 ]]; then
+            printf 'An existing installation stores these resources in the legacy location:\n'
+        fi
+        printf '  %s\n' "$source"
+        printf '    destination: %s\n' "$OBK_DATA_HOME/$relative"
+        found=1
+    done < <(xdg_resource_relatives)
+
+    [[ "$found" -eq 1 ]] || return 0
+
+    printf 'To honour XDG_DATA_HOME, the legacy paths above must be moved or merged into the listed destinations. User layouts and existing autocorrect data are preserved where they already exist at the destination.\n'
+    if [[ ! -t 0 ]]; then
+        die "Legacy XDG resources need an explicit migration choice. Rerun interactively."
+    fi
+    read -r -p 'Migrate these legacy OpenBangla resources now? [y/N] ' reply
+    [[ "$reply" =~ ^[Yy]([Ee][Ss])?$ ]] ||
+        die "Installation cancelled; legacy resources were left untouched."
+}
+
+migrate_legacy_xdg_resources() {
+    [[ "$OBK_DATA_HOME" != "$OBK_PREFIX/share" ]] || return 0
+
+    local relative source destination
+    while IFS= read -r relative; do
+        source="$OBK_PREFIX/share/$relative"
+        [[ -e "$source" || -L "$source" ]] || continue
+        destination="$OBK_DATA_HOME/$relative"
+
+        if [[ ! -e "$destination" && ! -L "$destination" ]]; then
+            mkdir -p "$(dirname "$destination")"
+            mv -- "$source" "$destination"
+            continue
+        fi
+
+        # Destination collisions are handled by the already-confirmed install
+        # preflight and the merge routine. Remove the duplicate legacy source
+        # only after the copy/merge succeeds and after migration was approved.
+        if [[ -d "$source" && ! -L "$source" ]]; then
+            if [[ "$relative" == "openbangla-keyboard" ]]; then
+                merge_openbangla_data "$source" "$destination"
+            else
+                mkdir -p "$destination"
+                cp -a "$source/." "$destination/"
+            fi
+            rm -rf -- "$source"
+        else
+            cp -a "$source" "$destination"
+            rm -f -- "$source"
+        fi
+    done < <(xdg_resource_relatives)
+}
+
+install_xdg_resources() {
+    local source_root="${1:-$OBK_PREFIX/share}"
+    local relative
+    while IFS= read -r relative; do
+        relocate_xdg_resource "$relative" "$source_root"
+    done < <(xdg_resource_relatives)
 }
 
 xml_escape() {
@@ -118,6 +205,7 @@ confirm_install_replacements() {
 
     for path in \
         "$OBK_PREFIX/bin/openbangla-gui" \
+        "$OBK_PREFIX/bin/qt.conf" \
         "$OBK_PREFIX/bin/openbangla-gui.bin" \
         "$OBK_PREFIX/libexec/ibus-engine-openbangla" \
         "$OBK_PREFIX/libexec/ibus-engine-openbangla.bin" \
@@ -150,9 +238,9 @@ confirm_install_replacements() {
             path="$icon_root/hicolor/${size}x${size}/apps/openbangla-keyboard.png"
             if [[ -e "$path" || -L "$path" ]]; then
                 if [[ "$found" -eq 0 ]]; then
-                    printf 'These existing OpenBangla paths may be replaced by the installation:\\n'
+                    printf 'These existing OpenBangla paths may be replaced by the installation:\n'
                 fi
-                printf '  %s\\n' "$path"
+                printf '  %s\n' "$path"
                 found=1
             fi
         done
@@ -169,11 +257,21 @@ confirm_install_replacements() {
 }
 
 install_openbangla() {
-    [[ -d "$OBK_STAGE$OBK_PREFIX" ]] ||
-        die "Build completed without producing an install tree."
+    local staged_root="$OBK_STAGE$OBK_PREFIX"
+    local item name
 
+    [[ -d "$staged_root" ]] ||
+        die "Build completed without producing an install tree."
+    [[ -d "$staged_root/share" ]] ||
+        die "Build completed without producing the staged share resources."
+
+    confirm_legacy_xdg_migration
     confirm_install_replacements
+    migrate_legacy_xdg_resources
     mkdir -p "$OBK_PREFIX"
+
+    # Copy executable/library trees only. Resources are installed directly into
+    # XDG_DATA_HOME, avoiding a temporary old-location copy that shadows XDG.
 
     # Never replace an existing library bundle without a separate, explicit choice.
     if [[ -e "$OBK_PREFIX/lib/openbangla" || -L "$OBK_PREFIX/lib/openbangla" ]]; then
@@ -211,8 +309,15 @@ install_openbangla() {
         esac
     fi
 
-    cp -a "$OBK_STAGE$OBK_PREFIX/." "$OBK_PREFIX/"
-    install_xdg_resources
+    shopt -s nullglob dotglob
+    for item in "$staged_root"/*; do
+        name="${item##*/}"
+        [[ "$name" == share ]] && continue
+        cp -a "$item" "$OBK_PREFIX/"
+    done
+    shopt -u nullglob dotglob
+
+    install_xdg_resources "$staged_root/share"
 
     if [[ -x "$OBK_PREFIX/bin/openbangla-gui" ]]; then
         mv -f "$OBK_PREFIX/bin/openbangla-gui" "$OBK_PREFIX/bin/openbangla-gui.bin"
