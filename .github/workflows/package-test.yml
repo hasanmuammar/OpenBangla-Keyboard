@@ -153,8 +153,8 @@ jobs:
             fi
 
             # Regression test: merge collisions must not delete skipped user data.
-            migration_prefix="$install_home/migration/.local"
-            migration_data="$install_home/migration/xdg"
+            migration_prefix="$HOME/migration/.local"
+            migration_data="$HOME/migration/xdg"
             legacy_data="$migration_prefix/share/openbangla-keyboard"
             target_data="$migration_data/openbangla-keyboard"
             mkdir -p "$legacy_data/layouts" "$legacy_data/data" \
