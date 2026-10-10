@@ -212,6 +212,8 @@ A checklist item should only be marked complete when there is concrete evidence,
 | Flathub | Out of scope |
 | Existing portable installer | Retain; no replacement decision has been made |
 | Installer frontend | Required: dedicated compiled GUI for the installer script; separate from the existing keyboard GUI |
+| Installer frontend | Proposed Rust + GTK4/libadwaita binary; current Qt GUI remains a separate keyboard runtime app |
+| Host operations | Evaluate documented `flatpak-spawn --host` / `org.freedesktop.Flatpak` with a fixed script interface; not yet tested |
 | Implementation status | Planning only; no manifest or Flatpak build yet |
 | Immediate next task | Map current executable, runtime, resource, configuration, and data paths |
 
@@ -222,6 +224,7 @@ A checklist item should only be marked complete when there is concrete evidence,
 | 2026-10-10 | Created the isolated experiment branch and initial plan. No Flatpak packaging implementation was added. |
 | 2026-10-10 | Expanded the page to clarify targets, scope, non-goals, stage exit conditions, acceptance criteria, and current evidence boundaries. |
 | 2026-10-10 | Clarified that Flatpak is only a candidate distribution format; the broader goal is easy, safe installation and maintenance on the target systems. |
+| 2026-10-10 | Reviewed established Flatpak host-operation patterns, including ProtonUp-Qt host-spawn use and targeted permissions, Flatseal's permission-provider model, and GTK4/libadwaita lifecycle UI references. Proposed a Rust installer frontend and recorded host-command security/dependency constraints. |
 | 2026-10-10 | Added requirement for a compiled installer GUI shipped with the script; distinguished it from the existing keyboard GUI and recorded the sandbox/host boundary as unresolved. |
 
 ## 13. Related projects and implementation precedents
@@ -245,6 +248,41 @@ The Fcitx project packages the Fcitx5 framework as a Flatpak and distributes eng
 
 This repository describes a Flatpak build for the Chinese Bopomofo engine, based on the extension layout from the main Fcitx Flatpak project. Its README demonstrates building an extension into a local Flatpak repository and exporting it as a bundle. This is a useful reference for extension packaging, but it targets the Flatpak Fcitx ecosystem rather than directly proving host integration for a third-party standalone engine.
 
+
+### Related Flatpak applications and host-integration patterns
+
+These examples are implementation precedents, not a claim that their exact permissions are appropriate for Shanti.
+
+- **[ProtonUp-Qt](https://github.com/DavidoTek/ProtonUp-Qt)** is a Flatpak-distributed installer/updater for compatibility tools. Its Flathub manifest, [`net.davidotek.pupgui2.json`](https://github.com/flathub/net.davidotek.pupgui2/blob/master/net.davidotek.pupgui2.json), grants `--talk-name=org.freedesktop.Flatpak` and several specifically named launcher/data paths rather than simply requesting `--filesystem=host`. Its code contains a concrete `flatpak-spawn --host rm -r …` call for a host-side cleanup case. This demonstrates the supported host-command mechanism in a real installer. Its manifest also grants `--device=all` and has permissions for shell configuration files; these are specific to ProtonUp-Qt's use cases and should **not** be copied into Shanti's manifest.
+- **[ProtonPlus](https://github.com/Vysp3r/ProtonPlus)** is a GTK4/libadwaita installer, updater, and remover. Its architecture is a relevant UI and lifecycle reference for a native Linux maintenance app; its current project is primarily Vala, not Rust. Review the current release manifest and actual file access before treating it as a permission precedent.
+- **[Flatseal](https://github.com/tchx84/Flatseal)** is a configuration-provider precedent, but for Flatpak permissions rather than keyboard configuration. Its manifest uses targeted read-only access to Flatpak app directories, write access to Flatpak overrides, and named D-Bus interfaces including `org.freedesktop.impl.portal.PermissionStore`; its documentation distinguishes static sandbox permissions from dynamic portal grants. It shows that configuration management can use narrow paths and documented APIs instead of blanket host access.
+- **[Warehouse](https://github.com/flattool/warehouse)** is another relevant lifecycle-management UI for Flatpak apps and their user data. It explicitly describes itself as a frontend that facilitates Flatpak operations, rather than replacing Flatpak itself. It is a useful UX reference, but its operations and authorization model are not equivalent to installing a host IBus/Fcitx engine.
+
+Official references: [Flatpak sandbox-permission guidance](https://docs.flatpak.org/en/latest/sandbox-permissions.html), [`flatpak-spawn` command reference](https://docs.flatpak.org/en/latest/flatpak-command-reference.html), and [libflatpak `HostCommand` API](https://docs.flatpak.org/en/latest/libflatpak-api-reference.html).
+
+### What “host access” actually means
+
+Flatpak does not require an unofficial exploit to run a host-side operation. The documented `flatpak-spawn --host` mechanism uses the Flatpak session-bus interface and requires permission to talk to `org.freedesktop.Flatpak`. The corresponding host-command API deliberately lets a trusted application run a command outside its sandbox. This is a supported escape hatch, but it is a **major trust boundary**, not a narrow permission to run only Shanti's installer script: a compromised or misused GUI could launch other commands as the logged-in user. It does not, by itself, grant root access or bypass ordinary Unix user permissions.
+
+For Shanti, the recommended proof of concept is therefore:
+
+1. Build a dedicated Rust + GTK4 + libadwaita installer frontend as the Flatpak's primary binary. Do not confuse it with the existing Qt `openbangla-gui`, which is the keyboard's runtime/configuration application.
+2. Keep the existing lifecycle script as the authority for install/uninstall behaviour initially; do not reimplement its file-management logic in parallel in the GUI.
+3. Stage the required script tree and its companion files into the Flatpak's writable per-application data directory, preserving the layout expected by the scripts. The current `tools/install.sh` sources `tools/portable/common.sh` and `tools/portable/install.sh`, reads `release-tag.txt`, and relies on other files under the repository tree, so copying only `install.sh` is not enough. Run the staged script as a host process through the documented host-command mechanism, using an argument vector rather than interpolating input into a shell command.
+4. Before making this the real installer, verify how the host script gets its interpreter and external tools. The current script uses host commands and tools including Bash, curl or wget, Python 3, SHA-256 utilities, and archive/file-management utilities. Do not assume a Flatpak runtime's binaries automatically exist on the host or are ABI-compatible host tools.
+5. Replace terminal-only prompts with explicit, validated operation flags or a structured request/response protocol before wiring the script to a GUI. The current scripts can ask questions on a TTY when replacing an existing install or handling user data; a GUI must present these choices directly and pass an unambiguous answer.
+6. Treat installation, update, configuration, and removal as distinct operations. Removing Shanti should preserve user data by default; any cache/data purge must be a separate, explicit user choice. Updating the Flatpak frontend itself remains a Flatpak remote operation and is separate from updating the installed keyboard.
+
+### Initial permission policy
+
+- Do not request `--filesystem=host`, `--filesystem=home`, `--device=all`, system-bus access, or broad session-bus access just to make the host script work.
+- The host-command permission must be explicitly documented to users. Treat the Flatpak as high-trust because the host helper runs with the user's normal host permissions.
+- Keep host actions fixed to the shipped maintenance scripts and validated operation arguments. Do not provide a generic “run command” or “open terminal as host” feature.
+- No `sudo` and no system-wide installation are required for the existing user-local design; do not silently elevate privileges.
+- Host IBus/Fcitx registration remains an integration requirement that must be tested separately. The installer frontend's ability to launch does not prove that either engine works in host applications.
+
+**Important evidence boundary:** The projects above demonstrate real Flatpak patterns, and the Flatpak documentation describes the host-command mechanism. They do not yet prove that Shanti's existing script can run successfully from the sandbox boundary or that its external host dependencies are consistently present on Bluefin/Dakota and Bazzite.
+
 ### IBus Rime AppImage
 
 - **Project:** [hchunhui/ibus-rime.AppImage](https://github.com/hchunhui/ibus-rime.AppImage)
@@ -256,7 +294,7 @@ This project packages the Chinese Rime engine as an AppImage. Its documented flo
 1. The closest Flatpak precedent is the Fcitx5 framework plus extension architecture—not a generic Flatpak application that automatically registers an engine with any host input-method framework.
 2. We must distinguish a fully Flatpak-contained input-method stack from an engine intended to integrate with the host's existing IBus/Fcitx5 session. They have different boundaries and compatibility requirements.
 3. Shanti's current IBus build installs a component descriptor plus an engine executable. Its Fcitx5 build installs a native module plus metadata. These are not interchangeable packaging shapes, so each backend needs its own feasibility result.
-4. The next investigation should establish whether the target systems use host IBus/Fcitx5, a Flatpak-contained framework, or a mix; then determine what host-side module and registration files are required. Do not choose a manifest or permissions until this is known.
+4. The lifecycle frontend is planned as a Rust + GTK4/libadwaita Flatpak using the documented host-command mechanism only if the security and dependency review passes. Separately establish how target systems expose host IBus/Fcitx5 and what registration files are required. Do not choose final manifest permissions until both paths are assessed.
 
 ### Sources reviewed
 
