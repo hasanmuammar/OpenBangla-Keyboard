@@ -104,7 +104,7 @@ This experiment does not currently aim to:
 - [x] Draft a versioned GUI-to-host-operation contract in [Flatpak-Installer-Protocol.md](./Flatpak-Installer-Protocol.md); it remains a proposal until implemented and tested.
 - [ ] Implement the host bridge and non-interactive script support behind tests.
 - [ ] Finalise the proof-of-concept filesystem permission model and test in-sandbox writes only to disposable Shanti-specific paths.
-- [ ] Flatpak runtime and SDK selection.
+- [ ] Select the production manager runtime and SDK; the disposable permission-test manifest currently uses Freedesktop Platform/SDK 26.08.
 - [x] Add a disposable Flatpak filesystem-permission test manifest and in-sandbox probe.
 - [x] Add a GitHub Actions workflow to build and run the permission probe.
 - [ ] Verify the workflow result and correct any runtime/permission issues.
