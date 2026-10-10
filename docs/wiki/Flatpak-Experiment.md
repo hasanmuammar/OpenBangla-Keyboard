@@ -19,7 +19,7 @@ The Flatpak deliverable must include a **dedicated graphical frontend for the in
 
 The intended user-facing workflow is to launch the Rust + GTK4/libadwaita installer GUI and use it for installation, configuration, update, status, and removal of the host-side Shanti installation. The Flatpak is a lifecycle/configuration frontend, not the runtime keyboard engine itself; the existing script remains responsible for the underlying installation logic. The GUI and script must be packaged together, with a defined and testable interface for passing actions, progress, diagnostics, and exit status. Do not duplicate installation logic in the GUI.
 
-Design assumption: the target host already has its normal input-method framework installed—IBus or Fcitx5. The Shanti Flatpak must not package or replace that framework. It manages the user-local Shanti engine installation and its registration with the existing host framework. This requirement still leaves a host-integration question: Flatpak does not automatically gain permission to write host installation paths or invoke host-side registration/restart tools. Evaluate narrowly scoped filesystem access and the documented host-command mechanism, and grant only what the chosen lifecycle design demonstrably needs.
+Design assumption: the target host already has its normal input-method framework installed—IBus or Fcitx5. The Shanti Flatpak must not package or replace that framework. The preferred design is for the manager to perform file operations inside its sandbox using narrowly scoped read/write access to the specific user-local Shanti installation and registration paths. `flatpak-spawn --host` is not required merely to copy, verify, back up, or remove files; consider it only if a later refresh operation genuinely cannot be handled through file placement, relogin/restart instructions, or a narrowly scoped D-Bus API.
 
 The frontend's initial scope should be limited to clear, auditable lifecycle actions (install, update, remove, status, and manager-owned configuration), progress/output reporting, and actionable error messages. The selected frontend direction is Rust with GTK4 and libadwaita. A proposed host-operation contract is recorded in [Flatpak-Installer-Protocol.md](./Flatpak-Installer-Protocol.md); it is not yet implemented.
 
@@ -132,7 +132,7 @@ Work through the stages in order. Complete and review one focused task at a time
 
 **Stage 1 exit condition:** A reviewed design that describes the package contents, host/sandbox responsibilities, required permissions, and a credible test for sending Bengali keystrokes into host applications.
 
-**Next task:** Stage the read-only probe under the Flatpak's persistent app data, invoke it from inside the sandbox through `flatpak-spawn --host`, and verify the host path and host XDG values on a target system. Keep modifying operations disabled until this passes.
+**Next task:** Design a minimal test manifest with narrowly scoped home-relative filesystem permissions, then test read-only access and writes only to disposable Shanti-specific test directories from inside the sandbox. Resolve host XDG paths via `HOST_XDG_*` and reject unsupported custom paths rather than asking for broad home access. Keep modifying operations disabled until this passes.
 
 ### Stage 2 — Minimal buildable proof of concept
 
@@ -217,13 +217,13 @@ A checklist item should only be marked complete when there is concrete evidence,
 | Flathub | Out of scope |
 | Existing portable installer | Retain; no replacement decision has been made |
 | Installer frontend | Rust + GTK4/libadwaita compiled binary; lifecycle/configuration GUI, separate from the existing Qt keyboard GUI |
-| Host operations | Evaluate documented `flatpak-spawn --host` / `org.freedesktop.Flatpak` with a fixed script interface; not yet tested |
+| Host operations | Prefer file operations inside the sandbox with narrow user-directory permissions; host-command access is optional fallback only |
 | Host-operation contract | Drafted in `docs/wiki/Flatpak-Installer-Protocol.md`; lifecycle plan/apply not implemented |
 | Read-only host probe | Implemented at `tools/flatpak/host-bridge.sh`; local regression test at `tests/flatpak/test-host-bridge.sh` passed |
-| Inside-Flatpak host bridge | Not tested; host-spawn path and host XDG inheritance remain unverified |
-| Host execution candidate | `flatpak-spawn --host` with host XDG paths explicitly restored; trust and runtime environment remain test requirements |
+| Inside-Flatpak filesystem access | Not tested; required home-relative path grants, directory creation, and host-XDG handling still need a minimal-manifest test |
+| Filesystem access candidate | Narrow permissions to Shanti-owned paths under `~/.local`, selected `~/.local/share` subdirectories, required `~/.config` subdirectories, and the Shanti cache; final grant list must be tested |
 | Implementation status | Source review + read-only probe/test only; no manifest, Flatpak build, or GUI yet |
-| Immediate next task | Test staged probe invocation through `flatpak-spawn --host` and verify host path/XDG mapping inside an actual Flatpak |
+| Immediate next task | Test narrow host-directory permissions and host-XDG path resolution inside a minimal Flatpak; no host-spawn permission by default |
 
 ## 12. Progress log
 
@@ -237,7 +237,7 @@ A checklist item should only be marked complete when there is concrete evidence,
 | 2026-10-10 | Selected Rust + GTK4/libadwaita as the installer frontend direction and reviewed PMIM IBus Flatpak's split sandbox/host adapter model. Documented that PMIM is not a general host-access bypass and still requires separate host-side IBus integration. |
 | 2026-10-10 | Clarified the target architecture: IBus or Fcitx5 is already installed on the host; the Flatpak manages Shanti's host-compatible user-local engine payload and registration rather than shipping a private input-method framework. |
 | 2026-10-10 | Added `Flatpak-Installer-Protocol.md` with a proposed plan/apply JSONL contract, host-environment/XDG handling, explicit decisions for install and removal, current CLI gaps, and bridge acceptance tests. No script or runtime code was changed. |
-| 2026-10-10 | Added the read-only `tools/flatpak/host-bridge.sh` probe and `tests/flatpak/test-host-bridge.sh`. Local syntax, JSON, custom-XDG escaping, active/inactive mocked backend detection, backend-ambiguity, and fail-closed tests passed. The probe checks for an already-running framework process before querying its client. No modifying action is implemented; actual Flatpak host-spawn behaviour remains unverified. |
+| 2026-10-10 | Added the read-only `tools/flatpak/host-bridge.sh` host-context probe and `tests/flatpak/test-host-bridge.sh`; local mocked tests pass, but this probe is not suitable for detecting host processes when run inside the Flatpak namespace. The preferred installer design now uses narrowly scoped host-directory permissions; a separate in-sandbox filesystem probe and minimal-manifest test are still required. No modifying action is implemented. |
 
 ## 13. Related projects and implementation precedents
 
@@ -327,7 +327,7 @@ This project packages the Chinese Rime engine as an AppImage. Its documented flo
 1. The closest Flatpak precedent is the Fcitx5 framework plus extension architecture—not a generic Flatpak application that automatically registers an engine with any host input-method framework.
 2. We must distinguish a fully Flatpak-contained input-method stack from an engine intended to integrate with the host's existing IBus/Fcitx5 session. They have different boundaries and compatibility requirements.
 3. Shanti's current IBus build installs a component descriptor plus an engine executable. Its Fcitx5 build installs a native module plus metadata. These are not interchangeable packaging shapes, so each backend needs its own feasibility result.
-4. The host's IBus or Fcitx5 is an assumed prerequisite. Shanti's Flatpak is a manager for a host-compatible, user-local engine payload—not a replacement input-method framework. PMIM provides an alternative precedent using a separately installed host IBus adapter and a narrow shared runtime directory. For Shanti, compare limited host filesystem access plus narrowly scoped framework refresh mechanisms with the documented `flatpak-spawn --host` approach; choose only after testing which host actions are actually required.
+4. The host's IBus or Fcitx5 is an assumed prerequisite. Shanti's Flatpak is a manager for a host-compatible, user-local engine payload—not a replacement input-method framework. Start with explicit file placement under narrowly granted host user directories and require relogin/restart if necessary. Treat `flatpak-spawn --host` or a named D-Bus API as a later enhancement only if a demonstrated workflow needs it.
 
 ### Sources reviewed
 
