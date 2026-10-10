@@ -101,6 +101,18 @@ is_allowed_openbangla_target() {
 
     return 1
 }
+assert_no_nested_mounts() {
+    local path="$1" nested_mount
+    [[ -d "$path" && ! -L "$path" ]] ||
+        die "Refusing to inspect an invalid recursive-removal target: $path"
+    command -v mountpoint >/dev/null 2>&1 ||
+        die "Cannot verify mount boundaries because mountpoint is unavailable; refusing recursive removal of: $path"
+    nested_mount="$(find "$path" -type d -exec mountpoint -q -- {} \; -print -quit 2>/dev/null)" ||
+        die "Could not inspect mount boundaries safely; refusing recursive removal of: $path"
+    [[ -z "$nested_mount" ]] ||
+        die "Refusing recursive removal because the target contains a mount point: $nested_mount"
+}
+
 remove_path() {
     local path="$1"
     local allowed=0 root normalized normalized_parent normalized_root cache_target parent
@@ -157,7 +169,8 @@ remove_path() {
         if [[ -L "$path" || -f "$path" ]]; then
             rm -f -- "$path"
         elif [[ -d "$path" ]]; then
-            rm -rf -- "$path"
+            assert_no_nested_mounts "$path"
+            rm -rf --one-file-system -- "$path"
         else
             die "Refusing to remove an unexpected special file type: $path"
         fi
