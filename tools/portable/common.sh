@@ -36,14 +36,18 @@ xdg_dir() {
     local variable="$1"
     local fallback="$2"
     local value="${!variable:-}"
-    # Normalize paths and resolve existing symlinked parent directories so
-    # validation and actual filesystem operations refer to the same location.
-    if [[ "$value" == /* ]]; then
-        value="$(realpath -m -- "$value" 2>/dev/null)" || value=""
+    # Ignore relative and root-valued XDG settings, then canonicalize the
+    # selected value including the fallback. This prevents later mkdir/copy
+    # operations from traversing a symlink in the default ~/.local/share or
+    # ~/.cache path.
+    if [[ "$value" != /* || "$value" == "/" ]]; then
+        value="$fallback"
     fi
-    # Ignore invalid XDG base directories, including paths that normalize to root.
-    [[ "$value" == /* && "$value" != "/" ]] || value=""
-    printf '%s\n' "${value:-$fallback}"
+    value="$(realpath -m -- "$value" 2>/dev/null)" ||
+        die "Could not normalize $variable safely."
+    [[ "$value" == /* && "$value" != "/" ]] ||
+        die "Could not resolve a safe path for $variable."
+    printf '%s\n' "$value"
 }
 
 prepare_paths() {
@@ -66,6 +70,10 @@ prepare_paths() {
     OBK_BUILD="$OBK_CACHE/build"
     OBK_WORKSPACE="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 
+    # Validate all write roots before mkdir can traverse any symlinked parent.
+    assert_no_symlink_components "$OBK_PREFIX"
+    assert_no_symlink_components "$OBK_BUILD"
+    assert_no_symlink_components "$OBK_DATA_HOME/ibus/component"
     mkdir -p "$OBK_BUILD" "$OBK_DATA_HOME/ibus/component"
 
     # Never clear a possibly stale staging directory. Create a new one for
