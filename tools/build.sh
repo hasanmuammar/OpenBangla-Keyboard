@@ -72,9 +72,8 @@ main() {
     select_builder
     prepare_paths
 
-    if [[ "$ACTION" == package ]]; then
-        NONINTERACTIVE=1
-    fi
+    # Package mode still asks before creating/removing a temporary builder.
+    # CI/noninteractive callers must opt in explicitly through the existing env/flag.
 
     log "Backend: $OBK_BACKEND"
     log "Build environment: $OBK_BUILDER"
