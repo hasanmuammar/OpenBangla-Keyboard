@@ -34,3 +34,40 @@ The installer selects exactly one backend:
 ## External projects
 
 The architecture integrates with [Toolbx](https://github.com/containers/toolbox), [Distrobox](https://github.com/89luca89/distrobox), [Podman](https://github.com/containers/podman), [Docker](https://github.com/moby/moby), [Qt](https://github.com/qt/qtbase), [CMake](https://github.com/Kitware/CMake), [Corrosion](https://github.com/corrosion-rs/corrosion), [IBus](https://github.com/ibus/ibus), [Fcitx5](https://github.com/fcitx/fcitx5) and [Zstandard](https://github.com/facebook/zstd).
+
+## Runtime and resource map (initial assessment)
+
+This section records source-level findings for the Flatpak feasibility assessment. It describes the existing portable build; it is not a Flatpak design or a claim that sandboxed input-method integration works.
+
+### Executables and backends
+
+- `openbangla-gui` is the Qt5 Widgets application, built from `src/frontend` and installed to `bin/`.
+- The IBus build produces `ibus-engine-openbangla`, installed to `libexec/`. Its generated component descriptor is installed to `share/ibus/component/openbangla.xml`; the descriptor invokes the engine with `--ibus`.
+- The Fcitx5 build produces the `openbangla` module and installs it with Fcitx5 addon and input-method metadata. The build enables exactly one backend at a time.
+- The portable package therefore represents separate IBus and Fcitx5 builds; the installer selects one based on the detected desktop session.
+
+### Bundled runtime
+
+- The portable build copies Qt5 Core, Gui, Widgets, Network and Svg libraries, plus the Qt XCB platform plugin, into `~/.local/lib/openbangla`.
+- `bundle-runtime.sh` walks ELF dependencies with `ldd` and copies selected non-host libraries into that directory. Its explicit host-library exclusions include libc/runtime, graphics, X11/Wayland, font, udev, and D-Bus libraries.
+- `launch-bundled.sh` adds `../lib/openbangla` to `LD_LIBRARY_PATH` and executes the corresponding `.bin` binary. The build also writes `bin/qt.conf` to point Qt at the bundled plugin directory.
+- This is the current portable-runtime strategy. A Flatpak build should be assessed against its selected runtime and SDK rather than assuming this host-library exclusion list is appropriate inside a sandbox.
+
+### Application resources and mutable data
+
+- CMake defines the application data directory as `share/openbangla-keyboard` under the install prefix.
+- On Linux, `FileSystem.cpp` first looks for `../share/openbangla-keyboard` relative to the executable; if absent, it falls back to the user's generic data directory at `openbangla-keyboard`.
+- The resource tree includes layouts, data files, and icons. Runtime code references layout JSON files and data such as `autocorrect.json`, `dictionary.json`, `suffix.json`, and `regex.json`.
+- The portable installer relocates application resources to `$XDG_DATA_HOME/openbangla-keyboard` (normally `~/.local/share/openbangla-keyboard`). Its merge logic preserves existing custom layouts and autocorrect data; it backs up existing dictionary/suffix/regex files before replacing shipped versions.
+- GUI preferences use Qt `QSettings("OpenBangla", "Keyboard")` on Linux. The exact on-disk settings location depends on Qt's platform configuration and XDG environment and should be verified in a runtime test, not inferred solely from the constructor.
+
+### Host integration and unresolved questions
+
+- IBus requires a component descriptor and an engine executable visible to the host session. Fcitx5 requires a loadable module and its addon/input-method metadata visible to the host framework.
+- The existing installer also handles XDG desktop/icon/metainfo resources and backend-specific integration files. A sandboxed package must not assume that placing these files inside its private app directory automatically registers the engine with the host.
+- Still to verify: exact runtime file inventory of a built archive; transitive runtime dependencies for both backends; actual Qt settings file path; IBus/Fcitx5 D-Bus and host-discovery behaviour; and whether either backend can be made to deliver Bengali input to ordinary host applications without excessive permissions.
+
+### Evidence boundary
+
+These findings come from the current CMake files, portable build/runtime scripts, resource-path implementation, and backend descriptors. They are a source review only: no Flatpak manifest has been created, no Flatpak build has been run, and host typing has not been tested.
+
