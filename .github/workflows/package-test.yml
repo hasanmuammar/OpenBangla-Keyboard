@@ -106,27 +106,36 @@ jobs:
 
           # Simulate installation with a non-default absolute XDG_DATA_HOME.
           install_prefix="$install_home/.local"
+          install_stage="$install_home/stage"
+          staged_root="$install_stage$install_prefix"
           install_data_home="$work/custom-xdg-data"
           install_config_home="$work/custom-xdg-config"
-          mkdir -p "$install_prefix" "$install_data_home" "$install_config_home"
-          tar -xzf "$archive" -C "$install_prefix"
+          mkdir -p "$staged_root" "$install_prefix" "$install_data_home" "$install_config_home"
+          tar -xzf "$archive" -C "$staged_root"
+          for item in bin lib libexec; do
+            if [[ -e "$staged_root/$item" ]]; then
+              cp -a "$staged_root/$item" "$install_prefix/"
+            fi
+          done
 
           HOME="$install_home" \
           XDG_DATA_HOME="$install_data_home" \
           XDG_CONFIG_HOME="$install_config_home" \
           OBK_PREFIX="$install_prefix" \
+          OBK_STAGE="$install_stage" \
           OBK_DATA_HOME="$install_data_home" \
           OBK_BACKEND="$BACKEND" \
           bash -c '
             set -Eeuo pipefail
             source tools/portable/common.sh
             source tools/portable/install.sh
-            install_xdg_resources
+            install_xdg_resources "$OBK_STAGE$OBK_PREFIX/share"
             rewrite_install_metadata
 
             test -f "$OBK_DATA_HOME/openbangla-keyboard/data/dictionary.json"
-            # The installer must preserve source files instead of silently deleting them.
-            test -f "$OBK_PREFIX/share/openbangla-keyboard/data/dictionary.json"
+            # Custom XDG_DATA_HOME must receive resources without a shadowing
+            # copy left under the install prefix.
+            test ! -e "$OBK_PREFIX/share/openbangla-keyboard"
             test -f "$OBK_DATA_HOME/applications/openbangla-keyboard.desktop"
             grep -Fq "Exec=\"$OBK_PREFIX/bin/openbangla-gui\" %f" \
               "$OBK_DATA_HOME/applications/openbangla-keyboard.desktop"
