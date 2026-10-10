@@ -17,8 +17,8 @@ xdg_dir() {
     local variable="$1"
     local fallback="$2"
     local value="${!variable:-}"
-    # XDG base-directory variables are ignored when they are not absolute.
-    [[ "$value" == /* ]] || value=""
+    # Ignore invalid XDG base directories, including filesystem root.
+    [[ "$value" == /* && "$value" != "/" ]] || value=""
     printf '%s\n' "${value:-$fallback}"
 }
 
@@ -31,10 +31,14 @@ prepare_paths() {
     OBK_DATA_HOME="$data_home"
     OBK_CACHE="$cache_home/openbangla-keyboard"
     OBK_BUILD="$OBK_CACHE/build"
-    OBK_STAGE="$OBK_CACHE/stage"
     OBK_WORKSPACE="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 
-    export OBK_PREFIX OBK_DATA_HOME OBK_CACHE OBK_BUILD OBK_STAGE OBK_WORKSPACE
+    mkdir -p "$OBK_BUILD" "$OBK_DATA_HOME/ibus/component"
 
-    mkdir -p "$OBK_BUILD" "$OBK_STAGE" "$OBK_DATA_HOME/ibus/component"
+    # Never clear a possibly stale staging directory. Create a new one for
+    # each invocation so a missing/unset path can never expand to /*.
+    OBK_STAGE="$(mktemp -d "$OBK_CACHE/stage.XXXXXXXX")" ||
+        die "Could not create a fresh OpenBangla staging directory."
+
+    export OBK_PREFIX OBK_DATA_HOME OBK_CACHE OBK_BUILD OBK_STAGE OBK_WORKSPACE
 }
