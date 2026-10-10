@@ -89,10 +89,12 @@ remove_path() {
     done
 
     if [[ -e "$path" || -L "$path" ]]; then
-        if [[ -L "$path" ]]; then
+        if [[ -L "$path" || -f "$path" ]]; then
             rm -f -- "$path"
-        else
+        elif [[ -d "$path" ]]; then
             rm -rf -- "$path"
+        else
+            die "Refusing to remove an unexpected special file type: $path"
         fi
         log "Removed $path"
     fi
