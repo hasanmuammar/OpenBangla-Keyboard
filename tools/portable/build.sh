@@ -93,7 +93,7 @@ build_openbangla() {
         build_dir="$OBK_BUILD"
         stage_dir="$OBK_STAGE"
 
-        [[ "$stage_dir" == /* && "$stage_dir" != "/" && -d "$stage_dir" ]] || {
+        [[ "$stage_dir" == /* && "$stage_dir" != "/" && -d "$stage_dir" && ! -L "$stage_dir" ]] || {
             echo "Refusing to use an invalid staging directory: $stage_dir" >&2
             exit 1
         }
