@@ -97,6 +97,10 @@ builder_exists() {
 confirm_temporary_build() {
     local answer
 
+    if [[ "${OBK_NEEDS_PODMAN_BOOTSTRAP:-0}" == 1 ]] && command -v pacman >/dev/null 2>&1; then
+        die "Automatic Podman installation is disabled on Arch-based systems to avoid partial upgrades. Install Podman through your normal system update workflow and rerun."
+    fi
+
     if [[ "$OBK_BUILDER" == docker ]] || ! builder_exists; then
         printf '\n'
         printf '%s\n' "OpenBangla needs some extra files to build the program."
