@@ -225,6 +225,14 @@ download_release() {
                 die "The downloaded Fcitx release is incomplete."
             ;;
     esac
+
+    # Smoke-test the staged executable and its data before changing the current install.
+    # Redirect XDG_DATA_HOME into the staging tree so checks cannot initialize real user data.
+    XDG_DATA_HOME="$staged_root/share" QT_QPA_PLATFORM=offscreen "$staged_root/bin/openbangla-gui" --version >/dev/null 2>&1 ||
+        die "The downloaded GUI cannot start from staging; the existing installation was left untouched."
+    XDG_DATA_HOME="$staged_root/share" QT_QPA_PLATFORM=offscreen "$staged_root/bin/openbangla-gui" --check-data >/dev/null 2>&1 ||
+        die "The downloaded runtime cannot find its staged data files; the existing installation was left untouched."
+
     export OBK_STAGE
 }
 
