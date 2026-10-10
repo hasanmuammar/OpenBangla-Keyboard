@@ -32,8 +32,7 @@ bootstrap_podman() {
         log "No isolated build environment found. Installing Podman with dnf."
         run_host_root dnf install -y podman
     elif command -v pacman >/dev/null 2>&1; then
-        log "No isolated build environment found. Installing Podman with pacman."
-        run_host_root pacman -Sy --needed --noconfirm podman
+        die "Podman is not installed. On Arch-based systems, install it through your normal system update workflow and rerun; this script will not run pacman -Sy because that can cause a partial-upgrade state."
     elif command -v zypper >/dev/null 2>&1; then
         log "No isolated build environment found. Installing Podman with zypper."
         run_host_root zypper --non-interactive install podman
@@ -103,7 +102,10 @@ confirm_temporary_build() {
         printf '%s\n' "OpenBangla needs some extra files to build the program."
         printf '%s\n' "This may temporarily use about 1 GB or more of disk space."
         printf '%s\n' "The files are kept inside a temporary build container, not added to your normal installation."
-        printf '%s\n' "After OpenBangla is installed successfully, the container will be removed and that space will be freed."
+        printf '%s\n' "After OpenBangla is installed successfully, temporary files may be cleaned up and that space will be freed."
+        if [[ "${OBK_NEEDS_PODMAN_BOOTSTRAP:-0}" == 1 ]]; then
+            printf '%s\n' "Podman is not installed; continuing will install it as a host system package using the detected package manager."
+        fi
         printf '%s ' "Continue with the installation? [Y/n]"
 
         read -r answer
@@ -119,6 +121,9 @@ confirm_temporary_build() {
         export OBK_CLEANUP_BUILDER_ON_SUCCESS
 
         if [[ "${OBK_NEEDS_PODMAN_BOOTSTRAP:-0}" == 1 ]]; then
+            if command -v pacman >/dev/null 2>&1; then
+                die "Automatic Podman installation is disabled on Arch-based systems to avoid partial upgrades. Install Podman through your normal system update workflow and rerun."
+            fi
             bootstrap_podman
         fi
     fi
