@@ -56,9 +56,16 @@ enqueue() {
 
 enqueue "$stage_dir$HOME/.local/bin/openbangla-gui"
 enqueue "$stage_dir$HOME/.local/libexec/ibus-engine-openbangla"
-for library in "$runtime_lib_dir"/*.so* "$runtime_plugin_dir"/platforms/*.so*; do
+for library in "$runtime_lib_dir"/*.so*; do
     enqueue "$library"
 done
+
+# Qt loads platform and Wayland integration plugins at runtime, so ldd on the
+# GUI executable does not reveal their dependencies. Include every bundled
+# plugin in the dependency walk, not only plugins under platforms/.
+while IFS= read -r -d '' library; do
+    enqueue "$library"
+done < <(find "$runtime_plugin_dir" -type f -name '*.so*' -print0)
 
 while ((${#queue[@]})); do
     library="${queue[0]}"
