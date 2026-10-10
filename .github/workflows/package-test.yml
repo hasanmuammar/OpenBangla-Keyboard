@@ -115,6 +115,25 @@ jobs:
             exit 1
           fi
 
+          python3 - "$test_root/symlink-parent.tar.gz" <<'PY'
+          import io
+          import sys
+          import tarfile
+          with tarfile.open(sys.argv[1], "w:gz") as archive:
+              link = tarfile.TarInfo("lib/link")
+              link.type = tarfile.SYMTYPE
+              link.linkname = "openbangla"
+              archive.addfile(link)
+              info = tarfile.TarInfo("lib/link/payload.bin")
+              payload = b"must not be extracted through a symlink"
+              info.size = len(payload)
+              archive.addfile(info, io.BytesIO(payload))
+          PY
+          if INSTALL_TEST_ROOT="$test_root" bash -c 'source tools/install.sh; validate_release_archive_paths "$INSTALL_TEST_ROOT/symlink-parent.tar.gz" "$INSTALL_TEST_ROOT/symlink-parent.list"'; then
+            echo "Archive validator accepted a member nested under a symbolic link." >&2
+            exit 1
+          fi
+
           ln -s /etc/passwd "$test_root/extracted/lib/escape-link.so"
           if INSTALL_TEST_ROOT="$test_root" bash -c 'source tools/install.sh; validate_extracted_symlinks "$INSTALL_TEST_ROOT/extracted"'; then
             echo "Symlink validator accepted a link outside the extraction root." >&2
