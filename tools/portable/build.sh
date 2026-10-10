@@ -93,7 +93,18 @@ build_openbangla() {
         build_dir="$OBK_BUILD"
         stage_dir="$OBK_STAGE"
 
-        mkdir -p "$build_dir" "$stage_dir"
+        [[ "$stage_dir" == /* && "$stage_dir" != "/" && -d "$stage_dir" ]] || {
+            echo "Refusing to use an invalid staging directory: $stage_dir" >&2
+            exit 1
+        }
+
+        if [[ -n "$(find "$stage_dir" -mindepth 1 -maxdepth 1 -print -quit)" ]]; then
+            echo "Staging directory is not empty: $stage_dir" >&2
+            echo "No files were removed. Start a new build so a fresh staging directory is created." >&2
+            exit 1
+        fi
+
+        mkdir -p "$build_dir"
 
         cmake -S "$source_dir" -B "$build_dir" \
             -GNinja \
@@ -107,7 +118,6 @@ build_openbangla() {
 
         cmake --build "$build_dir" --parallel "$OBK_JOBS"
 
-        rm -rf "$stage_dir"/*
         DESTDIR="$stage_dir" cmake --install "$build_dir"
 
         if command -v qmake >/dev/null 2>&1; then
