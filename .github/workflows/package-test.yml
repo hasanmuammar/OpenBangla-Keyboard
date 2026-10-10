@@ -223,6 +223,21 @@ jobs:
             test "$(cat "$dictionary_backup")" = "custom dictionary entries"
           '
 
+      - name: Verify uninstall deletion allowlist
+        run: |
+          set -Eeuo pipefail
+          test_home="$(mktemp -d)"
+          mkdir -p "$test_home/.local/unrelated"
+          printf '%s\n' 'keep this file' > "$test_home/.local/unrelated/valuable.txt"
+          if HOME="$test_home" bash -c 'source tools/uninstall.sh; remove_path "$PREFIX/unrelated"'; then
+            echo "Uninstaller unexpectedly accepted a non-OpenBangla path." >&2
+            exit 1
+          fi
+          test -f "$test_home/.local/unrelated/valuable.txt"
+          test "$(cat "$test_home/.local/unrelated/valuable.txt")" = 'keep this file'
+          HOME="$test_home" bash -c 'source tools/uninstall.sh; is_allowed_openbangla_target "$PREFIX/lib/openbangla"'
+          echo "Uninstaller only accepts explicit OpenBangla targets."
+
       - name: Upload prebuilt package
         uses: actions/upload-artifact@v5
         with:
