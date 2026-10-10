@@ -103,7 +103,7 @@ This experiment does not currently aim to:
 - [x] Review `pmim-ibus` as an input-method packaging precedent and distinguish its Flatpak-contained process from its separately installed host IBus adapter.
 - [x] Draft a versioned GUI-to-host-operation contract in [Flatpak-Installer-Protocol.md](./Flatpak-Installer-Protocol.md); it remains a proposal until implemented and tested.
 - [ ] Implement the host bridge and non-interactive script support behind tests.
-- [ ] Finalise the proof-of-concept permission model and test host execution on target systems.
+- [ ] Finalise the proof-of-concept filesystem permission model and test in-sandbox writes only to disposable Shanti-specific paths.
 - [ ] Flatpak runtime and SDK selection.
 - [ ] Flatpak manifest and build.
 - [ ] Sandboxed application smoke test.
@@ -113,7 +113,7 @@ This experiment does not currently aim to:
 - [ ] Clean installation, update, and removal tests.
 - [ ] Flatpak release publication.
 
-**Current evidence boundary:** A read-only host probe and a local regression test now exist. No Flatpak manifest/build, inside-Flatpak host-spawn test, modifying bridge operation, Rust frontend, or host-typing test has been run. The project remains experimental.
+**Current evidence boundary:** A read-only host-context diagnostic and local mock tests exist. The preferred filesystem-only design is documented, but no Flatpak manifest/build, in-sandbox filesystem permission test, modifying installer operation, Rust frontend, or host-typing test has been run. The project remains experimental.
 
 ## 8. Work plan and checklist
 
@@ -217,13 +217,13 @@ A checklist item should only be marked complete when there is concrete evidence,
 | Flathub | Out of scope |
 | Existing portable installer | Retain; no replacement decision has been made |
 | Installer frontend | Rust + GTK4/libadwaita compiled binary; lifecycle/configuration GUI, separate from the existing Qt keyboard GUI |
-| Host operations | Prefer file operations inside the sandbox with narrow user-directory permissions; host-command access is optional fallback only |
+| Host operations | File operations inside the sandbox with narrow user-directory permissions; `flatpak-spawn --host` is optional fallback only |
 | Host-operation contract | Drafted in `docs/wiki/Flatpak-Installer-Protocol.md`; lifecycle plan/apply not implemented |
 | Read-only host probe | Implemented at `tools/flatpak/host-bridge.sh`; local regression test at `tests/flatpak/test-host-bridge.sh` passed |
 | Inside-Flatpak filesystem access | Not tested; required home-relative path grants, directory creation, and host-XDG handling still need a minimal-manifest test |
 | Filesystem access candidate | Narrow permissions to Shanti-owned paths under `~/.local`, selected `~/.local/share` subdirectories, required `~/.config` subdirectories, and the Shanti cache; final grant list must be tested |
 | Implementation status | Source review + read-only probe/test only; no manifest, Flatpak build, or GUI yet |
-| Immediate next task | Test narrow host-directory permissions and host-XDG path resolution inside a minimal Flatpak; no host-spawn permission by default |
+| Immediate next task | Create a minimal manifest and test exposed Shanti-specific directories and host-XDG mapping from inside the sandbox |
 
 ## 12. Progress log
 
@@ -279,22 +279,22 @@ Flatpak does not require an unofficial exploit to run a host-side operation. The
 For Shanti, the recommended proof of concept is therefore:
 
 1. Build a dedicated Rust + GTK4 + libadwaita installer frontend as the Flatpak's primary binary. Do not confuse it with the existing Qt `openbangla-gui`, which is the keyboard's runtime/configuration application.
-2. Keep the existing host lifecycle script as the authority for install/uninstall behaviour initially; do not reimplement its file-management logic in parallel in the GUI.
-3. Stage the complete required script tree and companion files into the Flatpak's writable per-application data directory, preserving the layout expected by the scripts. The current `tools/install.sh` sources `tools/portable/common.sh` and `tools/portable/install.sh`, reads `release-tag.txt`, and relies on other repository files, so copying only `install.sh` is not enough. Invoke the staged script as a host process through the documented `flatpak-spawn --host` mechanism, using an argument vector rather than interpolating input into a shell command.
-4. The host script must install only the user-local Shanti engine and registration files for the already-installed IBus or Fcitx5 framework. It must not install/replace IBus or Fcitx5, use system paths, or request root privileges for this design.
-5. Verify host-side tools and ABI requirements. The existing script uses tools including Bash, curl or wget, Python 3, SHA-256 utilities, and archive/file-management utilities. Run it with the host's tools, not binaries assumed to be available from the Flatpak runtime. Confirm that the downloaded engine can run as a host process, and that the Fcitx5 module matches the host Fcitx5 ABI.
-6. Replace terminal-only prompts with explicit, validated operation flags or a structured request/response protocol before wiring the script to a GUI. Existing scripts can ask questions on a TTY when replacing an installation or handling user data; the GUI must present these choices directly and pass an unambiguous answer.
+2. Keep the existing lifecycle scripts as the authority for archive verification and safe file management, but adapt them so they can run non-interactively inside the Flatpak without depending on host executables.
+3. Package the scripts and needed tools in the Flatpak. Grant filesystem access only to the exact user-local target directories required by Shanti. Run copy, backup, update and removal operations inside the sandbox against those exposed paths; do not stage scripts into app data for the purpose of running them on the host.
+4. Resolve host XDG directories from `HOST_XDG_*` values and validate that each is actually exposed through the manifest. For an unsupported custom XDG path, stop with a clear message instead of writing into the Flatpak's private data directory or requesting broad home access.
+5. The installed IBus engine and Fcitx5 module must run under the host framework. Keep backend-specific registration separate: the IBus descriptor must point to the host-visible executable; the Fcitx5 module must match the host Fcitx5 ABI. If immediate daemon refresh is unavailable, tell the user to log out and back in or restart the framework manually.
+6. Replace terminal-only prompts with explicit, validated operation flags or a structured request/response protocol before wiring the script to a GUI. The GUI must show exact affected paths and choices for migration, replacement, backup and removal.
 7. Treat installation, update, configuration, status, and removal as distinct operations. Removal should preserve user data by default; cache/data purging must be an explicit separate choice. Updating the Flatpak frontend itself remains a Flatpak remote operation and is separate from updating the host-installed keyboard.
 
 ### Initial permission policy
 
 - Do not request `--filesystem=host`, `--filesystem=home`, `--device=all`, system-bus access, or broad session-bus access just to make the host script work.
-- The host-command permission must be explicitly documented to users. Treat the Flatpak as high-trust because the host helper runs with the user's normal host permissions.
+- Do not request host-command permission for ordinary file operations. If a future version adds `flatpak-spawn --host`, that capability must be a separate, documented security decision because it can launch arbitrary host commands as the current user.
 - Keep host actions fixed to the shipped maintenance scripts and validated operation arguments. Do not provide a generic “run command” or “open terminal as host” feature.
 - No `sudo` and no system-wide installation are required for the existing user-local design; do not silently elevate privileges.
 - The host IBus/Fcitx5 service is an expected prerequisite, not something this Flatpak should install. Host-side Shanti registration and framework refresh still require validation. The installer frontend's ability to launch does not prove that either engine works in host applications.
 
-**Important evidence boundary:** The projects above demonstrate real Flatpak patterns, and the Flatpak documentation describes the host-command mechanism. They do not yet prove that Shanti's existing script can run successfully from the sandbox boundary or that its external host dependencies are consistently present on Bluefin/Dakota and Bazzite.
+**Important evidence boundary:** The projects above demonstrate real Flatpak patterns, and the official Flatpak documentation supports narrow host-directory permissions. No target-system test yet proves that the proposed path grants, engine discovery, ABI compatibility, or framework refresh will work for Shanti.
 
 ### PMIM IBus Flatpak: split sandbox/host integration
 
