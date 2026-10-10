@@ -439,7 +439,9 @@ install_openbangla() {
                 if [[ -e "$backup" || -L "$backup" ]]; then
                     die "Backup path already exists; preserving all files: $backup"
                 fi
-                mv -- "$OBK_PREFIX/lib/openbangla" "$backup"
+                mv -nT -- "$OBK_PREFIX/lib/openbangla" "$backup"
+                [[ ! -e "$OBK_PREFIX/lib/openbangla" && -d "$backup" ]] ||
+                    die "Could not move the library bundle to its unique backup path; no existing files were intentionally replaced."
                 printf 'Previous bundled libraries were preserved at: %s\n' "$backup"
                 ;;
             2)
