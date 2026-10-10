@@ -109,7 +109,7 @@ while ((${#queue[@]})); do
 
         target="$runtime_lib_dir/$dependency_name"
         if [[ -L "$target" ]]; then
-            rm -f "$target"
+            rm -f -- "$target"
         fi
         if [[ ! -e "$target" ]]; then
             cp -a "$resolved_dependency" "$target"
