@@ -17,6 +17,7 @@ CACHE_HOME="$(xdg_home XDG_CACHE_HOME "$HOME/.cache")"
 
 PURGE_CACHE=0
 PURGE_DATA=0
+FCITX_FILES=()
 
 usage() {
     cat <<'EOF'
@@ -44,9 +45,27 @@ log() {
 
 remove_path() {
     local path="$1"
+    local allowed=0 root
+
+    [[ "$path" == /* && "$path" != "/" ]] ||
+        die "Refusing to remove an empty, relative, or root path: $path"
+
+    for root in "$PREFIX" "$DATA_HOME" "$CONFIG_HOME"; do
+        if [[ "$path" == "$root/"* ]]; then
+            allowed=1
+            break
+        fi
+    done
+    [[ "$path" == "$CACHE_HOME/openbangla-keyboard" ]] && allowed=1
+    [[ "$allowed" -eq 1 ]] ||
+        die "Refusing to remove a path outside the OpenBangla uninstall targets: $path"
 
     if [[ -e "$path" || -L "$path" ]]; then
-        rm -rf -- "$path"
+        if [[ -L "$path" ]]; then
+            rm -f -- "$path"
+        else
+            rm -rf -- "$path"
+        fi
         log "Removed $path"
     fi
 }
@@ -147,11 +166,13 @@ remove_ibus_registration() {
 }
 
 remove_fcitx_registration() {
-    find "$PREFIX" -type f \
-        \( -path '*/fcitx5/openbangla.so' -o \
-           -path '*/fcitx5/inputmethod/openbangla.conf' -o \
-           -path '*/fcitx5/addon/openbangla.conf' \) \
-        -print -delete 2>/dev/null || true
+    local path
+    for path in "${FCITX_FILES[@]}"; do
+        # Remove only regular files found and displayed before the user confirmed.
+        [[ -f "$path" ]] || continue
+        rm -f -- "$path"
+        log "Removed $path"
+    done
 
     remove_fcitx_profile_entry
 
@@ -226,11 +247,17 @@ main() {
         printf 'Preserving user data by default: %s\n' "$DATA_HOME/openbangla-keyboard"
     fi
     if [[ -d "$PREFIX" ]]; then
-        printf 'Matching Fcitx files under %s:\n' "$PREFIX"
-        find "$PREFIX" -type f \
-            \( -path '*/fcitx5/openbangla.so' -o \
-               -path '*/fcitx5/inputmethod/openbangla.conf' -o \
-               -path '*/fcitx5/addon/openbangla.conf' \) -print 2>/dev/null || true
+        mapfile -d '' -t FCITX_FILES < <(
+            find "$PREFIX" -type f \
+                \( -path '*/fcitx5/openbangla.so' -o \
+                   -path '*/fcitx5/inputmethod/openbangla.conf' -o \
+                   -path '*/fcitx5/addon/openbangla.conf' \) \
+                -print0 2>/dev/null || true
+        )
+        printf 'Matching Fcitx files that would be removed:\n'
+        for path in "${FCITX_FILES[@]}"; do
+            printf '  %s\n' "$path"
+        done
     fi
     printf 'The script will remove the listed program files and registrations. User data is preserved unless you separately confirm --purge-data.\n'
     read -r -p 'Proceed with these removals? [y/N] ' reply
