@@ -82,11 +82,11 @@ main() {
 
     if [[ "$NONINTERACTIVE" == 1 ]]; then
         if [[ "$OBK_BUILDER" != host ]] && ! builder_exists; then
+            if [[ "${OBK_NEEDS_PODMAN_BOOTSTRAP:-0}" == 1 ]]; then
+                die "Non-interactive mode will not install Podman or change host packages. Install a supported builder manually, then rerun."
+            fi
             OBK_CLEANUP_BUILDER_ON_SUCCESS=1
             export OBK_CLEANUP_BUILDER_ON_SUCCESS
-            if [[ "${OBK_NEEDS_PODMAN_BOOTSTRAP:-0}" == 1 ]]; then
-                bootstrap_podman
-            fi
         fi
     else
         confirm_temporary_build
