@@ -31,6 +31,26 @@ host_home="$(realpath -e -- "$HOME" 2>/dev/null)" || fail 'could not resolve HOM
 [[ "$host_home" != / ]] || fail 'refusing to use filesystem root as HOME' 69
 host_uid="$(id -u 2>/dev/null)" || fail 'could not determine the current user ID' 69
 
+# Inspect process state before querying a framework client. Calling a client
+# while its daemon is absent could trigger D-Bus activation on some systems.
+process_is_active() {
+    local expected="$1" procfile pid comm proc_uid
+    if command -v pgrep >/dev/null 2>&1; then
+        pgrep -u "$host_uid" -x "$expected" >/dev/null 2>&1
+        return $?
+    fi
+    for procfile in /proc/[0-9]*/comm; do
+        [[ -r "$procfile" ]] || continue
+        IFS= read -r comm < "$procfile" || continue
+        [[ "$comm" == "$expected" ]] || continue
+        pid="${procfile#/proc/}"
+        pid="${pid%/comm}"
+        proc_uid="$(awk '$1 == "Uid:" { print $2; exit }' "/proc/$pid/status" 2>/dev/null)" || continue
+        [[ "$proc_uid" == "$host_uid" ]] && return 0
+    done
+    return 1
+}
+
 # Resolve a valid absolute XDG path without creating or changing any directory.
 resolve_xdg() {
     local var="$1" fallback="$2" raw source resolved
@@ -111,10 +131,12 @@ fi
 
 ibus_path="$(command -v ibus 2>/dev/null || true)"
 ibus_client_available=false
+ibus_process_active=false
 ibus_session_reachable=false
 ibus_current_engine=''
-if [[ -n "$ibus_path" ]]; then
-    ibus_client_available=true
+if [[ -n "$ibus_path" ]]; then ibus_client_available=true; fi
+if [[ "$ibus_client_available" == true ]] && process_is_active ibus-daemon; then
+    ibus_process_active=true
     ibus_current_engine="$(ibus engine 2>/dev/null)"
     ibus_rc=$?
     if (( ibus_rc == 0 )) && [[ -n "$ibus_current_engine" ]]; then
@@ -128,17 +150,21 @@ fcitx5_path="$(command -v fcitx5 2>/dev/null || true)"
 fcitx5_remote_path="$(command -v fcitx5-remote 2>/dev/null || true)"
 fcitx5_daemon_available=false
 fcitx5_remote_available=false
+fcitx5_process_active=false
 fcitx5_session_reachable=false
 fcitx5_current_im=''
 if [[ -n "$fcitx5_path" ]]; then fcitx5_daemon_available=true; fi
-if [[ -n "$fcitx5_remote_path" ]]; then
-    fcitx5_remote_available=true
-    fcitx5_current_im="$(fcitx5-remote -n 2>/dev/null)"
-    fcitx5_rc=$?
-    if (( fcitx5_rc == 0 )) && [[ -n "$fcitx5_current_im" ]]; then
-        fcitx5_session_reachable=true
-    else
-        fcitx5_current_im=''
+if [[ -n "$fcitx5_remote_path" ]]; then fcitx5_remote_available=true; fi
+if [[ "$fcitx5_daemon_available" == true ]] && process_is_active fcitx5; then
+    fcitx5_process_active=true
+    if [[ "$fcitx5_remote_available" == true ]]; then
+        fcitx5_current_im="$(fcitx5-remote -n 2>/dev/null)"
+        fcitx5_rc=$?
+        if (( fcitx5_rc == 0 )) && [[ -n "$fcitx5_current_im" ]]; then
+            fcitx5_session_reachable=true
+        else
+            fcitx5_current_im=''
+        fi
     fi
 fi
 
@@ -186,10 +212,10 @@ for ((i=0; i<${#missing_required[@]}; i++)); do
     (( i == 0 )) || printf ','
     json_quote "${missing_required[i]}"
 done
-printf '],"backends":{"ibus":{"client_available":%s,"session_reachable":%s,"current_engine":' "$ibus_client_available" "$ibus_session_reachable"
+printf '],"backends":{"ibus":{"client_available":%s,"process_active":%s,"session_reachable":%s,"current_engine":' "$ibus_client_available" "$ibus_process_active" "$ibus_session_reachable"
 if [[ -n "$ibus_current_engine" ]]; then json_quote "$ibus_current_engine"; else printf null; fi
 printf ',"component_dir":%s},' "$(json_quote "$host_data_home/ibus/component")"
-printf '"fcitx5":{"daemon_available":%s,"remote_available":%s,"session_reachable":%s,"current_im":' "$fcitx5_daemon_available" "$fcitx5_remote_available" "$fcitx5_session_reachable"
+printf '"fcitx5":{"daemon_available":%s,"remote_available":%s,"process_active":%s,"session_reachable":%s,"current_im":' "$fcitx5_daemon_available" "$fcitx5_remote_available" "$fcitx5_process_active" "$fcitx5_session_reachable"
 if [[ -n "$fcitx5_current_im" ]]; then json_quote "$fcitx5_current_im"; else printf null; fi
 printf ',"user_module_dir":%s,"user_addon_dir":%s,"user_inputmethod_dir":%s}},' \
     "$(json_quote "$host_home/.local/lib/fcitx5")" \
