@@ -113,19 +113,50 @@ rewrite_install_metadata() {
     fi
 }
 
+confirm_install_replacements() {
+    local path found=0 reply
+
+    for path in \
+        "$OBK_PREFIX/bin/openbangla-gui" \
+        "$OBK_PREFIX/bin/openbangla-gui.bin" \
+        "$OBK_PREFIX/libexec/ibus-engine-openbangla" \
+        "$OBK_PREFIX/libexec/ibus-engine-openbangla.bin" \
+        "$OBK_PREFIX/lib/openbangla" \
+        "$OBK_PREFIX/share/openbangla-keyboard" \
+        "$OBK_DATA_HOME/openbangla-keyboard" \
+        "$OBK_DATA_HOME/applications/openbangla-keyboard.desktop" \
+        "$OBK_DATA_HOME/ibus/component/openbangla.xml" \
+        "$OBK_DATA_HOME/fcitx5/addon/openbangla.conf" \
+        "$OBK_DATA_HOME/fcitx5/inputmethod/openbangla.conf"; do
+        if [[ -e "$path" || -L "$path" ]]; then
+            if [[ "$found" -eq 0 ]]; then
+                printf 'These existing OpenBangla paths may be replaced by the installation:\n'
+            fi
+            printf '  %s\n' "$path"
+            found=1
+        fi
+    done
+
+    [[ "$found" -eq 1 ]] || return 0
+
+    if [[ ! -t 0 ]]; then
+        die "Existing OpenBangla files need review. Rerun interactively to choose whether to replace them."
+    fi
+    read -r -p 'Continue and replace the listed OpenBangla paths? [y/N] ' reply
+    [[ "$reply" =~ ^[Yy]([Ee][Ss])?$ ]] ||
+        die "Installation cancelled; existing OpenBangla files were preserved."
+}
+
 install_openbangla() {
     [[ -d "$OBK_STAGE$OBK_PREFIX" ]] ||
         die "Build completed without producing an install tree."
 
+    confirm_install_replacements
     mkdir -p "$OBK_PREFIX"
 
+    # Replacing the existing library bundle is allowed only after the explicit
+    # confirmation above. Other unrelated paths are not recursively removed.
     if [[ -d "$OBK_PREFIX/lib/openbangla" ]]; then
-        if [[ ! -t 0 ]]; then
-            die "An existing bundled library directory needs review: $OBK_PREFIX/lib/openbangla. Rerun interactively to choose whether to replace it."
-        fi
-        printf 'Existing bundled libraries are present at: %s\n' "$OBK_PREFIX/lib/openbangla"
-        read -r -p 'Replace this directory with the newly built bundle? [y/N] ' reply
-        [[ "$reply" =~ ^[Yy]([Ee][Ss])?$ ]] || die "Installation cancelled; existing bundled libraries were preserved."
         rm -rf -- "$OBK_PREFIX/lib/openbangla"
     fi
 
