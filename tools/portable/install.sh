@@ -33,7 +33,7 @@ merge_openbangla_data() {
         esac
     done
     shopt -u nullglob
-    rm -rf "$source"
+    # Keep the source tree; installation must not silently delete directories.
 }
 
 relocate_xdg_resource() {
@@ -50,7 +50,7 @@ relocate_xdg_resource() {
         else
             mkdir -p "$destination"
             cp -a "$source/." "$destination/"
-            rm -rf "$source"
+            # Preserve the source until the user chooses to remove it.
         fi
     else
         mkdir -p "$(dirname "$destination")"
@@ -120,7 +120,13 @@ install_openbangla() {
     mkdir -p "$OBK_PREFIX"
 
     if [[ -d "$OBK_PREFIX/lib/openbangla" ]]; then
-        rm -rf "$OBK_PREFIX/lib/openbangla"
+        if [[ ! -t 0 ]]; then
+            die "An existing bundled library directory needs review: $OBK_PREFIX/lib/openbangla. Rerun interactively to choose whether to replace it."
+        fi
+        printf 'Existing bundled libraries are present at: %s\n' "$OBK_PREFIX/lib/openbangla"
+        read -r -p 'Replace this directory with the newly built bundle? [y/N] ' reply
+        [[ "$reply" =~ ^[Yy]([Ee][Ss])?$ ]] || die "Installation cancelled; existing bundled libraries were preserved."
+        rm -rf -- "$OBK_PREFIX/lib/openbangla"
     fi
 
     cp -a "$OBK_STAGE$OBK_PREFIX/." "$OBK_PREFIX/"
