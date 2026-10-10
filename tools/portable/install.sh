@@ -106,6 +106,13 @@ xdg_resource_relatives() {
 confirm_legacy_xdg_migration() {
     [[ "$OBK_DATA_HOME" != "$OBK_PREFIX/share" ]] || return 0
 
+    local migration_marker="$OBK_DATA_HOME/openbangla-keyboard/.legacy-xdg-migration-v1-complete"
+    if [[ -e "$migration_marker" || -L "$migration_marker" ]]; then
+        [[ -f "$migration_marker" && ! -L "$migration_marker" ]] ||
+            die "Refusing to trust an unexpected legacy-migration marker path: $migration_marker"
+        return 0
+    fi
+
     local relative source destination found=0 reply
     while IFS= read -r relative; do
         source="$OBK_PREFIX/share/$relative"
@@ -134,7 +141,14 @@ confirm_legacy_xdg_migration() {
 migrate_legacy_xdg_resources() {
     [[ "$OBK_DATA_HOME" != "$OBK_PREFIX/share" ]] || return 0
 
-    local relative source destination
+    local relative source destination preserved_legacy=0
+    local migration_marker="$OBK_DATA_HOME/openbangla-keyboard/.legacy-xdg-migration-v1-complete"
+    if [[ -e "$migration_marker" || -L "$migration_marker" ]]; then
+        [[ -f "$migration_marker" && ! -L "$migration_marker" ]] ||
+            die "Refusing to trust an unexpected legacy-migration marker path: $migration_marker"
+        return 0
+    fi
+
     while IFS= read -r relative; do
         source="$OBK_PREFIX/share/$relative"
         [[ -e "$source" || -L "$source" ]] || continue
@@ -157,9 +171,9 @@ migrate_legacy_xdg_resources() {
             continue
         fi
 
-        # Destination collisions are handled by the already-confirmed install
-        # preflight and the merge routine. Remove the duplicate legacy source
-        # only after the copy/merge succeeds and after migration was approved.
+        # A destination exists, so merge/copy into it, but preserve the source.
+        # The merge intentionally skips some duplicate custom layouts/autocorrect
+        # files; deleting the whole source here could destroy those user edits.
         if [[ -d "$source" && ! -L "$source" ]]; then
             if [[ "$relative" == "openbangla-keyboard" ]]; then
                 merge_openbangla_data "$source" "$destination"
@@ -167,12 +181,24 @@ migrate_legacy_xdg_resources() {
                 mkdir -p "$destination"
                 cp -a "$source/." "$destination/"
             fi
-            rm -rf -- "$source"
         else
             cp -a "$source" "$destination"
-            rm -f -- "$source"
         fi
+        preserved_legacy=1
     done < <(xdg_resource_relatives)
+
+    if [[ "$preserved_legacy" -eq 1 ]]; then
+        mkdir -p "$OBK_DATA_HOME/openbangla-keyboard"
+        if [[ -L "$OBK_DATA_HOME/openbangla-keyboard" ]]; then
+            die "Refusing to write migration state through a symlink."
+        fi
+        if [[ ! -e "$migration_marker" && ! -L "$migration_marker" ]]; then
+            printf '%s\n' 'Legacy XDG resources were copied/merged; original sources were preserved.' > "$migration_marker"
+        elif [[ ! -f "$migration_marker" || -L "$migration_marker" ]]; then
+            die "Refusing to overwrite an unexpected migration marker: $migration_marker"
+        fi
+        printf 'Some legacy resources were copied/merged and their original paths were preserved for review. Migration will not repeat automatically.\n'
+    fi
 }
 
 install_xdg_resources() {
