@@ -319,4 +319,6 @@ main() {
     log "Need to rebuild from source? Use: bash tools/build.sh"
 }
 
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    main "$@"
+fi
