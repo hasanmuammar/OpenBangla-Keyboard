@@ -3,6 +3,8 @@ name: Prebuilt package test
 on:
   push:
     branches: ["develop"]
+  pull_request:
+    branches: ["**"]
   workflow_dispatch:
 
 jobs:
@@ -120,8 +122,7 @@ jobs:
             test -f "$OBK_DATA_HOME/openbangla-keyboard/data/dictionary.json"
             test ! -e "$OBK_PREFIX/share/openbangla-keyboard"
             test -f "$OBK_DATA_HOME/applications/openbangla-keyboard.desktop"
-            grep -Fq "Exec=\"$OBK_PREFIX/bin/openbangla-gui\" %f" \
-              "$OBK_DATA_HOME/applications/openbangla-keyboard.desktop"
+            grep -Fq "Exec=\"$OBK_PREFIX/bin/openbangla-gui\" %f" "$OBK_DATA_HOME/applications/openbangla-keyboard.desktop"
 
             QT_QPA_PLATFORM=offscreen "$OBK_PREFIX/bin/openbangla-gui" --check-data
 
