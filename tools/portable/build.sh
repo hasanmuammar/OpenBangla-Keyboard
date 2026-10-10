@@ -141,7 +141,7 @@ build_openbangla() {
 
         cp -a "$qt_plugin_dir/platforms" "$runtime_plugin_dir/"
 
-        # Qt's Wayland platform plugin loads these integrations dynamically.
+        # The Qt Wayland platform plugin loads these integrations dynamically.
         # They are not discovered by ldd on the platform plugin, so copy them
         # explicitly when the build Qt installation provides them.
         for plugin_dir in \
