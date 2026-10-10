@@ -129,7 +129,6 @@ confirm_install_replacements() {
         "$OBK_PREFIX/share/fcitx5/inputmethod/openbangla.conf" \
         "$OBK_PREFIX/share/metainfo/io.github.openbangla.keyboard.metainfo.xml" \
         "$OBK_PREFIX/share/pixmaps/openbangla-keyboard.png" \
-        "$OBK_PREFIX/share/icons" \
         "$OBK_DATA_HOME/openbangla-keyboard" \
         "$OBK_DATA_HOME/applications/openbangla-keyboard.desktop" \
         "$OBK_DATA_HOME/ibus/component/openbangla.xml" \
@@ -147,14 +146,16 @@ confirm_install_replacements() {
     done
 
     for size in 16 32 48 128 512 1024; do
-        path="$OBK_DATA_HOME/icons/hicolor/${size}x${size}/apps/openbangla-keyboard.png"
-        if [[ -e "$path" || -L "$path" ]]; then
-            if [[ "$found" -eq 0 ]]; then
-                printf 'These existing OpenBangla paths may be replaced by the installation:\n'
+        for icon_root in "$OBK_PREFIX/share/icons" "$OBK_DATA_HOME/icons"; do
+            path="$icon_root/hicolor/${size}x${size}/apps/openbangla-keyboard.png"
+            if [[ -e "$path" || -L "$path" ]]; then
+                if [[ "$found" -eq 0 ]]; then
+                    printf 'These existing OpenBangla paths may be replaced by the installation:\\n'
+                fi
+                printf '  %s\\n' "$path"
+                found=1
             fi
-            printf '  %s\n' "$path"
-            found=1
-        fi
+        done
     done
 
     [[ "$found" -eq 1 ]] || return 0
