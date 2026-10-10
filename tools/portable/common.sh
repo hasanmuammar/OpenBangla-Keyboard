@@ -17,13 +17,26 @@ xdg_dir() {
     local variable="$1"
     local fallback="$2"
     local value="${!variable:-}"
-    # Ignore invalid XDG base directories, including filesystem root.
+    # Normalize .. components without following user-chosen symlinks.
+    if [[ "$value" == /* ]]; then
+        value="$(realpath -ms -- "$value" 2>/dev/null)" || value=""
+    fi
+    # Ignore invalid XDG base directories, including paths that normalize to root.
     [[ "$value" == /* && "$value" != "/" ]] || value=""
     printf '%s\n' "${value:-$fallback}"
 }
 
 prepare_paths() {
-    local data_home cache_home
+    local data_home cache_home canonical_home
+    [[ "${HOME:-}" == /* && -d "$HOME" ]] ||
+        die "HOME must be an existing absolute directory."
+    canonical_home="$(realpath -ms -- "$HOME")" ||
+        die "Could not normalize HOME safely."
+    [[ "$canonical_home" != "/" ]] ||
+        die "Refusing to use filesystem root as HOME."
+    HOME="$canonical_home"
+    export HOME
+
     data_home="$(xdg_dir XDG_DATA_HOME "$HOME/.local/share")"
     cache_home="$(xdg_dir XDG_CACHE_HOME "$HOME/.cache")"
 
