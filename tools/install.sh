@@ -112,7 +112,7 @@ validate_release_checksum() {
     read -r digest filename extra <<< "${lines[0]}"
     [[ "$digest" =~ ^[[:xdigit:]]{64}$ ]] ||
         die "The release checksum does not contain a valid 64-character SHA-256 digest."
-    [[ "$filename" == "$expected_asset" || "$filename" == "*$expected_asset" ]] ||
+    [[ "$filename" == "$expected_asset" ]] ||
         die "The release checksum names an unexpected file: $filename"
     [[ -z "${extra:-}" ]] ||
         die "The release checksum contains unexpected extra fields."
