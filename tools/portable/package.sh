@@ -32,10 +32,10 @@ package_openbangla() {
             echo "Refusing to package from an invalid workspace path." >&2
             exit 1
         }
-        [[ ! -L "$output_dir" ]] || {
+        if [[ -L "$output_dir" ]]; then
             echo "Refusing to write through a symlinked output directory: $output_dir" >&2
             exit 1
-        }
+        fi
         if [[ -e "$output_dir" && ! -d "$output_dir" ]]; then
             echo "Package output path exists and is not a directory: $output_dir" >&2
             exit 1
@@ -60,7 +60,7 @@ package_openbangla() {
                 [[ ! -e "$checksum_path" ]] || printf "  %s\n" "$checksum_path" >&2
                 exit 1
             fi
-            printf "The following generated files would be replaced:\n"
+            printf "The following generated files already exist and would be replaced:\n"
             [[ ! -e "$archive_path" ]] || printf "  %s\n" "$archive_path"
             [[ ! -e "$checksum_path" ]] || printf "  %s\n" "$checksum_path"
             read -r -p "Replace only these two generated files? [y/N] " reply
