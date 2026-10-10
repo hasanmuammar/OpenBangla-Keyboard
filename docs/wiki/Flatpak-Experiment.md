@@ -238,6 +238,7 @@ A checklist item should only be marked complete when there is concrete evidence,
 | 2026-10-10 | Clarified the target architecture: IBus or Fcitx5 is already installed on the host; the Flatpak manages Shanti's host-compatible user-local engine payload and registration rather than shipping a private input-method framework. |
 | 2026-10-10 | Added `Flatpak-Installer-Protocol.md` with a proposed plan/apply JSONL contract, host-environment/XDG handling, explicit decisions for install and removal, current CLI gaps, and bridge acceptance tests. No script or runtime code was changed. |
 | 2026-10-10 | Added the read-only `tools/flatpak/host-bridge.sh` host-context probe and `tests/flatpak/test-host-bridge.sh`; local mocked tests pass, but this probe is not suitable for detecting host processes when run inside the Flatpak namespace. The preferred installer design now uses narrowly scoped host-directory permissions; a separate in-sandbox filesystem probe and minimal-manifest test are still required. No modifying action is implemented. |
+| 2026-10-11 | Reassessed the host-command-first design. Narrow, predeclared home-relative filesystem grants are now the default for file placement; `flatpak-spawn --host` is an optional fallback only for a demonstrated host-only refresh/API gap. Updated the installer protocol and clarified the existing host-context probe is not an in-sandbox detector. |
 
 ## 13. Related projects and implementation precedents
 
