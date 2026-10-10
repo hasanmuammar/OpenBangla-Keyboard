@@ -163,4 +163,17 @@ Keyboard runtime settings are currently handled by the existing Qt `openbangla-g
 
 ## 8. Implementation status
 
-No bridge, protocol parser, Flatpak manifest, or GUI code has been added as part of this design record. The next implementation task is to add the host bridge and non-interactive script support behind tests, without changing the existing interactive CLI behaviour for current users.
+### Implemented in the repository
+
+- `tools/flatpak/host-bridge.sh` implements only `--protocol 1 probe`. It emits one JSON report and deliberately rejects other operations.
+- `tests/flatpak/test-host-bridge.sh` covers the report shape, absolute path resolution, custom XDG paths containing quotes/backslashes, mock IBus/Fcitx5 sessions, ambiguous-backend handling, and rejection of an unimplemented `apply` operation.
+- The test script was run against the local bridge copy in a Linux shell and passed. This is a local shell/mock test, not a test inside Flatpak or on Bluefin/Dakota or Bazzite.
+
+### Still unverified or not implemented
+
+- Calling the staged bridge through `flatpak-spawn --host` from inside the actual Flatpak.
+- Confirming that the staged bridge path resolves from both the sandbox and host, and that the spawned process receives host XDG values rather than app-private XDG values.
+- Live IBus/Fcitx5 discovery on the target desktop sessions.
+- Plan/apply, non-interactive install/update/remove support, the Rust frontend, and the Flatpak manifest.
+
+**Next task:** verify the bridge staging and host-environment boundary in a minimal Flatpak on a target system. Keep modifying actions disabled until this is demonstrated. After that, add non-interactive plan/apply support behind tests while retaining the existing interactive CLI behaviour for current users.
