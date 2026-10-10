@@ -1,14 +1,33 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-PREFIX="${HOME}/.local"
+if [[ "${HOME:-}" != /* || ! -d "$HOME" ]]; then
+    printf 'Error: HOME must be an existing absolute directory.\n' >&2
+    exit 1
+fi
+HOME="$(realpath -e -- "$HOME")" || {
+    printf 'Error: Could not normalize HOME safely.\n' >&2
+    exit 1
+}
+if [[ "$HOME" == "/" ]]; then
+    printf 'Error: Refusing to use filesystem root as HOME.\n' >&2
+    exit 1
+fi
+export HOME
+PREFIX="$(realpath -m -- "$HOME/.local")" || {
+    printf 'Error: Could not normalize the install prefix safely.\n' >&2
+    exit 1
+}
 
 xdg_home() {
     local variable="$1"
     local fallback="$2"
     local value="${!variable:-}"
-    [[ "$value" == /* ]] || value=""
-    printf '%s\\n' "${value:-$fallback}"
+    if [[ "$value" == /* ]]; then
+        value="$(realpath -m -- "$value" 2>/dev/null)" || value=""
+    fi
+    [[ "$value" == /* && "$value" != "/" ]] || value=""
+    printf '%s\n' "${value:-$fallback}"
 }
 
 DATA_HOME="$(xdg_home XDG_DATA_HOME "$HOME/.local/share")"
@@ -16,16 +35,20 @@ CONFIG_HOME="$(xdg_home XDG_CONFIG_HOME "$HOME/.config")"
 CACHE_HOME="$(xdg_home XDG_CACHE_HOME "$HOME/.cache")"
 
 PURGE_CACHE=0
+PURGE_DATA=0
+FCITX_FILES=()
 
 usage() {
     cat <<'EOF'
-Usage: tools/uninstall.sh [--purge-cache]
+Usage: tools/uninstall.sh [--purge-cache] [--purge-data]
 
 Remove the current user's OpenBangla Keyboard installation.
 
 Options:
   --purge-cache   Also remove the build/staging cache at
                   ~/.cache/openbangla-keyboard (or XDG_CACHE_HOME).
+  --purge-data    Also remove OpenBangla user data, including custom layouts
+                  and autocorrect data. This is not removed by default.
   -h, --help      Show this help.
 EOF
 }
@@ -41,20 +64,59 @@ log() {
 
 remove_path() {
     local path="$1"
+    local allowed=0 root normalized normalized_parent normalized_root cache_target parent
+
+    [[ "$path" == /* && "$path" != "/" ]] ||
+        die "Refusing to remove an empty, relative, or root path: $path"
+
+    # Resolve symlinks in parent directories but preserve the final component
+    # as a name, so a symlink itself can be unlinked without following its target.
+    normalized_parent="$(realpath -m -- "$(dirname -- "$path")" 2>/dev/null)" ||
+        die "Could not normalize uninstall target safely: $path"
+    normalized="$normalized_parent/${path##*/}"
+    [[ "$normalized" != "/" ]] ||
+        die "Refusing to remove the filesystem root."
+
+    # Reject symlinked parent components even when their targets happen to
+    # remain inside a managed root; those paths may contain unrelated user data.
+    parent="$(dirname -- "$path")"
+    while [[ "$parent" != "/" ]]; do
+        [[ ! -L "$parent" ]] ||
+            die "Refusing to remove through a symlinked parent directory: $parent"
+        case "$parent" in
+            "$PREFIX"|"$DATA_HOME"|"$CONFIG_HOME"|"$CACHE_HOME")
+                break
+                ;;
+        esac
+        parent="$(dirname -- "$parent")"
+    done
+
+    for root in "$PREFIX" "$DATA_HOME" "$CONFIG_HOME"; do
+        normalized_root="$(realpath -m -- "$root" 2>/dev/null)" || continue
+        if [[ "$normalized" == "$normalized_root/"* ]]; then
+            allowed=1
+            break
+        fi
+    done
+    cache_target="$(realpath -m -- "$CACHE_HOME/openbangla-keyboard" 2>/dev/null)" || cache_target=""
+    [[ -n "$cache_target" && "$normalized" == "$cache_target" ]] && allowed=1
+    [[ "$allowed" -eq 1 ]] ||
+        die "Refusing to remove a path outside the OpenBangla uninstall targets: $path"
+
+    for root in "$PREFIX" "$DATA_HOME" "$CONFIG_HOME" "$CACHE_HOME"; do
+        normalized_root="$(realpath -m -- "$root" 2>/dev/null)" || continue
+        [[ "$normalized" != "$normalized_root" ]] ||
+            die "Refusing to remove an entire uninstall root: $path"
+    done
 
     if [[ -e "$path" || -L "$path" ]]; then
-        rm -rf -- "$path"
-        log "Removed $path"
-    fi
-}
-
-remove_matching_file() {
-    local root="$1"
-    local relative="$2"
-    local path="$root/$relative"
-
-    if [[ -e "$path" || -L "$path" ]]; then
-        rm -f -- "$path"
+        if [[ -L "$path" || -f "$path" ]]; then
+            rm -f -- "$path"
+        elif [[ -d "$path" ]]; then
+            rm -rf -- "$path"
+        else
+            die "Refusing to remove an unexpected special file type: $path"
+        fi
         log "Removed $path"
     fi
 }
@@ -155,11 +217,12 @@ remove_ibus_registration() {
 }
 
 remove_fcitx_registration() {
-    find "$PREFIX" -type f \
-        \( -path '*/fcitx5/openbangla.so' -o \
-           -path '*/fcitx5/inputmethod/openbangla.conf' -o \
-           -path '*/fcitx5/addon/openbangla.conf' \) \
-        -print -delete 2>/dev/null || true
+    local path
+    for path in "${FCITX_FILES[@]}"; do
+        # Remove only regular files found and displayed before the user confirmed.
+        [[ -f "$path" ]] || continue
+        remove_path "$path"
+    done
 
     remove_fcitx_profile_entry
 
@@ -174,6 +237,9 @@ main() {
             --purge-cache)
                 PURGE_CACHE=1
                 ;;
+            --purge-data)
+                PURGE_DATA=1
+                ;;
             -h|--help)
                 usage
                 exit 0
@@ -185,12 +251,66 @@ main() {
         shift
     done
 
-    if [[ $PURGE_CACHE -eq 1 ]]; then
-        printf 'This will remove the current-user OpenBangla installation and its build cache.\n'
-    else
-        printf 'This will remove the current-user OpenBangla installation.\n'
+    if [[ $PURGE_DATA -eq 1 ]]; then
+        [[ -t 0 ]] || die "--purge-data requires an interactive confirmation; user data will be preserved."
+        printf 'User data may include custom layouts and autocorrect data. Target: %s\n' "$DATA_HOME/openbangla-keyboard"
+        read -r -p 'Delete this user-data directory as well? [y/N] ' data_reply
+        [[ "$data_reply" =~ ^[Yy]([Ee][Ss])?$ ]] || PURGE_DATA=0
     fi
-    read -r -p 'Continue? [y/N] ' reply
+
+    if [[ $PURGE_CACHE -eq 1 ]]; then
+        [[ -t 0 ]] || die "--purge-cache requires an interactive confirmation; cache data will be preserved."
+        printf 'Build/staging cache target: %s\n' "$CACHE_HOME/openbangla-keyboard"
+        read -r -p 'Delete this cache directory as well? [y/N] ' cache_reply
+        [[ "$cache_reply" =~ ^[Yy]([Ee][Ss])?$ ]] || PURGE_CACHE=0
+    fi
+
+    [[ -t 0 ]] || die "Interactive confirmation is required before uninstalling."
+
+    printf 'Review these OpenBangla program and registration paths before continuing:\n'
+    for path in \
+        "$PREFIX/bin/openbangla-gui" \
+        "$PREFIX/bin/openbangla-gui.bin" \
+        "$PREFIX/libexec/ibus-engine-openbangla" \
+        "$PREFIX/libexec/ibus-engine-openbangla.bin" \
+        "$PREFIX/lib/openbangla" \
+        "$DATA_HOME/applications/openbangla-keyboard.desktop" \
+        "$DATA_HOME/ibus/component/openbangla.xml" \
+        "$DATA_HOME/fcitx5/addon/openbangla.conf" \
+        "$DATA_HOME/fcitx5/inputmethod/openbangla.conf" \
+        "$DATA_HOME/metainfo/io.github.openbangla.keyboard.metainfo.xml" \
+        "$DATA_HOME/pixmaps/openbangla-keyboard.png" \
+        "$DATA_HOME/.openbangla-keyboard-xdg-migration-v1-complete" \
+        "$CONFIG_HOME/environment.d/90-openbangla-ibus.conf" \
+        "$CONFIG_HOME/fcitx5/profile"; do
+        printf '  %s\n' "$path"
+    done
+    for size in 16 32 48 128 512 1024; do
+        printf '  %s\n' "$DATA_HOME/icons/hicolor/${size}x${size}/apps/openbangla-keyboard.png"
+    done
+    if [[ $PURGE_CACHE -eq 1 ]]; then
+        printf 'Requested cache purge target: %s\n' "$CACHE_HOME/openbangla-keyboard"
+    fi
+    if [[ $PURGE_DATA -eq 1 ]]; then
+        printf 'Requested user-data purge target: %s\n' "$DATA_HOME/openbangla-keyboard"
+    else
+        printf 'Preserving user data by default: %s\n' "$DATA_HOME/openbangla-keyboard"
+    fi
+    if [[ -d "$PREFIX" ]]; then
+        mapfile -d '' -t FCITX_FILES < <(
+            find "$PREFIX" -type f \
+                \( -path '*/fcitx5/openbangla.so' -o \
+                   -path '*/fcitx5/inputmethod/openbangla.conf' -o \
+                   -path '*/fcitx5/addon/openbangla.conf' \) \
+                -print0 2>/dev/null || true
+        )
+        printf 'Matching Fcitx files that would be removed:\n'
+        for path in "${FCITX_FILES[@]}"; do
+            printf '  %s\n' "$path"
+        done
+    fi
+    printf 'The script will remove the listed program files and registrations. User data is preserved unless you separately confirm --purge-data.\n'
+    read -r -p 'Proceed with these removals? [y/N] ' reply
     [[ "$reply" =~ ^[Yy]([Ee][Ss])?$ ]] ||
         exit 0
 
@@ -200,12 +320,16 @@ main() {
     remove_path "$PREFIX/libexec/ibus-engine-openbangla.bin"
     remove_path "$PREFIX/lib/openbangla"
 
-    remove_path "$DATA_HOME/openbangla-keyboard"
+    if [[ $PURGE_DATA -eq 1 ]]; then
+        remove_path "$DATA_HOME/openbangla-keyboard"
+    fi
+
     remove_path "$DATA_HOME/applications/openbangla-keyboard.desktop"
     remove_path "$DATA_HOME/fcitx5/addon/openbangla.conf"
     remove_path "$DATA_HOME/fcitx5/inputmethod/openbangla.conf"
     remove_path "$DATA_HOME/metainfo/io.github.openbangla.keyboard.metainfo.xml"
     remove_path "$DATA_HOME/pixmaps/openbangla-keyboard.png"
+    remove_path "$DATA_HOME/.openbangla-keyboard-xdg-migration-v1-complete"
 
     for size in 16 32 48 128 512 1024; do
         remove_path "$DATA_HOME/icons/hicolor/${size}x${size}/apps/openbangla-keyboard.png"
