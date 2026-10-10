@@ -157,8 +157,8 @@ jobs:
             test -f "$work/share/fcitx5/addon/openbangla.conf"
           fi
 
-          QT_QPA_PLATFORM=offscreen "$work/bin/openbangla-gui" --version
-          QT_QPA_PLATFORM=offscreen "$work/bin/openbangla-gui" --check-data
+          XDG_DATA_HOME="$work/share" XDG_CONFIG_HOME="$work/check-config" XDG_CACHE_HOME="$work/check-cache" QT_QPA_PLATFORM=offscreen "$work/bin/openbangla-gui" --version
+          XDG_DATA_HOME="$work/share" XDG_CONFIG_HOME="$work/check-config" XDG_CACHE_HOME="$work/check-cache" QT_QPA_PLATFORM=offscreen "$work/bin/openbangla-gui" --check-data
 
           # Simulate installation with a non-default absolute XDG_DATA_HOME.
           install_prefix="$install_home/.local"
