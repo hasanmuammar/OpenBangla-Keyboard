@@ -24,9 +24,6 @@ xdg_home() {
     local fallback="$2"
     local value="${!variable:-}"
     if [[ "$value" == /* ]]; then
-        value="$(realpath -ms -- "$value" 2>/dev/null)" || value=""
-    fi
-    if [[ "$value" == /* ]]; then
         value="$(realpath -m -- "$value" 2>/dev/null)" || value=""
     fi
     [[ "$value" == /* && "$value" != "/" ]] || value=""
@@ -67,7 +64,7 @@ log() {
 
 remove_path() {
     local path="$1"
-    local allowed=0 root normalized normalized_parent normalized_root cache_target
+    local allowed=0 root normalized normalized_parent normalized_root cache_target parent
 
     [[ "$path" == /* && "$path" != "/" ]] ||
         die "Refusing to remove an empty, relative, or root path: $path"
@@ -79,6 +76,20 @@ remove_path() {
     normalized="$normalized_parent/${path##*/}"
     [[ "$normalized" != "/" ]] ||
         die "Refusing to remove the filesystem root."
+
+    # Reject symlinked parent components even when their targets happen to
+    # remain inside a managed root; those paths may contain unrelated user data.
+    parent="$(dirname -- "$path")"
+    while [[ "$parent" != "/" ]]; do
+        [[ ! -L "$parent" ]] ||
+            die "Refusing to remove through a symlinked parent directory: $parent"
+        case "$parent" in
+            "$PREFIX"|"$DATA_HOME"|"$CONFIG_HOME"|"$CACHE_HOME")
+                break
+                ;;
+        esac
+        parent="$(dirname -- "$parent")"
+    done
 
     for root in "$PREFIX" "$DATA_HOME" "$CONFIG_HOME"; do
         normalized_root="$(realpath -m -- "$root" 2>/dev/null)" || continue
