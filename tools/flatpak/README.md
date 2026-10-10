@@ -7,7 +7,7 @@ This is a disposable test application, not the Shanti manager and not a producti
 - `$HOST_XDG_CONFIG_HOME/shanti-flatpak-permission-probe` (or the default host config directory)
 - `$HOST_XDG_CACHE_HOME/shanti-flatpak-permission-probe` (or the default host cache directory)
 
-The probe creates a temporary child directory and marker file inside each root, reads the marker back, then removes the marker and temporary child. It never writes to Shanti's actual install, resource, IBus, Fcitx5, or configuration paths. Flatpak may pre-create the permission roots before launching the app, so empty `shanti-flatpak-permission-probe` directories can remain after a run.
+The probe refuses to run outside Flatpak (it checks `FLATPAK_ID` and `/.flatpak-info`). It creates a temporary child directory and marker file inside each root, reads the marker back, then removes the marker and temporary child. It never writes to Shanti's actual install, resource, IBus, Fcitx5, or configuration paths. Flatpak may pre-create the permission roots before launching the app, so empty `shanti-flatpak-permission-probe` directories can remain after a run.
 
 The manifest deliberately grants only those test paths. It has no network, host-command, system-bus, home-wide, or host-wide permission. Do not copy its test grants into the production manifest as a substitute for reviewing the real install paths.
 
@@ -24,8 +24,8 @@ The probe prints the sandbox XDG data path, the resolved host XDG paths, and one
 
 ## Custom XDG test
 
-For a second test, launch Flatpak with the host's XDG variables pointing to an empty scratch directory. This verifies that the `xdg-data`, `xdg-config`, and `xdg-cache` permission aliases follow the host XDG roots rather than writing into the app-private Flatpak directories. Keep the scratch directory outside the Shanti install and registration paths, and inspect the reported paths before proceeding. Use a disposable test account where possible.
+For a second test, use a disposable user account configured with non-default host `XDG_DATA_HOME`, `XDG_CONFIG_HOME`, and `XDG_CACHE_HOME` values **before installing this user-scoped probe app**. Then run the probe and confirm that the `xdg-data`, `xdg-config`, and `xdg-cache` permission aliases follow those host XDG roots rather than writing into app-private Flatpak directories. Avoid changing XDG variables only for `flatpak run`: those variables can also affect the Flatpak client's user installation lookup. Use an account and scratch paths that contain no Shanti production data.
 
 ## Current limitation
 
-The automated test script does not invoke `flatpak-builder` itself. The build and real-sandbox run must be performed on a machine with Flatpak/flatpak-builder and the required runtime/SDK installed; do not mark the integration acceptance checks complete from a source review alone.
+The workflow [Flatpak filesystem permission probe](../../.github/workflows/flatpak-permission-probe.yml) builds and runs this test on an Ubuntu GitHub Actions runner when the probe files change on `experiment/flatpak-ibus` or when manually dispatched. The result must be checked in GitHub Actions; adding the workflow is not itself evidence that the sandbox test passed. A local host-shell run is explicitly refused by the probe.
