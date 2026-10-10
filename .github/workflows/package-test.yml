@@ -130,7 +130,10 @@ jobs:
           install_home="$(mktemp -d)"
           # GitHub-hosted runners are disposable; leave these temporary paths
           # for runner teardown rather than issuing an automatic recursive delete.
-          tar -xzf "$archive" -C "$work"
+          source tools/install.sh
+          validate_release_archive_paths "$archive" "$work/archive-listing.txt"
+          tar --no-same-owner --no-same-permissions -xzf "$archive" -C "$work"
+          validate_extracted_symlinks "$work"
 
           test -x "$work/bin/openbangla-gui"
           test -f "$work/share/applications/openbangla-keyboard.desktop"
