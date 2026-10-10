@@ -1,6 +1,6 @@
 #!/bin/sh
 # Disposable Flatpak filesystem-permission test. Never touches production paths.
-set -eu
+set -e
 LC_ALL=C
 export LC_ALL
 
