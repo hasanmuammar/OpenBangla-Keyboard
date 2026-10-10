@@ -19,7 +19,7 @@ build_openbangla() {
             sudo_cmd=sudo
         fi
 
-        deps_stamp="/var/lib/openbangla-builder/deps-v3-$OBK_BACKEND"
+        deps_stamp="/var/lib/openbangla-builder/deps-v4-$OBK_BACKEND"
 
         if [[ ! -f "$deps_stamp" ]]; then
             if command -v apt-get >/dev/null 2>&1; then
@@ -28,7 +28,7 @@ build_openbangla() {
                 $sudo_cmd apt-get install -y --no-install-recommends \
                     g++ cmake ninja-build pkg-config \
                     rustc cargo libzstd-dev \
-                    qtbase5-dev qtbase5-dev-tools libqt5svg5-dev \
+                    qtbase5-dev qtbase5-dev-tools libqt5svg5-dev qtwayland5 \
                     ca-certificates curl
 
                 $sudo_cmd update-ca-certificates
@@ -42,7 +42,7 @@ build_openbangla() {
                 $sudo_cmd dnf install -y \
                     gcc gcc-c++ cmake ninja-build pkgconf-pkg-config \
                     rust cargo libzstd-devel \
-                    qt5-qtbase-devel qt5-qtsvg-devel ca-certificates curl
+                    qt5-qtbase-devel qt5-qtsvg-devel qt5-qtwayland ca-certificates curl
 
                 if [[ "$OBK_BACKEND" == ibus ]]; then
                     $sudo_cmd dnf install -y ibus-devel
