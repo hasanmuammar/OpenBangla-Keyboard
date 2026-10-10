@@ -440,6 +440,7 @@ install_openbangla() {
                     die "Backup path already exists; preserving all files: $backup"
                 fi
                 assert_no_symlink_components "$OBK_PREFIX/lib/openbangla"
+                assert_no_nested_mounts "$OBK_PREFIX/lib/openbangla"
                 [[ -d "$OBK_PREFIX/lib/openbangla" && ! -L "$OBK_PREFIX/lib/openbangla" ]] ||
                     die "The library bundle changed type before backup; refusing to modify it."
                 mv -nT -- "$OBK_PREFIX/lib/openbangla" "$backup"
@@ -453,9 +454,10 @@ install_openbangla() {
                 [[ "$delete_reply" =~ ^[Yy]([Ee][Ss])?$ ]] ||
                     die "Replacement cancelled; previous bundled libraries were preserved."
                 assert_no_symlink_components "$OBK_PREFIX/lib/openbangla"
+                assert_no_nested_mounts "$OBK_PREFIX/lib/openbangla"
                 [[ -d "$OBK_PREFIX/lib/openbangla" && ! -L "$OBK_PREFIX/lib/openbangla" ]] ||
                     die "The library bundle changed type before deletion; refusing to modify it."
-                rm -rf -- "$OBK_PREFIX/lib/openbangla"
+                rm -rf --one-file-system -- "$OBK_PREFIX/lib/openbangla"
                 ;;
             *)
                 die "Installation cancelled; previous bundled libraries were preserved."
