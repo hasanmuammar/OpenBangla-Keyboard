@@ -1,12 +1,28 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+if [[ "${HOME:-}" != /* || ! -d "$HOME" ]]; then
+    printf 'Error: HOME must be an existing absolute directory.\n' >&2
+    exit 1
+fi
+HOME="$(realpath -ms -- "$HOME")" || {
+    printf 'Error: Could not normalize HOME safely.\n' >&2
+    exit 1
+}
+if [[ "$HOME" == "/" ]]; then
+    printf 'Error: Refusing to use filesystem root as HOME.\n' >&2
+    exit 1
+fi
+export HOME
 PREFIX="${HOME}/.local"
 
 xdg_home() {
     local variable="$1"
     local fallback="$2"
     local value="${!variable:-}"
+    if [[ "$value" == /* ]]; then
+        value="$(realpath -ms -- "$value" 2>/dev/null)" || value=""
+    fi
     [[ "$value" == /* && "$value" != "/" ]] || value=""
     printf '%s\n' "${value:-$fallback}"
 }
@@ -45,20 +61,32 @@ log() {
 
 remove_path() {
     local path="$1"
-    local allowed=0 root
+    local allowed=0 root normalized normalized_root cache_target
 
     [[ "$path" == /* && "$path" != "/" ]] ||
         die "Refusing to remove an empty, relative, or root path: $path"
 
+    normalized="$(realpath -ms -- "$path" 2>/dev/null)" ||
+        die "Could not normalize uninstall target safely: $path"
+    [[ "$normalized" != "/" ]] ||
+        die "Refusing to remove the filesystem root."
+
     for root in "$PREFIX" "$DATA_HOME" "$CONFIG_HOME"; do
-        if [[ "$path" == "$root/"* ]]; then
+        normalized_root="$(realpath -ms -- "$root" 2>/dev/null)" || continue
+        if [[ "$normalized" == "$normalized_root/"* ]]; then
             allowed=1
             break
         fi
     done
-    [[ "$path" == "$CACHE_HOME/openbangla-keyboard" ]] && allowed=1
+    cache_target="$(realpath -ms -- "$CACHE_HOME/openbangla-keyboard" 2>/dev/null)" || cache_target=""
+    [[ -n "$cache_target" && "$normalized" == "$cache_target" ]] && allowed=1
     [[ "$allowed" -eq 1 ]] ||
         die "Refusing to remove a path outside the OpenBangla uninstall targets: $path"
+    for root in "$PREFIX" "$DATA_HOME" "$CONFIG_HOME" "$CACHE_HOME"; do
+        normalized_root="$(realpath -ms -- "$root" 2>/dev/null)" || continue
+        [[ "$normalized" != "$normalized_root" ]] ||
+            die "Refusing to remove an entire uninstall root: $path"
+    done
 
     if [[ -e "$path" || -L "$path" ]]; then
         if [[ -L "$path" ]]; then
