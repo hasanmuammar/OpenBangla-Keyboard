@@ -92,20 +92,39 @@ is_allowed_openbangla_target() {
         "$DATA_HOME/icons/hicolor/48x48/apps/openbangla-keyboard.png"|
         "$DATA_HOME/icons/hicolor/128x128/apps/openbangla-keyboard.png"|
         "$DATA_HOME/icons/hicolor/512x512/apps/openbangla-keyboard.png"|
-        "$DATA_HOME/icons/hicolor/1024x1024/apps/openbangla-keyboard.png")
+        "$DATA_HOME/icons/hicolor/1024x1024/apps/openbangla-keyboard.png"|
+        "$PREFIX/lib/fcitx5/openbangla.so"|
+        "$PREFIX/lib64/fcitx5/openbangla.so"|
+        "$PREFIX/lib/fcitx5/addon/openbangla.conf"|
+        "$PREFIX/lib/fcitx5/inputmethod/openbangla.conf"|
+        "$PREFIX/share/fcitx5/addon/openbangla.conf"|
+        "$PREFIX/share/fcitx5/inputmethod/openbangla.conf")
             return 0
             ;;
-        "$PREFIX"/lib/fcitx5/openbangla.so|
-        "$PREFIX"/lib/*/fcitx5/openbangla.so|
-        "$PREFIX"/lib64/fcitx5/openbangla.so|
-        "$PREFIX"/lib64/*/fcitx5/openbangla.so|
-        "$PREFIX"/lib/fcitx5/addon/openbangla.conf|
-        "$PREFIX"/lib/fcitx5/inputmethod/openbangla.conf|
-        "$PREFIX"/lib/*/fcitx5/addon/openbangla.conf|
-        "$PREFIX"/lib/*/fcitx5/inputmethod/openbangla.conf|
-        "$PREFIX"/share/fcitx5/addon/openbangla.conf|
-        "$PREFIX"/share/fcitx5/inputmethod/openbangla.conf)
-            return 0
+    esac
+
+    # Debian-family and some multiarch builds install modules one directory
+    # below lib/. Restrict the wildcard to exactly that one directory level.
+    case "$path" in
+        "$PREFIX"/lib/*/fcitx5/openbangla.so)
+            local relative="${path#"$PREFIX"/lib/}"
+            local directory="${relative%/fcitx5/openbangla.so}"
+            [[ -n "$directory" && "$directory" != */* ]] && return 0
+            ;;
+        "$PREFIX"/lib64/*/fcitx5/openbangla.so)
+            local relative="${path#"$PREFIX"/lib64/}"
+            local directory="${relative%/fcitx5/openbangla.so}"
+            [[ -n "$directory" && "$directory" != */* ]] && return 0
+            ;;
+        "$PREFIX"/lib/*/fcitx5/addon/openbangla.conf)
+            local relative="${path#"$PREFIX"/lib/}"
+            local directory="${relative%/fcitx5/addon/openbangla.conf}"
+            [[ -n "$directory" && "$directory" != */* ]] && return 0
+            ;;
+        "$PREFIX"/lib/*/fcitx5/inputmethod/openbangla.conf)
+            local relative="${path#"$PREFIX"/lib/}"
+            local directory="${relative%/fcitx5/inputmethod/openbangla.conf}"
+            [[ -n "$directory" && "$directory" != */* ]] && return 0
             ;;
     esac
 
