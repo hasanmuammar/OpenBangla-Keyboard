@@ -11,6 +11,14 @@ merge_openbangla_data() {
         die "Data merge destination is not a directory: $destination"
     fi
     mkdir -p "$destination"
+    for name in layouts data icons; do
+        target="$destination/$name"
+        [[ ! -L "$target" ]] ||
+            die "Refusing to merge through a symlinked data subdirectory: $target"
+        if [[ -e "$target" && ! -d "$target" ]]; then
+            die "Data merge subdirectory has the wrong type: $target"
+        fi
+    done
     shopt -s nullglob
     for item in "$source"/*; do
         [[ -e "$item" || -L "$item" ]] || continue
@@ -18,20 +26,15 @@ merge_openbangla_data() {
 
         case "$name" in
             layouts)
-                [[ ! -L "$destination/layouts" ]] ||
-                    die "Refusing to merge through a symlinked layouts directory."
                 mkdir -p "$destination/layouts"
                 for layout in "$item"/*; do
                     [[ -e "$layout" || -L "$layout" ]] || continue
-                    target="$destination/layouts/${layout##*/}"
-                    [[ ! -L "$target" ]] ||
-                        die "Refusing to overwrite a symlinked layout: $target"
-                    [[ -e "$target" ]] || cp -a "$layout" "$destination/layouts/"
+                    # Never overwrite user-created/custom layouts on upgrade.
+                    [[ -e "$destination/layouts/${layout##*/}" || -L "$destination/layouts/${layout##*/}" ]] ||
+                        cp -a "$layout" "$destination/layouts/"
                 done
                 ;;
             data)
-                [[ ! -L "$destination/data" ]] ||
-                    die "Refusing to merge through a symlinked data directory."
                 mkdir -p "$destination/data"
                 for layout in "$item"/*; do
                     [[ -e "$layout" || -L "$layout" ]] || continue
@@ -39,86 +42,194 @@ merge_openbangla_data() {
                     target="$destination/data/$name"
                     [[ ! -L "$target" ]] ||
                         die "Refusing to overwrite a symlinked application data file: $target"
+                    if [[ -e "$target" && ! -f "$target" ]]; then
+                        die "Application data target is not a regular file: $target"
+                    fi
+                    # Autocorrect can contain user edits; retain it if present.
                     if [[ "$name" == autocorrect.json && -e "$target" ]]; then
                         continue
                     fi
                     case "$name" in
                         dictionary.json|suffix.json|regex.json)
+                            # These are shipped application databases and may be updated.
                             cp -a "$layout" "$target"
                             ;;
                         *)
-                            [[ -e "$target" ]] || cp -a "$layout" "$target"
+                            # Preserve user-added data files.
+                            [[ -e "$target" || -L "$target" ]] || cp -a "$layout" "$target"
                             ;;
                     esac
                 done
                 ;;
             icons)
-                [[ ! -L "$destination/icons" ]] ||
-                    die "Refusing to merge through a symlinked icons directory."
                 mkdir -p "$destination/icons"
                 for layout in "$item"/*; do
                     [[ -e "$layout" || -L "$layout" ]] || continue
                     target="$destination/icons/${layout##*/}"
                     [[ ! -L "$target" ]] ||
-                        die "Refusing to overwrite a symlinked icon: $target"
+                        die "Refusing to overwrite a symlinked icon file: $target"
+                    if [[ -e "$target" && ! -f "$target" ]]; then
+                        die "Icon target is not a regular file: $target"
+                    fi
                     cp -a "$layout" "$target"
                 done
                 ;;
             *)
-                target="$destination/$name"
-                [[ ! -L "$target" ]] ||
-                    die "Refusing to overwrite a symlinked user data path: $target"
-                [[ -e "$target" || -L "$target" ]] || cp -a "$item" "$destination/"
+                # Preserve user-owned state files and other custom additions.
+                [[ -e "$destination/$name" || -L "$destination/$name" ]] ||
+                    cp -a "$item" "$destination/"
                 ;;
         esac
     done
     shopt -u nullglob
-    # Source is retained: merge rules intentionally preserve conflicting
-    # custom layouts and autocorrect data, so deleting it would lose user data.
 }
 
 relocate_xdg_resource() {
     local relative="$1"
-    local source="$OBK_PREFIX/share/$relative"
+    local source_root="$2"
+    local source="$source_root/$relative"
     local destination="$OBK_DATA_HOME/$relative"
 
-    [[ "$source" != "$destination" ]] || return 0
     [[ -e "$source" || -L "$source" ]] || return 0
 
-    if [[ -L "$destination" ]]; then
+    [[ ! -L "$destination" ]] ||
         die "Refusing to write through a symlinked XDG resource path: $destination"
+    if [[ -e "$destination" ]]; then
+        if [[ -d "$source" && ! -L "$source" && ! -d "$destination" ]]; then
+            die "Resource destination has the wrong type; preserving source: $destination"
+        fi
+        if [[ ( ! -d "$source" || -L "$source" ) && -d "$destination" ]]; then
+            die "Resource destination is a directory; preserving source: $destination"
+        fi
     fi
 
     if [[ -d "$source" && ! -L "$source" ]]; then
         if [[ "$relative" == "openbangla-keyboard" ]]; then
             merge_openbangla_data "$source" "$destination"
         else
-            if [[ -e "$destination" && ! -d "$destination" ]]; then
-                die "Resource destination has the wrong type; source was preserved: $destination"
-            fi
             mkdir -p "$destination"
             cp -a "$source/." "$destination/"
         fi
     else
-        if [[ -e "$destination" || -L "$destination" ]]; then
-            die "Resource already exists at the XDG destination; refusing to overwrite it: $destination"
-        fi
         mkdir -p "$(dirname "$destination")"
         cp -a "$source" "$destination"
     fi
 }
 
-install_xdg_resources() {
-    [[ "$OBK_DATA_HOME" == "$OBK_PREFIX/share" ]] && return 0
-
-    local relative size
-    for relative in         openbangla-keyboard         applications/openbangla-keyboard.desktop         metainfo/io.github.openbangla.keyboard.metainfo.xml         pixmaps/openbangla-keyboard.png         ibus/component/openbangla.xml         fcitx5/addon/openbangla.conf         fcitx5/inputmethod/openbangla.conf; do
-        relocate_xdg_resource "$relative"
-    done
-
+xdg_resource_relatives() {
+    printf '%s\n' \
+        openbangla-keyboard \
+        applications/openbangla-keyboard.desktop \
+        metainfo/io.github.openbangla.keyboard.metainfo.xml \
+        pixmaps/openbangla-keyboard.png \
+        ibus/component/openbangla.xml \
+        fcitx5/addon/openbangla.conf \
+        fcitx5/inputmethod/openbangla.conf
     for size in 16 32 48 128 512 1024; do
-        relocate_xdg_resource "icons/hicolor/${size}x${size}/apps/openbangla-keyboard.png"
+        printf '%s\n' "icons/hicolor/${size}x${size}/apps/openbangla-keyboard.png"
     done
+}
+
+confirm_legacy_xdg_migration() {
+    [[ "$OBK_DATA_HOME" != "$OBK_PREFIX/share" ]] || return 0
+
+    local migration_marker="$OBK_DATA_HOME/.openbangla-keyboard-xdg-migration-v1-complete"
+    if [[ -e "$migration_marker" || -L "$migration_marker" ]]; then
+        [[ -f "$migration_marker" && ! -L "$migration_marker" ]] ||
+            die "Refusing to trust an unexpected legacy-migration marker path: $migration_marker"
+        return 0
+    fi
+
+    local relative source destination found=0 reply
+    while IFS= read -r relative; do
+        source="$OBK_PREFIX/share/$relative"
+        [[ -e "$source" || -L "$source" ]] || continue
+        [[ ! -L "$source" ]] ||
+            die "Refusing to migrate a symlinked legacy resource path: $source"
+        if [[ "$found" -eq 0 ]]; then
+            printf 'An existing installation stores these resources in the legacy location:\n'
+        fi
+        printf '  %s\n' "$source"
+        printf '    destination: %s\n' "$OBK_DATA_HOME/$relative"
+        found=1
+    done < <(xdg_resource_relatives)
+
+    [[ "$found" -eq 1 ]] || return 0
+
+    printf 'To honour XDG_DATA_HOME, the legacy paths above must be moved or merged into the listed destinations. User layouts and existing autocorrect data are preserved where they already exist at the destination.\n'
+    if [[ ! -t 0 ]]; then
+        die "Legacy XDG resources need an explicit migration choice. Rerun interactively."
+    fi
+    read -r -p 'Migrate these legacy OpenBangla resources now? [y/N] ' reply
+    [[ "$reply" =~ ^[Yy]([Ee][Ss])?$ ]] ||
+        die "Installation cancelled; legacy resources were left untouched."
+}
+
+migrate_legacy_xdg_resources() {
+    [[ "$OBK_DATA_HOME" != "$OBK_PREFIX/share" ]] || return 0
+
+    local relative source destination preserved_legacy=0
+    local migration_marker="$OBK_DATA_HOME/.openbangla-keyboard-xdg-migration-v1-complete"
+    if [[ -e "$migration_marker" || -L "$migration_marker" ]]; then
+        [[ -f "$migration_marker" && ! -L "$migration_marker" ]] ||
+            die "Refusing to trust an unexpected legacy-migration marker path: $migration_marker"
+        return 0
+    fi
+
+    while IFS= read -r relative; do
+        source="$OBK_PREFIX/share/$relative"
+        [[ -e "$source" || -L "$source" ]] || continue
+        destination="$OBK_DATA_HOME/$relative"
+
+        [[ ! -L "$destination" ]] ||
+            die "Refusing to migrate over a symlinked XDG resource path: $destination"
+        if [[ -e "$destination" ]]; then
+            if [[ -d "$source" && ! -d "$destination" ]]; then
+                die "Resource destination has the wrong type; source was preserved: $destination"
+            fi
+            if [[ ! -d "$source" && -d "$destination" ]]; then
+                die "Resource destination is a directory; source was preserved: $destination"
+            fi
+        fi
+
+        if [[ ! -e "$destination" && ! -L "$destination" ]]; then
+            mkdir -p "$(dirname "$destination")"
+            mv -- "$source" "$destination"
+            continue
+        fi
+
+        # A destination exists, so merge/copy into it, but preserve the source.
+        # The merge intentionally skips some duplicate custom layouts/autocorrect
+        # files; deleting the whole source here could destroy those user edits.
+        if [[ -d "$source" && ! -L "$source" ]]; then
+            if [[ "$relative" == "openbangla-keyboard" ]]; then
+                merge_openbangla_data "$source" "$destination"
+            else
+                mkdir -p "$destination"
+                cp -a "$source/." "$destination/"
+            fi
+        else
+            cp -a "$source" "$destination"
+        fi
+        preserved_legacy=1
+    done < <(xdg_resource_relatives)
+
+    if [[ "$preserved_legacy" -eq 1 ]]; then
+        if [[ ! -e "$migration_marker" && ! -L "$migration_marker" ]]; then
+            printf '%s\n' 'Legacy XDG resources were copied/merged; original sources were preserved.' > "$migration_marker"
+        elif [[ ! -f "$migration_marker" || -L "$migration_marker" ]]; then
+            die "Refusing to overwrite an unexpected migration marker: $migration_marker"
+        fi
+        printf 'Some legacy resources were copied/merged and their original paths were preserved for review. Migration will not repeat automatically. Marker: %s\n' "$migration_marker"
+    fi
+}
+
+install_xdg_resources() {
+    local source_root="${1:-$OBK_PREFIX/share}"
+    local relative
+    while IFS= read -r relative; do
+        relocate_xdg_resource "$relative" "$source_root"
+    done < <(xdg_resource_relatives)
 }
 
 xml_escape() {
@@ -162,61 +273,176 @@ rewrite_install_metadata() {
     fi
 }
 
-install_openbangla() {
-    [[ -d "$OBK_STAGE$OBK_PREFIX" ]] ||
-        die "Build completed without producing an install tree."
+confirm_install_replacements() {
+    local path found=0 reply directory
+    local config_home
+    config_home="$(xdg_dir XDG_CONFIG_HOME "$HOME/.config")"
 
+    # Do not write through symlinked program-install directories.
+    for directory in "$OBK_PREFIX" "$OBK_PREFIX/bin" "$OBK_PREFIX/lib" "$OBK_PREFIX/libexec"; do
+        [[ ! -L "$directory" ]] ||
+            die "Refusing to install through a symlinked program directory: $directory"
+    done
+
+    for path in \
+        "$OBK_PREFIX/bin/openbangla-gui" \
+        "$OBK_PREFIX/bin/qt.conf" \
+        "$OBK_PREFIX/bin/openbangla-gui.bin" \
+        "$OBK_PREFIX/libexec/ibus-engine-openbangla" \
+        "$OBK_PREFIX/libexec/ibus-engine-openbangla.bin" \
+        "$OBK_PREFIX/lib/openbangla" \
+        "$OBK_PREFIX/share/openbangla-keyboard" \
+        "$OBK_PREFIX/share/applications/openbangla-keyboard.desktop" \
+        "$OBK_PREFIX/share/ibus/component/openbangla.xml" \
+        "$OBK_PREFIX/share/fcitx5/addon/openbangla.conf" \
+        "$OBK_PREFIX/share/fcitx5/inputmethod/openbangla.conf" \
+        "$OBK_PREFIX/share/metainfo/io.github.openbangla.keyboard.metainfo.xml" \
+        "$OBK_PREFIX/share/pixmaps/openbangla-keyboard.png" \
+        "$OBK_DATA_HOME/openbangla-keyboard" \
+        "$OBK_DATA_HOME/applications/openbangla-keyboard.desktop" \
+        "$OBK_DATA_HOME/ibus/component/openbangla.xml" \
+        "$OBK_DATA_HOME/fcitx5/addon/openbangla.conf" \
+        "$OBK_DATA_HOME/fcitx5/inputmethod/openbangla.conf" \
+        "$OBK_DATA_HOME/metainfo/io.github.openbangla.keyboard.metainfo.xml" \
+        "$OBK_DATA_HOME/pixmaps/openbangla-keyboard.png" \
+        "$config_home/environment.d/90-openbangla-ibus.conf"; do
+        if [[ -L "$path" ]]; then
+            die "Refusing to overwrite a symlinked installation path: $path"
+        fi
+        if [[ -e "$path" ]]; then
+            case "$path" in
+                "$OBK_PREFIX/lib/openbangla"|"$OBK_PREFIX/share/openbangla-keyboard"|"$OBK_DATA_HOME/openbangla-keyboard")
+                    [[ -d "$path" ]] ||
+                        die "Existing installation path has the wrong type; refusing to replace it: $path"
+                    ;;
+                *)
+                    [[ -f "$path" ]] ||
+                        die "Existing installation path is not a regular file; refusing to replace it: $path"
+                    ;;
+            esac
+            if [[ "$found" -eq 0 ]]; then
+                printf 'These existing OpenBangla paths may be replaced by the installation:\n'
+            fi
+            printf '  %s\n' "$path"
+            found=1
+        fi
+    done
+
+    if [[ "$OBK_BACKEND" == fcitx ]]; then
+        path="$OBK_PREFIX/lib/fcitx5/openbangla.so"
+        if [[ -L "$OBK_PREFIX/lib/fcitx5" || -L "$path" ]]; then
+            die "Refusing to overwrite the Fcitx module through a symlinked path: $path"
+        fi
+        if [[ -e "$path" ]]; then
+            [[ -f "$path" ]] ||
+                die "Existing Fcitx module path is not a regular file: $path"
+            if [[ "$found" -eq 0 ]]; then
+                printf 'These existing OpenBangla paths may be replaced by the installation:\n'
+            fi
+            printf '  %s\n' "$path"
+            found=1
+        fi
+    fi
+
+    for size in 16 32 48 128 512 1024; do
+        for icon_root in "$OBK_PREFIX/share/icons" "$OBK_DATA_HOME/icons"; do
+            path="$icon_root/hicolor/${size}x${size}/apps/openbangla-keyboard.png"
+            if [[ -L "$path" ]]; then
+                die "Refusing to overwrite a symlinked icon path: $path"
+            fi
+            if [[ -e "$path" ]]; then
+                [[ -f "$path" ]] ||
+                    die "Existing icon path is not a regular file; refusing to replace it: $path"
+                if [[ "$found" -eq 0 ]]; then
+                    printf 'These existing OpenBangla paths may be replaced by the installation:\n'
+                fi
+                printf '  %s\n' "$path"
+                found=1
+            fi
+        done
+    done
+
+    [[ "$found" -eq 1 ]] || return 0
+
+    if [[ ! -t 0 ]]; then
+        die "Existing OpenBangla files need review. Rerun interactively to choose whether to replace them."
+    fi
+    read -r -p 'Continue and replace the listed OpenBangla paths? [y/N] ' reply
+    [[ "$reply" =~ ^[Yy]([Ee][Ss])?$ ]] ||
+        die "Installation cancelled; existing OpenBangla files were preserved."
+}
+
+install_openbangla() {
+    local staged_root="$OBK_STAGE$OBK_PREFIX"
+    local item name
+
+    [[ -d "$staged_root" ]] ||
+        die "Build completed without producing an install tree."
+    [[ -d "$staged_root/share" ]] ||
+        die "Build completed without producing the staged share resources."
+
+    confirm_legacy_xdg_migration
+    confirm_install_replacements
+    migrate_legacy_xdg_resources
     mkdir -p "$OBK_PREFIX"
 
+    # Copy executable/library trees only. Resources are installed directly into
+    # XDG_DATA_HOME, avoiding a temporary old-location copy that shadows XDG.
+
+    # Never replace an existing library bundle without a separate, explicit choice.
     if [[ -e "$OBK_PREFIX/lib/openbangla" || -L "$OBK_PREFIX/lib/openbangla" ]]; then
         if [[ -L "$OBK_PREFIX" || -L "$OBK_PREFIX/lib" || -L "$OBK_PREFIX/lib/openbangla" ]]; then
             die "Refusing to replace a bundled library through a symlinked install path."
         fi
         if [[ ! -t 0 ]]; then
-            die "An existing library bundle needs an explicit choice. Rerun interactively to review it; nothing was removed."
+            die "An existing library bundle needs a choice: keep a backup, replace without a backup, or cancel. Rerun interactively."
         fi
         printf 'Existing library bundle: %s\n' "$OBK_PREFIX/lib/openbangla"
         printf 'Choose what to do with it:\n'
         printf '  1) Replace and keep a timestamped backup\n'
-        printf '  2) Replace without a backup (permanent deletion, separately confirmed)\n'
+        printf '  2) Replace without keeping a backup (old files will be deleted)\n'
         printf '  3) Cancel installation (default)\n'
         read -r -p 'Choice [3]: ' library_choice
         case "$library_choice" in
             1)
                 backup="$OBK_PREFIX/lib/openbangla.backup.$(date +%Y%m%d%H%M%S)"
-                [[ ! -e "$backup" && ! -L "$backup" ]] ||
+                if [[ -e "$backup" || -L "$backup" ]]; then
                     die "Backup path already exists; preserving all files: $backup"
+                fi
                 mv -- "$OBK_PREFIX/lib/openbangla" "$backup"
-                printf 'Previous libraries preserved at: %s\n' "$backup"
+                printf 'Previous bundled libraries were preserved at: %s\n' "$backup"
                 ;;
             2)
-                printf 'This permanently deletes the exact directory: %s\n' "$OBK_PREFIX/lib/openbangla"
-                read -r -p 'Confirm deletion of this directory? [y/N] ' delete_reply
+                printf 'This will permanently remove: %s\n' "$OBK_PREFIX/lib/openbangla"
+                read -r -p 'Confirm deletion of this exact directory? [y/N] ' delete_reply
                 [[ "$delete_reply" =~ ^[Yy]([Ee][Ss])?$ ]] ||
-                    die "Installation cancelled; existing libraries were preserved."
+                    die "Replacement cancelled; previous bundled libraries were preserved."
                 rm -rf -- "$OBK_PREFIX/lib/openbangla"
                 ;;
             *)
-                die "Installation cancelled; existing libraries were preserved."
+                die "Installation cancelled; previous bundled libraries were preserved."
                 ;;
         esac
     fi
 
-    cp -a "$OBK_STAGE$OBK_PREFIX/." "$OBK_PREFIX/"
-    install_xdg_resources
+    shopt -s nullglob dotglob
+    for item in "$staged_root"/*; do
+        name="${item##*/}"
+        [[ "$name" == share ]] && continue
+        cp -a "$item" "$OBK_PREFIX/"
+    done
+    shopt -u nullglob dotglob
+
+    install_xdg_resources "$staged_root/share"
 
     if [[ -x "$OBK_PREFIX/bin/openbangla-gui" ]]; then
-        [[ ! -e "$OBK_PREFIX/bin/openbangla-gui.bin" && ! -L "$OBK_PREFIX/bin/openbangla-gui.bin" ]] ||
-            die "Existing GUI backup would be overwritten; review it before installing: $OBK_PREFIX/bin/openbangla-gui.bin"
-        mv -- "$OBK_PREFIX/bin/openbangla-gui" "$OBK_PREFIX/bin/openbangla-gui.bin"
+        mv -f "$OBK_PREFIX/bin/openbangla-gui" "$OBK_PREFIX/bin/openbangla-gui.bin"
         cp "$OBK_WORKSPACE/tools/portable/launch-bundled.sh" "$OBK_PREFIX/bin/openbangla-gui"
         chmod +x "$OBK_PREFIX/bin/openbangla-gui"
     fi
 
     if [[ -x "$OBK_PREFIX/libexec/ibus-engine-openbangla" ]]; then
-        [[ ! -e "$OBK_PREFIX/libexec/ibus-engine-openbangla.bin" && ! -L "$OBK_PREFIX/libexec/ibus-engine-openbangla.bin" ]] ||
-            die "Existing IBus engine backup would be overwritten; review it before installing: $OBK_PREFIX/libexec/ibus-engine-openbangla.bin"
-        mv -- "$OBK_PREFIX/libexec/ibus-engine-openbangla" "$OBK_PREFIX/libexec/ibus-engine-openbangla.bin"
+        mv -f "$OBK_PREFIX/libexec/ibus-engine-openbangla" "$OBK_PREFIX/libexec/ibus-engine-openbangla.bin"
         cp "$OBK_WORKSPACE/tools/portable/launch-bundled.sh" "$OBK_PREFIX/libexec/ibus-engine-openbangla"
         chmod +x "$OBK_PREFIX/libexec/ibus-engine-openbangla"
     fi
