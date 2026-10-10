@@ -1,5 +1,20 @@
 #!/usr/bin/env bash
 
+backup_openbangla_data_file() {
+    local target="$1"
+    local backup_root="$OBK_DATA_HOME/.openbangla-keyboard-backups"
+    local backup_dir
+
+    assert_no_symlink_components "$target"
+    assert_no_symlink_components "$backup_root"
+    mkdir -p "$backup_root"
+    assert_no_symlink_components "$backup_root"
+    backup_dir="$(mktemp -d "$backup_root/install.XXXXXXXX")" ||
+        die "Could not create a backup directory for existing application data."
+    cp -a -- "$target" "$backup_dir/"
+    log "Preserved the previous application data file at: $backup_dir/${target##*/}"
+}
+
 merge_openbangla_data() {
     local source="$1"
     local destination="$2"
@@ -51,8 +66,11 @@ merge_openbangla_data() {
                     fi
                     case "$name" in
                         dictionary.json|suffix.json|regex.json)
-                            # These are shipped application databases and may be updated.
-                            cp -a "$layout" "$target"
+                            # Preserve a recoverable copy before updating shipped databases.
+                            if [[ -e "$target" ]]; then
+                                backup_openbangla_data_file "$target"
+                            fi
+                            cp -a -- "$layout" "$target"
                             ;;
                         *)
                             # Preserve user-added data files.
@@ -92,6 +110,8 @@ relocate_xdg_resource() {
 
     [[ -e "$source" || -L "$source" ]] || return 0
 
+    assert_no_symlink_components "$source"
+    assert_no_symlink_components "$destination"
     [[ ! -L "$destination" ]] ||
         die "Refusing to write through a symlinked XDG resource path: $destination"
     if [[ -e "$destination" ]]; then
@@ -144,6 +164,9 @@ confirm_legacy_xdg_migration() {
     while IFS= read -r relative; do
         source="$OBK_PREFIX/share/$relative"
         [[ -e "$source" || -L "$source" ]] || continue
+        destination="$OBK_DATA_HOME/$relative"
+        assert_no_symlink_components "$source"
+        assert_no_symlink_components "$destination"
         [[ ! -L "$source" ]] ||
             die "Refusing to migrate a symlinked legacy resource path: $source"
         if [[ "$found" -eq 0 ]]; then
@@ -156,7 +179,7 @@ confirm_legacy_xdg_migration() {
 
     [[ "$found" -eq 1 ]] || return 0
 
-    printf 'To honour XDG_DATA_HOME, the legacy paths above must be moved or merged into the listed destinations. User layouts and existing autocorrect data are preserved where they already exist at the destination.\n'
+    printf 'To honour XDG_DATA_HOME, legacy resources will be copied or merged into the listed destinations. Original legacy paths will be preserved. User layouts and existing autocorrect data are preserved where they already exist at the destination.\n'
     if [[ ! -t 0 ]]; then
         die "Legacy XDG resources need an explicit migration choice. Rerun interactively."
     fi
@@ -181,6 +204,8 @@ migrate_legacy_xdg_resources() {
         [[ -e "$source" || -L "$source" ]] || continue
         destination="$OBK_DATA_HOME/$relative"
 
+        assert_no_symlink_components "$source"
+        assert_no_symlink_components "$destination"
         [[ ! -L "$destination" ]] ||
             die "Refusing to migrate over a symlinked XDG resource path: $destination"
         if [[ -e "$destination" ]]; then
@@ -194,7 +219,9 @@ migrate_legacy_xdg_resources() {
 
         if [[ ! -e "$destination" && ! -L "$destination" ]]; then
             mkdir -p "$(dirname "$destination")"
-            mv -- "$source" "$destination"
+            # Copy rather than move so a failed upgrade does not break the old installation.
+            cp -a -- "$source" "$destination"
+            preserved_legacy=1
             continue
         fi
 
@@ -280,8 +307,7 @@ confirm_install_replacements() {
 
     # Do not write through symlinked program-install directories.
     for directory in "$OBK_PREFIX" "$OBK_PREFIX/bin" "$OBK_PREFIX/lib" "$OBK_PREFIX/libexec"; do
-        [[ ! -L "$directory" ]] ||
-            die "Refusing to install through a symlinked program directory: $directory"
+        assert_no_symlink_components "$directory"
     done
 
     for path in \
@@ -306,6 +332,7 @@ confirm_install_replacements() {
         "$OBK_DATA_HOME/metainfo/io.github.openbangla.keyboard.metainfo.xml" \
         "$OBK_DATA_HOME/pixmaps/openbangla-keyboard.png" \
         "$config_home/environment.d/90-openbangla-ibus.conf"; do
+        assert_no_symlink_components "$path"
         if [[ -L "$path" ]]; then
             die "Refusing to overwrite a symlinked installation path: $path"
         fi
@@ -330,6 +357,7 @@ confirm_install_replacements() {
 
     if [[ "$OBK_BACKEND" == fcitx ]]; then
         path="$OBK_PREFIX/lib/fcitx5/openbangla.so"
+        assert_no_symlink_components "$path"
         if [[ -L "$OBK_PREFIX/lib/fcitx5" || -L "$path" ]]; then
             die "Refusing to overwrite the Fcitx module through a symlinked path: $path"
         fi
@@ -347,6 +375,7 @@ confirm_install_replacements() {
     for size in 16 32 48 128 512 1024; do
         for icon_root in "$OBK_PREFIX/share/icons" "$OBK_DATA_HOME/icons"; do
             path="$icon_root/hicolor/${size}x${size}/apps/openbangla-keyboard.png"
+            assert_no_symlink_components "$path"
             if [[ -L "$path" ]]; then
                 die "Refusing to overwrite a symlinked icon path: $path"
             fi
@@ -455,7 +484,10 @@ install_openbangla() {
         local xdg_config_home
 
         xdg_config_home="$(xdg_dir XDG_CONFIG_HOME "$HOME/.config")"
+        assert_no_symlink_components "$xdg_config_home/environment.d"
+        assert_no_symlink_components "$xdg_config_home/environment.d/90-openbangla-ibus.conf"
         mkdir -p "$xdg_config_home/environment.d"
+        assert_no_symlink_components "$xdg_config_home/environment.d/90-openbangla-ibus.conf"
         printf "%s\n" "IBUS_COMPONENT_PATH=$ibus_component_env" > "$xdg_config_home/environment.d/90-openbangla-ibus.conf"
 
         if command -v dbus-update-activation-environment >/dev/null 2>&1; then
