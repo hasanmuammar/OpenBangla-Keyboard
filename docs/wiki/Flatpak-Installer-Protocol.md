@@ -40,45 +40,48 @@ The existing scripts need a GUI-compatible interface before the manager can call
 
 Do not simply pipe “yes” into either script. The GUI must provide explicit decisions through validated arguments or a structured request. Missing decisions, unknown options, stale plans, and failed prerequisite checks must stop before modifying the installation.
 
-## 3. Host invocation model
+## 3. Preferred model: narrow filesystem permissions, not host command execution
 
-### Proposed proof of concept
+**Do not make `flatpak-spawn --host` the default installation path.** The preferred proof of concept is for the manager and its maintenance code to run inside the Flatpak sandbox while Flatpak grants access only to the host user directories Shanti actually owns. File operations do not inherently require an out-of-sandbox process.
 
-Use the documented `flatpak-spawn --host` mechanism to run a fixed, shipped host bridge, with `org.freedesktop.Flatpak` as the required D-Bus permission. Use a process argument vector; never construct a shell command by concatenating version strings, paths, or GUI input.
+Flatpak supports specific home-relative paths with read/write/create access. Candidate permission scope (to be tested in a real manifest) is limited to Shanti's program/runtime location, the user-local IBus/Fcitx5 registration directories, the Shanti resource directory, the installer-owned desktop/icon metadata, the small IBus environment configuration file, the relevant Fcitx profile when needed, and the Shanti cache. Examples of the *form* of permissions are `--filesystem=~/.local/share/openbangla-keyboard:create` and `--filesystem=~/.local/share/ibus/component:create`; this is not yet a final list. Avoid `--filesystem=home`, `--filesystem=host`, and blanket writable access to `~/.local` if the exact paths can be granted.
 
-A conceptual invocation is:
+The current portable installer writes to these general areas:
 
-```text
-flatpak-spawn --host /usr/bin/bash <host-visible-bridge-path> --protocol 1 ...
-```
+- `~/.local/bin`, `~/.local/lib/openbangla`, and `~/.local/libexec` for launchers, bundled runtime and the IBus engine.
+- The host data directory (normally `~/.local/share`) for Shanti resources, IBus component metadata, Fcitx5 addon/input-method metadata, desktop entries, icons, and metainfo.
+- The host config directory (normally `~/.config`) for `environment.d/90-openbangla-ibus.conf` and possibly Fcitx5 profile updates.
+- The host cache directory (normally `~/.cache/openbangla-keyboard`) for downloads, staging, and build/install state.
 
-The bridge and its script tree must be staged under the app's own persistent data directory, which maps to the host path under `~/.var/app/<APP_ID>/data/`. The bridge must confirm that this staged path is visible and executable in the host environment before running any modifying action. Do not try to execute a path that exists only under the Flatpak's `/app` mount.
+The final manifest must grant subpaths only after confirming that Flatpak can create absent target directories safely and that the existing script only writes to the reviewed target list. Some parent directories may also need permission for create/rename operations; don't broaden permissions silently.
 
-This grants the trusted Flatpak code the ability to invoke host commands as the current user; it is not a script-only capability. Document that trust boundary. Do not add `--filesystem=host`, `--filesystem=home`, a system-bus grant, or root elevation as a shortcut.
+### Host XDG paths
 
-### Host environment and XDG paths
+Flatpak overrides `XDG_CONFIG_HOME`, `XDG_DATA_HOME`, and `XDG_CACHE_HOME` to use the manager's private per-application storage. It also exposes `HOST_XDG_CONFIG_HOME`, `HOST_XDG_DATA_HOME`, and `HOST_XDG_CACHE_HOME` when host values exist. See [Flatpak conventions](https://docs.flatpak.org/en/latest/conventions.html).
 
-Flatpak redirects `XDG_DATA_HOME`, `XDG_CONFIG_HOME` and `XDG_CACHE_HOME` to app-private directories. A host command must **not** inherit those app-private values as the destinations for Shanti's real user-local install. Flatpak exposes host values as `HOST_XDG_DATA_HOME`, `HOST_XDG_CONFIG_HOME` and `HOST_XDG_CACHE_HOME` when those variables exist on the host. The bridge must use those values when present and otherwise apply the XDG defaults:
+The manager must not confuse its private `XDG_*` values with the user's real host directories. It should resolve the host values from `HOST_XDG_*` where present and otherwise use the standard host defaults. Then it must check that each destination is actually exposed by the declared filesystem permissions. If a user has a custom XDG directory outside the granted locations, the first version should stop with an actionable explanation rather than silently writing into private Flatpak data or requesting broad access.
 
-- data: `$HOME/.local/share`
-- config: `$HOME/.config`
-- cache: `$HOME/.cache`
+### No host tools required for file placement
 
-Validate all resolved paths as absolute, non-root paths. Pass the resolved host values explicitly to the host process using `flatpak-spawn --env=...`; don't forward the Flatpak's private `XDG_*_HOME` values as host paths. This environment mapping and the session D-Bus/runtime variables must be verified on Bluefin/Dakota and Bazzite before lifecycle operations are considered supported.
+The bridge/install code can use tools shipped inside the Flatpak to download, verify, stage, copy, back up, and remove Shanti files in the specifically exposed directories. These operations don't need host `bash`, `ibus`, `fcitx5-remote`, `systemctl`, or `dconf` just to make file changes. Required utilities must be included in the runtime/build or replaced with tested Rust implementations; do not assume arbitrary host commands are available inside Flatpak.
 
-References: [Flatpak environment conventions](https://docs.flatpak.org/en/latest/conventions.html), [sandbox permissions](https://docs.flatpak.org/en/latest/sandbox-permissions.html), and [`flatpak-spawn` options](https://man7.org/linux/man-pages/man1/flatpak-spawn.1.html).
+The installed engine itself must be a host-runnable payload. For IBus, the host component descriptor launches the host-visible engine executable. For Fcitx5, the native module and metadata must be host-visible, and the module must match the host Fcitx5 ABI. The Flatpak is the manager, not the runtime framework or the input-method engine's private execution environment.
 
-### Host prerequisites
+### Refresh, status, and backend detection
 
-The bridge performs a read-only dependency check before any modifying operation. At minimum, check the tools the current scripts use: Bash, curl or wget, Python 3, `sha256sum`, tar, `realpath`, `find`, `mountpoint`, and standard file utilities. Check backend-specific tools such as `ibus`, `dbus-update-activation-environment`, `systemctl --user`, `dconf`, or `fcitx5-remote` only where applicable. `gh` is optional unless provenance verification is requested.
+Directory permissions do not automatically grant visibility into host processes, host executables, or D-Bus methods. Flatpak's process namespace only exposes the app's processes; a sandbox probe must not use `pgrep` or `/proc` to claim it has detected the host IBus/Fcitx5 daemon. The UI can present a backend choice and ask the user to confirm it, and may use session indicators as a *suggestion*, not authoritative detection.
 
-Do not install host packages automatically. If a required command is missing, report the exact dependency and leave the existing installation untouched.
+For the first iteration, prefer writing the correct files and telling the user clearly when a logout/login or framework restart is needed. Avoid calling host refresh commands as a requirement for successful file installation. Later, if immediate refresh is worth the complexity, evaluate a narrowly named D-Bus permission/interface or an explicit optional host-command capability on its own merits.
+
+### When `flatpak-spawn --host` might still be useful
+
+Keep host command execution as an **optional fallback**, not a prerequisite, for a future feature that genuinely needs a host-only CLI or immediate refresh and has no suitable D-Bus API. It requires access to `org.freedesktop.Flatpak` and allows trusted application code to execute arbitrary host commands as the logged-in user; it is a significant trust grant. Do not add that permission just to copy files.
 
 ## 4. Protocol version 1: plan, then apply
 
 Use JSON Lines (one JSON object per line) on stdout for machine-readable events. Diagnostic text from tools may be captured and exposed as a `log` event; stderr from the bridge is reserved for bridge-level failures. Every object carries `protocol: 1`. The frontend must handle unknown event fields and must fail closed on an unknown protocol version.
 
-The bridge interface has four operation groups:
+The bridge interface has four operation groups. In the preferred filesystem-only model these operations execute inside the Flatpak; read-only framework process detection is not claimed unless implemented through a separately authorised host integration:
 
 | Operation | Purpose | Filesystem changes |
 |---|---|---|
