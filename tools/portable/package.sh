@@ -56,14 +56,14 @@ package_openbangla() {
         if [[ -e "$archive_path" || -e "$checksum_path" ]]; then
             if [[ ! -t 0 ]]; then
                 echo "Package output already exists; refusing to overwrite without an interactive choice:" >&2
-                [[ ! -e "$archive_path" ]] || printf '  %s\n' "$archive_path" >&2
-                [[ ! -e "$checksum_path" ]] || printf '  %s\n' "$checksum_path" >&2
+                [[ ! -e "$archive_path" ]] || printf "  %s\n" "$archive_path" >&2
+                [[ ! -e "$checksum_path" ]] || printf "  %s\n" "$checksum_path" >&2
                 exit 1
             fi
-            printf 'The following generated files already exist and would be replaced:\n'
-            [[ ! -e "$archive_path" ]] || printf '  %s\n' "$archive_path"
-            [[ ! -e "$checksum_path" ]] || printf '  %s\n' "$checksum_path"
-            read -r -p 'Replace only these two generated files? [y/N] ' reply
+            printf "The following generated files already exist and would be replaced:\n"
+            [[ ! -e "$archive_path" ]] || printf "  %s\n" "$archive_path"
+            [[ ! -e "$checksum_path" ]] || printf "  %s\n" "$checksum_path"
+            read -r -p "Replace only these two generated files? [y/N] " reply
             [[ "$reply" =~ ^[Yy]([Ee][Ss])?$ ]] || {
                 echo "Packaging cancelled. Existing files were preserved." >&2
                 exit 1
