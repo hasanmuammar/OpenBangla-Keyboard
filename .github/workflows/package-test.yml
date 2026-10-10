@@ -241,7 +241,19 @@ jobs:
             exit 1
           fi
           HOME="$test_home" bash -c 'source tools/uninstall.sh; is_allowed_openbangla_target "$PREFIX/lib/x86_64-linux-gnu/fcitx5/openbangla.so"'
-          echo "Uninstaller only accepts explicit OpenBangla targets."
+
+          # Recursive removal must remove only the named tree, not follow child symlinks.
+          outside="$test_home/outside"
+          bundle="$test_home/.local/lib/openbangla"
+          mkdir -p "$outside" "$bundle"
+          printf '%s\\n' 'outside data must survive' > "$outside/keep.txt"
+          printf '%s\\n' 'bundle file' > "$bundle/bundle.txt"
+          ln -s "$outside/keep.txt" "$bundle/external-link"
+          HOME="$test_home" bash -c 'source tools/uninstall.sh; remove_path "$PREFIX/lib/openbangla"'
+          test ! -e "$bundle"
+          test -f "$outside/keep.txt"
+          test "$(cat "$outside/keep.txt")" = 'outside data must survive'
+          echo "Uninstaller removed only the named tree and left symlink targets untouched."
 
       - name: Upload prebuilt package
         uses: actions/upload-artifact@v5
