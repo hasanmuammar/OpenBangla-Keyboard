@@ -237,12 +237,14 @@ validate_extracted_symlinks() {
 
 download_release() {
     local download_root="$OBK_CACHE/downloads"
-    local download_dir
+    local download_dir archive checksum listing staged_root
     mkdir -p "$download_root"
+    assert_no_symlink_components "$download_root"
     download_dir="$(mktemp -d "$download_root/$RELEASE_VERSION.XXXXXXXX")" ||
         die "Could not create a fresh download directory."
-    local archive="$download_dir/$OBK_ASSET"
-    local checksum="$archive.sha256"
+    archive="$download_dir/$OBK_ASSET"
+    checksum="$archive.sha256"
+    listing="$download_dir/archive-list.txt"
 
     log "Downloading the prebuilt OpenBangla Keyboard for $OBK_ARCH / $OBK_BACKEND."
 
@@ -251,18 +253,45 @@ download_release() {
     download "$OBK_CHECKSUM_URL" "$checksum" ||
         die "Could not download the release checksum."
 
-    (
-        cd "$download_dir"
-        sha256sum -c "$(basename "$checksum")"
-    ) || die "The downloaded release failed checksum verification."
+    validate_release_checksum "$archive" "$checksum" "$OBK_ASSET"
 
-    # OBK_STAGE was created uniquely by prepare_paths. Keep older staging
-    # data intact instead of recursively deleting a fixed path.
-    mkdir -p "$OBK_STAGE$OBK_PREFIX"
-    tar -xzf "$archive" -C "$OBK_STAGE$OBK_PREFIX"
+    if [[ "$VERIFY_PROVENANCE" -eq 1 ]]; then
+        log "Verifying signed build provenance for release tag $RELEASE_VERSION."
+        gh attestation verify "$archive" \
+            --repo "$REPOSITORY" \
+            --signer-workflow "$REPOSITORY/.github/workflows/release.yml" \
+            --source-ref "refs/tags/$RELEASE_VERSION" ||
+            die "Signed build provenance verification failed; the archive will not be installed."
+    else
+        log "SHA-256 detects corruption; use --verify-provenance to also verify the signed build workflow."
+    fi
 
-    [[ -x "$OBK_STAGE$OBK_PREFIX/bin/openbangla-gui" ]] ||
-        die "The downloaded release is incomplete."
+    validate_release_archive_paths "$archive" "$listing"
+
+    # OBK_STAGE is unique per invocation. Never extract an unvalidated archive
+    # directly into a shared install directory.
+    staged_root="$OBK_STAGE$OBK_PREFIX"
+    mkdir -p "$staged_root"
+    assert_no_symlink_components "$staged_root"
+    tar --no-same-owner --no-same-permissions -xzf "$archive" -C "$staged_root"
+    validate_extracted_symlinks "$staged_root"
+
+    [[ -x "$staged_root/bin/openbangla-gui" ]] ||
+        die "The downloaded release is incomplete: the GUI executable is missing."
+    [[ -d "$staged_root/lib/openbangla" ]] ||
+        die "The downloaded release is incomplete: the bundled runtime directory is missing."
+    [[ -d "$staged_root/share/openbangla-keyboard" ]] ||
+        die "The downloaded release is incomplete: application data is missing."
+    case "$OBK_BACKEND" in
+        ibus)
+            [[ -x "$staged_root/libexec/ibus-engine-openbangla" && -f "$staged_root/share/ibus/component/openbangla.xml" ]] ||
+                die "The downloaded IBus release is incomplete."
+            ;;
+        fcitx)
+            [[ -f "$staged_root/share/fcitx5/addon/openbangla.conf" && -f "$staged_root/share/fcitx5/inputmethod/openbangla.conf" ]] ||
+                die "The downloaded Fcitx release is incomplete."
+            ;;
+    esac
 
     export OBK_STAGE
 }
