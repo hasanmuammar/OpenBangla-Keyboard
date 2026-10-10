@@ -85,10 +85,10 @@ The bridge interface has four operation groups. In the preferred filesystem-only
 
 | Operation | Purpose | Filesystem changes |
 |---|---|---|
-| `probe` | Detect host framework(s), required commands, current installation and supported actions | None |
+| `probe` | Inspect permitted host paths, check packaged tools, report installed files, and capture the user's backend selection where needed; do not claim host-daemon visibility | None |
 | `plan` | Calculate an install/update/remove/configuration plan and list exact targets, conflicts and choices | None |
 | `apply` | Execute a previously reviewed plan with all required explicit choices | Only the targets permitted by the reviewed plan |
-| `status` | Report installed version, backend, engine/registration status and actionable warnings | None |
+| `status` | Report installed version/backend from managed metadata and verify permitted files; label live daemon status as unknown unless a separately authorised API is used | None |
 
 The initial CLI shape is proposed as:
 
@@ -101,7 +101,7 @@ host-bridge --protocol 1 plan --action remove
 host-bridge --protocol 1 apply --plan-id PLAN_ID --choice NAME=VALUE ...
 ```
 
-The supported action and choice values are closed enumerations in the bridge; no generic command, arbitrary destination path, or arbitrary script name may be supplied by the UI. The backend value is `ibus` or `fcitx5`, never guessed solely from a desktop-name string. If both frameworks are present and the active session cannot be determined confidently, ask the user to select one and show the detected evidence.
+The supported action and choice values are closed enumerations in the bridge; no generic command, arbitrary destination path, or arbitrary script name may be supplied by the UI. The backend value is `ibus` or `fcitx5`, never guessed solely from a desktop-name string. If the manager cannot authoritatively identify the active host backend without extra privileges, ask the user to select one and show any non-authoritative session indicators.
 
 A plan ID binds the apply request to the exact plan shown to the user. Apply must re-check the current installation state and reject an expired or stale plan rather than apply changes to a filesystem state different from the one reviewed. The plan mechanism itself is to be implemented; it does not currently exist.
 
