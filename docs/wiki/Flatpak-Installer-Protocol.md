@@ -12,8 +12,8 @@ This document defines how the Flatpak manager should request safe, user-local Sh
 The Flatpak contains the compiled manager frontend and a versioned copy of the maintenance scripts. It does not contain or start a private IBus/Fcitx5 daemon. The host already supplies the input-method framework; the manager installs and registers the matching Shanti payload for that framework.
 
 - **Frontend:** displays status, release/backend choices, the exact changes planned, confirmations, progress, logs, and outcomes.
-- **Host bridge:** accepts a fixed set of lifecycle operations, validates choices, probes prerequisites, and invokes the existing maintenance scripts.
-- **Existing scripts:** remain the authority for archive verification, safe staging, user-local installation, backups, registration, and removal. The GUI must not duplicate those filesystem rules.
+- **In-sandbox lifecycle bridge (planned):** accepts a fixed set of lifecycle operations, validates choices, inspects permitted host paths and invokes the packaged maintenance logic from inside the sandbox.
+- **Existing scripts:** should remain the authority for archive verification, safe staging, user-local installation, backups, registration, and removal after they are adapted to work inside the sandbox with packaged tools and reviewed filesystem grants. The GUI must not duplicate those filesystem rules.
 - **Host framework:** IBus or Fcitx5 remains a host service and must discover and load the installed Shanti engine.
 
 No system-wide package installation, root access, or framework replacement is part of this design.
