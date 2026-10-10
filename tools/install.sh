@@ -72,11 +72,13 @@ download() {
 
 build_urls() {
     local asset="openbangla-keyboard_linux_${OBK_ARCH}_${OBK_BACKEND}.tar.gz"
+    if [[ -n "$REQUESTED_VERSION" ]]; then
+        RELEASE_VERSION="$REQUESTED_VERSION"
+    fi
     if [[ ! "$RELEASE_VERSION" =~ ^[A-Za-z0-9._-]+$ ]]; then
         die "Invalid release tag: $RELEASE_VERSION. Use only letters, numbers, dots, underscores, and hyphens."
     fi
     if [[ -n "$REQUESTED_VERSION" ]]; then
-        RELEASE_VERSION="$REQUESTED_VERSION"
         RELEASE_BASE="https://github.com/$REPOSITORY/releases/download/$RELEASE_VERSION"
     else
         RELEASE_BASE="https://github.com/$REPOSITORY/releases/latest/download"
