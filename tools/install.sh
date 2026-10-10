@@ -9,6 +9,7 @@ REPOSITORY="hasanmuammar/OpenBangla-Keyboard-Shanti"
 REQUESTED_VERSION="${OPENBANGLA_VERSION:-}"
 RELEASE_VERSION="latest"
 RELEASE_BASE=""
+VERIFY_PROVENANCE=0
 RELEASE_TAG_FILE="$SCRIPT_DIR/../release-tag.txt"
 
 usage() {
@@ -19,6 +20,7 @@ Install the prebuilt OpenBangla Keyboard build specified by release-tag.txt for 
 
 Options:
   --version TAG      Install a specific Shanti release tag.
+  --verify-provenance Verify signed build provenance (requires gh and a versioned tag).
   -h, --help          Show this help.
 EOF
 }
@@ -29,6 +31,10 @@ while [[ $# -gt 0 ]]; do
             [[ $# -ge 2 ]] || die "--version requires a release tag."
             REQUESTED_VERSION="$2"
             shift 2
+            ;;
+        --verify-provenance)
+            VERIFY_PROVENANCE=1
+            shift
             ;;
         -h|--help)
             usage
@@ -77,6 +83,12 @@ build_urls() {
     fi
     if [[ ! "$RELEASE_VERSION" =~ ^[A-Za-z0-9._-]+$ ]]; then
         die "Invalid release tag: $RELEASE_VERSION. Use only letters, numbers, dots, underscores, and hyphens."
+    fi
+    if [[ "$VERIFY_PROVENANCE" -eq 1 ]]; then
+        [[ -n "$REQUESTED_VERSION" && "$RELEASE_VERSION" != "latest" ]] ||
+            die "--verify-provenance requires a specific release tag (use --version TAG or set release-tag.txt)."
+        command -v gh >/dev/null 2>&1 ||
+            die "--verify-provenance requires the GitHub CLI (gh). Install it separately and retry."
     fi
     if [[ -n "$REQUESTED_VERSION" ]]; then
         RELEASE_BASE="https://github.com/$REPOSITORY/releases/download/$RELEASE_VERSION"
