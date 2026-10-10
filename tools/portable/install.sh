@@ -277,6 +277,16 @@ confirm_install_replacements() {
             die "Refusing to overwrite a symlinked installation path: $path"
         fi
         if [[ -e "$path" ]]; then
+            case "$path" in
+                "$OBK_PREFIX/lib/openbangla"|"$OBK_PREFIX/share/openbangla-keyboard"|"$OBK_DATA_HOME/openbangla-keyboard")
+                    [[ -d "$path" ]] ||
+                        die "Existing installation path has the wrong type; refusing to replace it: $path"
+                    ;;
+                *)
+                    [[ -f "$path" ]] ||
+                        die "Existing installation path is not a regular file; refusing to replace it: $path"
+                    ;;
+            esac
             if [[ "$found" -eq 0 ]]; then
                 printf 'These existing OpenBangla paths may be replaced by the installation:\n'
             fi
@@ -292,6 +302,8 @@ confirm_install_replacements() {
                 die "Refusing to overwrite a symlinked icon path: $path"
             fi
             if [[ -e "$path" ]]; then
+                [[ -f "$path" ]] ||
+                    die "Existing icon path is not a regular file; refusing to replace it: $path"
                 if [[ "$found" -eq 0 ]]; then
                     printf 'These existing OpenBangla paths may be replaced by the installation:\n'
                 fi
