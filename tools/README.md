@@ -2,6 +2,8 @@
 
 The fork-specific installation workflow is under `tools/portable/`.
 
+The prebuilt installer requires Python 3 for safe tar archive validation, plus GNU tar, `sha256sum`, `realpath`, `find`, `mktemp`, and either `curl` or `wget`. It does not need build tools or development packages.
+
 `tools/install.sh` is the normal user-facing installer. It detects desktop environment and CPU architecture, downloads the matching prebuilt Linux release, strictly validates the single-record SHA-256 checksum, checks archive paths and symbolic-link containment before modifying the installed program, and verifies that the staged payload includes the files required for the selected backend.
 
 The checksum is fetched next to the archive, so it detects accidental corruption but is not, by itself, an independent publisher-authentication mechanism. New release builds also publish GitHub/Sigstore provenance attestations. Users with the GitHub CLI can require signed provenance verification with:
