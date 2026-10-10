@@ -101,6 +101,140 @@ build_urls() {
     export RELEASE_VERSION OBK_ASSET OBK_DOWNLOAD_URL OBK_CHECKSUM_URL
 }
 
+validate_release_checksum() {
+    local archive="$1" checksum="$2" expected_asset="$3"
+    local digest filename extra actual_digest
+    local -a lines=()
+
+    mapfile -t lines < "$checksum"
+    [[ "${#lines[@]}" -eq 1 ]] ||
+        die "The release checksum file must contain exactly one SHA-256 record."
+
+    IFS=
+    local download_root="$OBK_CACHE/downloads"
+    local download_dir
+    mkdir -p "$download_root"
+    download_dir="$(mktemp -d "$download_root/$RELEASE_VERSION.XXXXXXXX")" ||
+        die "Could not create a fresh download directory."
+    local archive="$download_dir/$OBK_ASSET"
+    local checksum="$archive.sha256"
+
+    log "Downloading the prebuilt OpenBangla Keyboard for $OBK_ARCH / $OBK_BACKEND."
+
+    download "$OBK_DOWNLOAD_URL" "$archive" ||
+        die "Could not download the OpenBangla Keyboard release."
+    download "$OBK_CHECKSUM_URL" "$checksum" ||
+        die "Could not download the release checksum."
+
+    (
+        cd "$download_dir"
+        sha256sum -c "$(basename "$checksum")"
+    ) || die "The downloaded release failed checksum verification."
+
+    # OBK_STAGE was created uniquely by prepare_paths. Keep older staging
+    # data intact instead of recursively deleting a fixed path.
+    mkdir -p "$OBK_STAGE$OBK_PREFIX"
+    tar -xzf "$archive" -C "$OBK_STAGE$OBK_PREFIX"
+
+    [[ -x "$OBK_STAGE$OBK_PREFIX/bin/openbangla-gui" ]] ||
+        die "The downloaded release is incomplete."
+
+    export OBK_STAGE
+}
+
+main() {
+    require_linux
+
+    if [[ -z "$REQUESTED_VERSION" && -f "$RELEASE_TAG_FILE" ]]; then
+        REQUESTED_VERSION="$(tr -d '[:space:]' < "$RELEASE_TAG_FILE")"
+    fi
+    detect_backend
+    detect_arch
+    prepare_paths
+    build_urls
+
+    log "Backend: $OBK_BACKEND"
+    log "Architecture: $OBK_ARCH"
+    log "Release: $RELEASE_VERSION"
+
+    download_release
+    install_openbangla
+    verify_installation
+
+    log "OpenBangla Keyboard was installed for the current user."
+    log "Need to rebuild from source? Use: bash tools/build.sh"
+}
+
+main "$@"
+ \t' read -r digest filename extra <<< "${lines[0]}"
+    [[ "$digest" =~ ^[[:xdigit:]]{64}$ ]] ||
+        die "The release checksum does not contain a valid 64-character SHA-256 digest."
+    [[ "$filename" == "$expected_asset" || "$filename" == "*$expected_asset" ]] ||
+        die "The release checksum names an unexpected file: $filename"
+    [[ -z "${extra:-}" ]] ||
+        die "The release checksum contains unexpected extra fields."
+
+    actual_digest="$(sha256sum -- "$archive")"
+    actual_digest="${actual_digest%% *}"
+    [[ "${actual_digest,,}" == "${digest,,}" ]] ||
+        die "The downloaded release failed SHA-256 checksum verification."
+    log "SHA-256 checksum verified."
+}
+
+validate_release_archive_paths() {
+    local archive="$1" listing="$2" member clean component
+    local -a components=()
+    local -A seen=()
+
+    tar -tzf "$archive" > "$listing" ||
+        die "The downloaded release is not a readable tar.gz archive."
+
+    while IFS= read -r member || [[ -n "$member" ]]; do
+        [[ "$member" != /* ]] ||
+            die "Refusing an archive containing an absolute path: $member"
+
+        clean="$member"
+        while [[ "$clean" == ./* ]]; do clean="${clean#./}"; done
+        clean="${clean%/}"
+        [[ -z "$clean" || "$clean" == "." ]] && continue
+
+        IFS=/ read -r -a components <<< "$clean"
+        for component in "${components[@]}"; do
+            [[ -n "$component" && "$component" != "." && "$component" != ".." ]] ||
+                die "Refusing an archive containing a traversal path: $member"
+        done
+
+        case "$clean" in
+            bin|bin/*|lib|lib/*|libexec|libexec/*|share|share/*)
+                ;;
+            *)
+                die "Refusing an archive containing an unexpected top-level path: $member"
+                ;;
+        esac
+
+        [[ -z "${seen[$clean]:-}" ]] ||
+            die "Refusing an archive containing a duplicate path: $member"
+        seen["$clean"]=1
+    done < "$listing"
+}
+
+validate_extracted_symlinks() {
+    local root="$1" link target resolved
+    [[ -d "$root" && ! -L "$root" ]] ||
+        die "Refusing to validate an unexpected extraction root: $root"
+
+    while IFS= read -r -d '' link; do
+        target="$(readlink -- "$link")" ||
+            die "Could not inspect an extracted symbolic link: $link"
+        [[ "$target" != /* ]] ||
+            die "Refusing an archive containing an absolute symbolic link: $link -> $target"
+        resolved="$(realpath -m -- "$(dirname -- "$link")/$target")" ||
+            die "Could not resolve an extracted symbolic link safely: $link"
+        [[ "$resolved" == "$root" || "$resolved" == "$root/"* ]] ||
+            die "Refusing an archive containing a symbolic link that escapes the extraction root: $link -> $target"
+    done < <(find "$root" -type l -print0)
+}
+
 download_release() {
     local download_root="$OBK_CACHE/downloads"
     local download_dir
