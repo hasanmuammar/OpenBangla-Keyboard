@@ -165,8 +165,8 @@ Keyboard runtime settings are currently handled by the existing Qt `openbangla-g
 
 ### Implemented in the repository
 
-- `tools/flatpak/host-bridge.sh` implements only `--protocol 1 probe`. It emits one JSON report and deliberately rejects other operations.
-- `tests/flatpak/test-host-bridge.sh` covers the report shape, absolute path resolution, custom XDG paths containing quotes/backslashes, mock IBus/Fcitx5 sessions, ambiguous-backend handling, and rejection of an unimplemented `apply` operation.
+- `tools/flatpak/host-bridge.sh` implements only `--protocol 1 probe`. It emits one JSON report and deliberately rejects other operations. It checks whether the current user's `ibus-daemon` or `fcitx5` process is already running before querying the corresponding client, avoiding an unnecessary client call that could trigger D-Bus activation.
+- `tests/flatpak/test-host-bridge.sh` covers the report shape, absolute path resolution, custom XDG paths containing quotes/backslashes, mock active IBus/Fcitx5 sessions, ambiguous-backend handling, inactive-daemon behavior, and rejection of an unimplemented `apply` operation.
 - The test script was run against the local bridge copy in a Linux shell and passed. This is a local shell/mock test, not a test inside Flatpak or on Bluefin/Dakota or Bazzite.
 
 ### Still unverified or not implemented
