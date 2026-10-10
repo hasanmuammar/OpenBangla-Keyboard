@@ -400,4 +400,6 @@ main() {
     printf 'OpenBangla Keyboard was removed for the current user.\n'
 }
 
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    main "$@"
+fi
