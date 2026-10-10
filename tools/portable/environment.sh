@@ -148,7 +148,16 @@ ensure_builder() {
                 current_image="$(podman inspect -f '{{.Config.Image}}' openbangla-builder 2>/dev/null || true)"
 
                 if [[ "$current_image" != "$builder_image" ]]; then
-                    log "Replacing the old OpenBangla builder image with $builder_image."
+                    printf 'Existing container openbangla-builder uses image %s; expected %s.\n' "$current_image" "$builder_image" >&2
+                    if [[ ! -t 0 ]]; then
+                        echo "Refusing to remove the existing container non-interactively. Review it and rerun interactively to choose whether to replace it." >&2
+                        exit 1
+                    fi
+                    read -r -p 'Remove this existing builder container and recreate it? [y/N] ' reply
+                    [[ "$reply" =~ ^[Yy]([Ee][Ss])?$ ]] || {
+                        echo "Build cancelled. The existing container was preserved." >&2
+                        exit 1
+                    }
                     podman rm -f openbangla-builder >/dev/null
                 fi
             fi
