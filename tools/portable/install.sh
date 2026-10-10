@@ -129,6 +129,7 @@ confirm_install_replacements() {
         "$OBK_PREFIX/share/fcitx5/inputmethod/openbangla.conf" \
         "$OBK_PREFIX/share/metainfo/io.github.openbangla.keyboard.metainfo.xml" \
         "$OBK_PREFIX/share/pixmaps/openbangla-keyboard.png" \
+        "$OBK_PREFIX/share/icons" \
         "$OBK_DATA_HOME/openbangla-keyboard" \
         "$OBK_DATA_HOME/applications/openbangla-keyboard.desktop" \
         "$OBK_DATA_HOME/ibus/component/openbangla.xml" \
@@ -173,10 +174,17 @@ install_openbangla() {
     confirm_install_replacements
     mkdir -p "$OBK_PREFIX"
 
-    # Replacing the existing library bundle is allowed only after the explicit
-    # confirmation above. Other unrelated paths are not recursively removed.
-    if [[ -d "$OBK_PREFIX/lib/openbangla" ]]; then
-        rm -rf -- "$OBK_PREFIX/lib/openbangla"
+    # Preserve the previous bundle as a sibling backup rather than deleting it.
+    if [[ -e "$OBK_PREFIX/lib/openbangla" || -L "$OBK_PREFIX/lib/openbangla" ]]; then
+        if [[ -L "$OBK_PREFIX" || -L "$OBK_PREFIX/lib" ]]; then
+            die "Refusing to replace a bundled library through a symlinked install path."
+        fi
+        backup="$OBK_PREFIX/lib/openbangla.backup.$(date +%Y%m%d%H%M%S)"
+        if [[ -e "$backup" || -L "$backup" ]]; then
+            die "Backup path already exists; preserving all files: $backup"
+        fi
+        mv -- "$OBK_PREFIX/lib/openbangla" "$backup"
+        printf 'Previous bundled libraries were preserved at: %s\n' "$backup"
     fi
 
     cp -a "$OBK_STAGE$OBK_PREFIX/." "$OBK_PREFIX/"
