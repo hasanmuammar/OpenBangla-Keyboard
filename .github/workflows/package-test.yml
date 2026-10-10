@@ -75,7 +75,8 @@ jobs:
 
           work="$(mktemp -d)"
           install_home="$(mktemp -d)"
-          trap 'rm -rf "$work" "$install_home"' EXIT
+          # GitHub-hosted runners are disposable; leave these temporary paths
+          # for runner teardown rather than issuing an automatic recursive delete.
           tar -xzf "$archive" -C "$work"
 
           test -x "$work/bin/openbangla-gui"
