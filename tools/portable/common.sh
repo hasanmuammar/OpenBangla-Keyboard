@@ -13,6 +13,25 @@ require_linux() {
     [[ "$(uname -s)" == "Linux" ]] || die "This experimental installer supports Linux only."
 }
 
+assert_no_symlink_components() {
+    local path="$1" current="/" component
+    local -a components=()
+
+    [[ "$path" == /* && "$path" != "/" ]] ||
+        die "Refusing an invalid path while checking for symlinks: $path"
+
+    IFS='/' read -r -a components <<< "$path"
+    for component in "${components[@]}"; do
+        [[ -n "$component" ]] || continue
+        if [[ "$current" == "/" ]]; then
+            current="/$component"
+        else
+            current="$current/$component"
+        fi
+        [[ ! -L "$current" ]] ||
+            die "Refusing to use a path containing a symlink component: $current (requested: $path)"
+    done
+}
 xdg_dir() {
     local variable="$1"
     local fallback="$2"
