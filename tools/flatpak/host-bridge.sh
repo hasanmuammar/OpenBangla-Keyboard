@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-# Read-only host discovery for the Shanti Flatpak manager.
-# This file intentionally exposes no install/update/remove command yet.
+# Read-only host-context diagnostic for development only.
+# This script must run in the host context; it cannot discover host processes
+# from inside Flatpak's isolated process namespace. The preferred manager path
+# uses scoped filesystem permissions and does not invoke this script by default.
+# No install/update/remove command is exposed.
 set -uo pipefail
 export LC_ALL=C
 
