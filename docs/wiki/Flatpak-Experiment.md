@@ -105,15 +105,19 @@ This experiment does not currently aim to:
 - [ ] Implement the host bridge and non-interactive script support behind tests.
 - [ ] Finalise the proof-of-concept filesystem permission model and test in-sandbox writes only to disposable Shanti-specific paths.
 - [ ] Flatpak runtime and SDK selection.
-- [ ] Flatpak manifest and build.
-- [ ] Sandboxed application smoke test.
+- [x] Add a disposable Flatpak filesystem-permission test manifest and in-sandbox probe.
+- [x] Add a GitHub Actions workflow to build and run the permission probe.
+- [ ] Verify the workflow result and correct any runtime/permission issues.
+- [ ] Decide and test production path grants based on the actual installer target list.
+- [ ] Build the production Rust + GTK4/libadwaita manager manifest.
+- [ ] Sandboxed production-manager smoke test.
 - [ ] Host IBus integration test.
 - [ ] Host Fcitx5 integration test.
 - [ ] GitHub-hosted Flatpak repository, signing, and `.flatpakref`.
 - [ ] Clean installation, update, and removal tests.
 - [ ] Flatpak release publication.
 
-**Current evidence boundary:** A read-only host-context diagnostic and local mock tests exist. The preferred filesystem-only design is documented, but no Flatpak manifest/build, in-sandbox filesystem permission test, modifying installer operation, Rust frontend, or host-typing test has been run. The project remains experimental.
+**Current evidence boundary:** A disposable permission-test manifest, an in-sandbox-only filesystem probe, and a GitHub Actions workflow now exist. The probe passed an isolated host-shell simulation, but that is not a Flatpak sandbox test. The real manifest build and sandbox run are pending; no production path grants, modifying installer operation, Rust frontend, or host-typing test has been validated. The project remains experimental.
 
 ## 8. Work plan and checklist
 
@@ -132,7 +136,7 @@ Work through the stages in order. Complete and review one focused task at a time
 
 **Stage 1 exit condition:** A reviewed design that describes the package contents, host/sandbox responsibilities, required permissions, and a credible test for sending Bengali keystrokes into host applications.
 
-**Next task:** Design a minimal test manifest with narrowly scoped home-relative filesystem permissions, then test read-only access and writes only to disposable Shanti-specific test directories from inside the sandbox. Resolve host XDG paths via `HOST_XDG_*` and reject unsupported custom paths rather than asking for broad home access. Keep modifying operations disabled until this passes.
+**Next task:** Check the GitHub Actions run for `tools/flatpak/permission-probe.yml`. The workflow must actually build the manifest and run the probe inside Flatpak; a local shell simulation is not evidence of sandbox permission behavior. Then use the observed results to refine the production path-grant list.
 
 ### Stage 2 — Minimal buildable proof of concept
 
@@ -220,10 +224,10 @@ A checklist item should only be marked complete when there is concrete evidence,
 | Host operations | File operations inside the sandbox with narrow user-directory permissions; `flatpak-spawn --host` is optional fallback only |
 | Host-operation contract | Drafted in `docs/wiki/Flatpak-Installer-Protocol.md`; lifecycle plan/apply not implemented |
 | Read-only host probe | Implemented at `tools/flatpak/host-bridge.sh`; local regression test at `tests/flatpak/test-host-bridge.sh` passed |
-| Inside-Flatpak filesystem access | Not tested; required home-relative path grants, directory creation, and host-XDG handling still need a minimal-manifest test |
+| Disposable Flatpak filesystem probe | Manifest, test script and CI workflow added; real sandbox result pending |
 | Filesystem access candidate | Narrow permissions to Shanti-owned paths under `~/.local`, selected `~/.local/share` subdirectories, required `~/.config` subdirectories, and the Shanti cache; final grant list must be tested |
-| Implementation status | Source review + read-only probe/test only; no manifest, Flatpak build, or GUI yet |
-| Immediate next task | Create a minimal manifest and test exposed Shanti-specific directories and host-XDG mapping from inside the sandbox |
+| Implementation status | Source review + disposable filesystem-test manifest; no production manifest/build or GUI yet |
+| Immediate next task | Verify the CI sandbox test result before finalising production filesystem grants |
 
 ## 12. Progress log
 
@@ -239,6 +243,7 @@ A checklist item should only be marked complete when there is concrete evidence,
 | 2026-10-10 | Added `Flatpak-Installer-Protocol.md` with a proposed plan/apply JSONL contract, host-environment/XDG handling, explicit decisions for install and removal, current CLI gaps, and bridge acceptance tests. No script or runtime code was changed. |
 | 2026-10-10 | Added the read-only `tools/flatpak/host-bridge.sh` host-context probe and `tests/flatpak/test-host-bridge.sh`; local mocked tests pass, but this probe is not suitable for detecting host processes when run inside the Flatpak namespace. The preferred installer design now uses narrowly scoped host-directory permissions; a separate in-sandbox filesystem probe and minimal-manifest test are still required. No modifying action is implemented. |
 | 2026-10-11 | Reassessed the host-command-first design. Narrow, predeclared home-relative filesystem grants are now the default for file placement; `flatpak-spawn --host` is an optional fallback only for a demonstrated host-only refresh/API gap. Updated the installer protocol and clarified the existing host-context probe is not an in-sandbox detector. |
+| 2026-10-11 | Added `tools/flatpak/permission-probe.yml`, a disposable sandbox-only file-permission probe and run instructions, plus `.github/workflows/flatpak-permission-probe.yml`. The local temp-directory simulation passed, but no actual Flatpak sandbox result has been verified yet. |
 
 ## 13. Related projects and implementation precedents
 
