@@ -19,7 +19,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Real-host probe: valid one-line JSON, resolved absolute paths, no file writes.
+# Real-host probe: valid JSON and resolved absolute paths.
 bash "$BRIDGE" --protocol 1 probe > "$work/probe.json"
 python3 - "$work/probe.json" <<'PY'
 import json, pathlib, sys
@@ -32,17 +32,18 @@ assert pathlib.Path(report["host"]["install_prefix"]).is_absolute()
 for name in ("data_home", "config_home", "cache_home"):
     value = report["host"]["xdg"][name]
     assert pathlib.Path(value).is_absolute() and value != "/"
-assert isstance(report["missing_required"], list)
+assert isinstance(report["missing_required"], list)
 assert report["suggested_backend"] in (None, "ibus", "fcitx5")
 assert set(report["backends"]) == {"ibus", "fcitx5"}
 PY
 
-# Mock both framework clients. The probe must not choose one automatically when
-# both sessions respond, and it must JSON-escape paths containing quotes/backslashes.
+# Mock both framework clients. The probe must not guess a backend when both
+# sessions respond, and paths containing JSON-special characters must parse.
 mkdir -- "$work/mockbin"
 cat > "$work/mockbin/ibus" <<'MOCK'
 #!/usr/bin/env bash
-[/* no mock text */]
+[[ "${1:-}" == engine ]] && { printf '%s\n' 'mock-engine'; exit 0; }
+exit 2
 MOCK
 cat > "$work/mockbin/fcitx5" <<'MOCK'
 #!/usr/bin/env bash
