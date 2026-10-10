@@ -436,13 +436,13 @@ install_openbangla() {
     install_xdg_resources "$staged_root/share"
 
     if [[ -x "$OBK_PREFIX/bin/openbangla-gui" ]]; then
-        mv -f "$OBK_PREFIX/bin/openbangla-gui" "$OBK_PREFIX/bin/openbangla-gui.bin"
+        mv -- "$OBK_PREFIX/bin/openbangla-gui" "$OBK_PREFIX/bin/openbangla-gui.bin"
         cp "$OBK_WORKSPACE/tools/portable/launch-bundled.sh" "$OBK_PREFIX/bin/openbangla-gui"
         chmod +x "$OBK_PREFIX/bin/openbangla-gui"
     fi
 
     if [[ -x "$OBK_PREFIX/libexec/ibus-engine-openbangla" ]]; then
-        mv -f "$OBK_PREFIX/libexec/ibus-engine-openbangla" "$OBK_PREFIX/libexec/ibus-engine-openbangla.bin"
+        mv -- "$OBK_PREFIX/libexec/ibus-engine-openbangla" "$OBK_PREFIX/libexec/ibus-engine-openbangla.bin"
         cp "$OBK_WORKSPACE/tools/portable/launch-bundled.sh" "$OBK_PREFIX/libexec/ibus-engine-openbangla"
         chmod +x "$OBK_PREFIX/libexec/ibus-engine-openbangla"
     fi
