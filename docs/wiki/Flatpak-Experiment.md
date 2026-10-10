@@ -237,7 +237,7 @@ A checklist item should only be marked complete when there is concrete evidence,
 | 2026-10-10 | Selected Rust + GTK4/libadwaita as the installer frontend direction and reviewed PMIM IBus Flatpak's split sandbox/host adapter model. Documented that PMIM is not a general host-access bypass and still requires separate host-side IBus integration. |
 | 2026-10-10 | Clarified the target architecture: IBus or Fcitx5 is already installed on the host; the Flatpak manages Shanti's host-compatible user-local engine payload and registration rather than shipping a private input-method framework. |
 | 2026-10-10 | Added `Flatpak-Installer-Protocol.md` with a proposed plan/apply JSONL contract, host-environment/XDG handling, explicit decisions for install and removal, current CLI gaps, and bridge acceptance tests. No script or runtime code was changed. |
-| 2026-10-10 | Added the read-only `tools/flatpak/host-bridge.sh` probe and `tests/flatpak/test-host-bridge.sh`. Local syntax, JSON, custom-XDG escaping, mocked backend-ambiguity, and fail-closed tests passed. No modifying action is implemented; actual Flatpak host-spawn behaviour remains unverified. |
+| 2026-10-10 | Added the read-only `tools/flatpak/host-bridge.sh` probe and `tests/flatpak/test-host-bridge.sh`. Local syntax, JSON, custom-XDG escaping, active/inactive mocked backend detection, backend-ambiguity, and fail-closed tests passed. The probe checks for an already-running framework process before querying its client. No modifying action is implemented; actual Flatpak host-spawn behaviour remains unverified. |
 
 ## 13. Related projects and implementation precedents
 
