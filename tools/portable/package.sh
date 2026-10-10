@@ -25,9 +25,50 @@ package_openbangla() {
 
         artifact_name="openbangla-keyboard_linux_${artifact_arch}_${OBK_BACKEND}.tar.gz"
         output_dir="$OBK_WORKSPACE/dist"
+        archive_path="$output_dir/$artifact_name"
+        checksum_path="$archive_path.sha256"
 
-        rm -rf "$output_dir"
+        [[ "$OBK_WORKSPACE" == /* && "$OBK_WORKSPACE" != "/" ]] || {
+            echo "Refusing to package from an invalid workspace path." >&2
+            exit 1
+        }
+        [[ ! -L "$output_dir" ]] || {
+            echo "Refusing to write through a symlinked output directory: $output_dir" >&2
+            exit 1
+        }
+        if [[ -e "$output_dir" && ! -d "$output_dir" ]]; then
+            echo "Package output path exists and is not a directory: $output_dir" >&2
+            exit 1
+        fi
         mkdir -p "$output_dir"
+
+        for existing in "$archive_path" "$checksum_path"; do
+            if [[ -L "$existing" ]]; then
+                echo "Refusing to overwrite a symlink: $existing" >&2
+                exit 1
+            fi
+            if [[ -e "$existing" && ! -f "$existing" ]]; then
+                echo "Refusing to overwrite a non-regular file: $existing" >&2
+                exit 1
+            fi
+        done
+
+        if [[ -e "$archive_path" || -e "$checksum_path" ]]; then
+            if [[ ! -t 0 ]]; then
+                echo "Package output already exists; refusing to overwrite without an interactive choice:" >&2
+                [[ ! -e "$archive_path" ]] || printf "  %s\n" "$archive_path" >&2
+                [[ ! -e "$checksum_path" ]] || printf "  %s\n" "$checksum_path" >&2
+                exit 1
+            fi
+            printf "The following generated files would be replaced:\n"
+            [[ ! -e "$archive_path" ]] || printf "  %s\n" "$archive_path"
+            [[ ! -e "$checksum_path" ]] || printf "  %s\n" "$checksum_path"
+            read -r -p "Replace only these two generated files? [y/N] " reply
+            [[ "$reply" =~ ^[Yy]([Ee][Ss])?$ ]] || {
+                echo "Packaging cancelled. Existing files were preserved." >&2
+                exit 1
+            }
+        fi
 
         component="$install_root/share/ibus/component/openbangla.xml"
         if [[ -f "$component" ]]; then
