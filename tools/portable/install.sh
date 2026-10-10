@@ -333,13 +333,7 @@ confirm_install_replacements() {
         "$OBK_DATA_HOME/pixmaps/openbangla-keyboard.png" \
         "$config_home/environment.d/90-openbangla-ibus.conf"; do
         assert_no_symlink_components "$path"
-        case "$path" in
-            "$OBK_PREFIX/bin/openbangla-gui.bin"|"$OBK_PREFIX/libexec/ibus-engine-openbangla.bin")
-                if [[ -e "$path" ]]; then
-                    die "Refusing to overwrite an existing executable backup: $path. Preserve or rename it manually before upgrading."
-                fi
-                ;;
-        esac
+
         if [[ -L "$path" ]]; then
             die "Refusing to overwrite a symlinked installation path: $path"
         fi
@@ -461,6 +455,16 @@ install_openbangla() {
         esac
     fi
 
+    # The .bin files are the currently installed executables behind our launch wrappers.
+    # Preserve any old versions before the new staged binaries replace them.
+    for path in "$OBK_PREFIX/bin/openbangla-gui.bin" "$OBK_PREFIX/libexec/ibus-engine-openbangla.bin"; do
+        if [[ -e "$path" ]]; then
+            [[ -f "$path" && ! -L "$path" ]] ||
+                die "Refusing to replace an executable backup that is not a regular file: $path"
+            backup_openbangla_data_file "$path"
+        fi
+    done
+
     shopt -s nullglob dotglob
     for item in "$staged_root"/*; do
         name="${item##*/}"
@@ -472,17 +476,19 @@ install_openbangla() {
     install_xdg_resources "$staged_root/share"
 
     if [[ -x "$OBK_PREFIX/bin/openbangla-gui" ]]; then
-        mv --no-clobber -- "$OBK_PREFIX/bin/openbangla-gui" "$OBK_PREFIX/bin/openbangla-gui.bin"
+        assert_no_symlink_components "$OBK_PREFIX/bin/openbangla-gui.bin"
+        mv -fT -- "$OBK_PREFIX/bin/openbangla-gui" "$OBK_PREFIX/bin/openbangla-gui.bin"
         [[ ! -e "$OBK_PREFIX/bin/openbangla-gui" && -f "$OBK_PREFIX/bin/openbangla-gui.bin" ]] ||
-            die "Could not preserve the existing GUI executable without overwriting a backup."
+            die "Could not install the GUI executable into its intended path."
         cp "$OBK_WORKSPACE/tools/portable/launch-bundled.sh" "$OBK_PREFIX/bin/openbangla-gui"
         chmod +x "$OBK_PREFIX/bin/openbangla-gui"
     fi
 
     if [[ -x "$OBK_PREFIX/libexec/ibus-engine-openbangla" ]]; then
-        mv --no-clobber -- "$OBK_PREFIX/libexec/ibus-engine-openbangla" "$OBK_PREFIX/libexec/ibus-engine-openbangla.bin"
+        assert_no_symlink_components "$OBK_PREFIX/libexec/ibus-engine-openbangla.bin"
+        mv -fT -- "$OBK_PREFIX/libexec/ibus-engine-openbangla" "$OBK_PREFIX/libexec/ibus-engine-openbangla.bin"
         [[ ! -e "$OBK_PREFIX/libexec/ibus-engine-openbangla" && -f "$OBK_PREFIX/libexec/ibus-engine-openbangla.bin" ]] ||
-            die "Could not preserve the existing IBus engine without overwriting a backup."
+            die "Could not install the IBus engine into its intended path."
         cp "$OBK_WORKSPACE/tools/portable/launch-bundled.sh" "$OBK_PREFIX/libexec/ibus-engine-openbangla"
         chmod +x "$OBK_PREFIX/libexec/ibus-engine-openbangla"
     fi
