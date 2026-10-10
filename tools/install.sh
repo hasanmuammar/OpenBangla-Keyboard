@@ -102,8 +102,8 @@ download_release() {
         sha256sum -c "$(basename "$checksum")"
     ) || die "The downloaded release failed checksum verification."
 
-    OBK_STAGE="$download_dir/stage"
-    rm -rf "$OBK_STAGE"
+    # OBK_STAGE was created uniquely by prepare_paths. Keep older staging
+    # data intact instead of recursively deleting a fixed path.
     mkdir -p "$OBK_STAGE$OBK_PREFIX"
     tar -xzf "$archive" -C "$OBK_STAGE$OBK_PREFIX"
 
