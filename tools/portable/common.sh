@@ -32,6 +32,18 @@ assert_no_symlink_components() {
             die "Refusing to use a path containing a symlink component: $current (requested: $path)"
     done
 }
+assert_no_nested_mounts() {
+    local path="$1" nested_mount
+    [[ -d "$path" && ! -L "$path" ]] ||
+        die "Refusing to inspect an invalid recursive-operation target: $path"
+    command -v mountpoint >/dev/null 2>&1 ||
+        die "Cannot verify mount boundaries because mountpoint is unavailable; refusing recursive operation on: $path"
+    nested_mount="$(find "$path" -type d -exec mountpoint -q -- {} \; -print -quit 2>/dev/null)" ||
+        die "Could not inspect mount boundaries safely; refusing recursive operation on: $path"
+    [[ -z "$nested_mount" ]] ||
+        die "Refusing recursive operation because the target contains a mount point: $nested_mount"
+}
+
 xdg_dir() {
     local variable="$1"
     local fallback="$2"
