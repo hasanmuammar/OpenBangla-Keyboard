@@ -67,3 +67,25 @@ A passing run proves that those test grants support create/write/read operations
 ## Decision
 
 Do not add production filesystem grants based only on this inventory. First choose the supported Flatpak integration architecture for IBus and Fcitx5, then test actual discovery and text entry on representative host desktops. Keep app-owned files inside the sandbox and request host access only for a demonstrated, narrowly scoped integration requirement.
+
+
+## Research finding: recommended integration architecture
+
+External framework documentation confirms that the host integration problem is architectural, not a missing filesystem grant.
+
+- The Fcitx project states that Flatpak cannot provide the input-method module required on the host; that module must be installed natively. Source: https://fcitx-im.org/wiki/Install_Fcitx_5/en (section “Install Fcitx 5 from Flatpak”).
+- The current Fcitx5 Flatpak package itself is a separate deployment with its own runtime and addon-extension mechanism. Addons built for that Flatpak Fcitx5 instance are not automatically host-native modules. Source: https://github.com/fcitx/flatpak-fcitx5/blob/master/org.fcitx.Fcitx5.yaml
+- Flatpak's historical IBus integration discussion describes host input-method support as a framework/runtime integration concern, not simply a filesystem write permission. Source: https://github.com/flatpak/flatpak/issues/675
+
+### Recommended product split
+
+1. **Flatpak GUI and configuration application:** package GUI, resources, and bundled libraries inside the Flatpak. Use app-private XDG state for genuinely mutable application data. Do not claim that this package alone installs a system-wide/host Bangla input method.
+2. **Native input-method integration package:** for full host typing support, build and distribute a host-compatible engine integration separately. For Fcitx5, compile the module against the target distribution's Fcitx5 development ABI and package it natively. For IBus, provide a host-launchable engine plus component metadata using a documented host-compatible runtime strategy. Do not point host metadata at ephemeral or private Flatpak deployment paths.
+3. **Distribution-specific delivery:** use native packages or a clearly documented user-local installer for the host engine components. On immutable systems, this may mean a supported layered package, distrobox/toolbox-assisted host packaging workflow, or a native package mechanism supported by that distribution; do not silently write into host framework directories from the GUI Flatpak.
+4. **Optional separate all-Flatpak mode:** only claim this if the user runs a compatible Flatpak-hosted input-method daemon and installs the matching engine/addon into that same Flatpak runtime/extension model. This does not establish support for ordinary host-native IBus/Fcitx5 sessions.
+
+### Decision for this branch
+
+Do not implement a production filesystem-permission manifest for host IBus/Fcitx5 paths yet. The recommended architecture is a Flatpak GUI plus a separate native host integration package for full host typing. Treat IBus and Fcitx5 as separate integration targets, and gate support claims on end-to-end tests: discovery, engine launch/module load, selection, real text entry into host applications, restart/update, and clean uninstall.
+
+The research sources establish the host-module constraint for Fcitx5 directly. The IBus recommendation is a conservative engineering conclusion from its external-engine/component model and the project's current installer behaviour; it still requires a proof-of-concept on a real desktop before implementation.
