@@ -54,6 +54,9 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Test experimental IBus Flatpak wrapper
+        run: bash tools/flatpak/test-ibus-flatpak-host-wrapper.sh
+
       - name: Install dependencies
         run: |
           sudo apt-get update -qq
