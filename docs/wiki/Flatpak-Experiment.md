@@ -117,7 +117,7 @@ This experiment does not currently aim to:
 - [ ] Clean installation, update, and removal tests.
 - [ ] Flatpak release publication.
 
-**Current evidence boundary:** A disposable permission-test manifest, an in-sandbox-only filesystem probe, and a GitHub Actions workflow now exist. The probe passed an isolated host-shell simulation, but that is not a Flatpak sandbox test. The real manifest build and sandbox run are pending; no production path grants, modifying installer operation, Rust frontend, or host-typing test has been validated. The project remains experimental.
+**Current evidence boundary:** A disposable permission-test manifest, an in-sandbox-only filesystem probe, and a GitHub Actions workflow now exist. The real manifest build and sandbox run are still unverified; the execution environment available here has no `flatpak` or `flatpak-builder` executable; no production path grants, modifying installer operation, Rust frontend, or host-typing test has been validated. The project remains experimental.
 
 ## 8. Work plan and checklist
 
@@ -287,7 +287,7 @@ For Shanti, the recommended proof of concept is therefore:
 1. Build a dedicated Rust + GTK4 + libadwaita installer frontend as the Flatpak's primary binary. Do not confuse it with the existing Qt `openbangla-gui`, which is the keyboard's runtime/configuration application.
 2. Keep the existing lifecycle scripts as the authority for archive verification and safe file management, but adapt them so they can run non-interactively inside the Flatpak without depending on host executables.
 3. Package the scripts and needed tools in the Flatpak. Grant filesystem access only to the exact user-local target directories required by Shanti. Run copy, backup, update and removal operations inside the sandbox against those exposed paths; do not stage scripts into app data for the purpose of running them on the host.
-4. Resolve host XDG directories from `HOST_XDG_*` values and validate that each is actually exposed through the manifest. For an unsupported custom XDG path, stop with a clear message instead of writing into the Flatpak's private data directory or requesting broad home access.
+4. Display `HOST_XDG_*` to identify where data maps on the host, but perform actual file I/O through sandbox `XDG_*_HOME/<granted-subpath>` paths, which Flatpak maps onto the specific host XDG subdirectories. For an unsupported custom XDG path, stop with a clear message instead of opening the absolute host path, writing into an unintended private location, or requesting broad home access.
 5. The installed IBus engine and Fcitx5 module must run under the host framework. Keep backend-specific registration separate: the IBus descriptor must point to the host-visible executable; the Fcitx5 module must match the host Fcitx5 ABI. If immediate daemon refresh is unavailable, tell the user to log out and back in or restart the framework manually.
 6. Replace terminal-only prompts with explicit, validated operation flags or a structured request/response protocol before wiring the script to a GUI. The GUI must show exact affected paths and choices for migration, replacement, backup and removal.
 7. Treat installation, update, configuration, status, and removal as distinct operations. Removal should preserve user data by default; cache/data purging must be an explicit separate choice. Updating the Flatpak frontend itself remains a Flatpak remote operation and is separate from updating the host-installed keyboard.
