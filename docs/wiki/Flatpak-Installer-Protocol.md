@@ -180,7 +180,7 @@ Keyboard runtime settings are currently handled by the existing Qt `openbangla-g
 - Its only filesystem grants are the test-only `~/.local/shanti-flatpak-permission-probe`, `xdg-data/shanti-flatpak-permission-probe`, `xdg-config/shanti-flatpak-permission-probe`, and `xdg-cache/shanti-flatpak-permission-probe` roots, each with `:create`. The manifest has no network, host-command, system-bus, home-wide, or host-wide permission.
 - `tools/flatpak/filesystem-permission-probe.sh` writes and reads one marker under each disposable root, removes its marker and temporary child non-recursively, prints sandbox-private and host XDG paths separately, and refuses to run unless `FLATPAK_ID` and `/.flatpak-info` confirm it is inside Flatpak. For XDG aliases it writes via the sandbox-side `$XDG_*_HOME/<test-subpath>`, which Flatpak maps onto the corresponding host subdirectory.
 - `tools/flatpak/README.md` provides build/run guidance; `.github/workflows/flatpak-permission-probe.yml` builds and runs the probe on GitHub Actions for matching pushes or manual dispatch.
-- The script's file operations were smoke-tested in an isolated temporary-directory simulation, but **that is not a Flatpak sandbox test**. This environment did not have `flatpak` or `flatpak-builder` available, so the real sandbox build/run result must be checked in GitHub Actions.
+- Static YAML-structure checks and a POSIX shell syntax check passed on local copies. The actual permission probe was not run because this environment has neither `flatpak` nor `flatpak-builder`, and the probe refuses to run outside a real Flatpak sandbox. The real build/run result must be checked in GitHub Actions.
 
 ### Still unverified or not implemented
 
