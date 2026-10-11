@@ -55,11 +55,15 @@ The current portable installer writes to these general areas:
 
 The final manifest must grant subpaths only after confirming that Flatpak can create absent target directories safely and that the existing script only writes to the reviewed target list. Some parent directories may also need permission for create/rename operations; don't broaden permissions silently.
 
-### Host XDG paths
+### Host XDG paths and mount mapping
 
-Flatpak overrides `XDG_CONFIG_HOME`, `XDG_DATA_HOME`, and `XDG_CACHE_HOME` to use the manager's private per-application storage. It also exposes `HOST_XDG_CONFIG_HOME`, `HOST_XDG_DATA_HOME`, and `HOST_XDG_CACHE_HOME` when host values exist. See [Flatpak conventions](https://docs.flatpak.org/en/latest/conventions.html).
+Flatpak overrides `XDG_CONFIG_HOME`, `XDG_DATA_HOME`, and `XDG_CACHE_HOME` to use the manager's private per-application storage. It may also expose `HOST_XDG_CONFIG_HOME`, `HOST_XDG_DATA_HOME`, and `HOST_XDG_CACHE_HOME` as informational paths to the corresponding host locations. See [Flatpak conventions](https://docs.flatpak.org/en/latest/conventions.html).
 
-The manager must not confuse its private `XDG_*` values with the user's real host directories. It should resolve the host values from `HOST_XDG_*` where present and otherwise use the standard host defaults. Then it must check that each destination is actually exposed by the declared filesystem permissions. If a user has a custom XDG directory outside the granted locations, the first version should stop with an actionable explanation rather than silently writing into private Flatpak data or requesting broad access.
+**Do file I/O through sandbox XDG paths, not by opening the absolute `HOST_XDG_*` path.** With a permission such as `--filesystem=xdg-data/shanti-example:create`, Flatpak bind-mounts the corresponding host data subdirectory at `$XDG_DATA_HOME/shanti-example` inside the sandbox. The host path is not necessarily reachable under its original absolute pathname inside the sandbox. The same mapping applies to `xdg-config` and `xdg-cache`. The manager can display `HOST_XDG_*` to explain where its files land on the host, but should perform actual reads/writes through the sandbox-side `XDG_*_HOME/<granted-subpath>`.
+
+For the direct `~/.local/…` paths that are granted separately, use the sandbox-visible home-relative path matching that explicit grant. Do not assume that any other host path is visible.
+
+The permission aliases are static in the manifest; the app cannot generate new sandbox permission grants from `HOST_XDG_*` values at runtime. The first version should therefore support default/custom XDG paths only when the manifest's static `xdg-data`, `xdg-config`, and `xdg-cache` aliases map them as expected. If a custom XDG location is not exposed, fail with an actionable explanation rather than trying to open the host's absolute path, silently writing into private app data, or requesting broad access.
 
 ### No host tools required for file placement
 
@@ -174,7 +178,7 @@ Keyboard runtime settings are currently handled by the existing Qt `openbangla-g
 
 - `tools/flatpak/permission-probe.yml` is a disposable manifest for app ID `io.github.hasanmuammar.ShantiFilesystemProbe`, using Freedesktop SDK/runtime `26.08`.
 - Its only filesystem grants are the test-only `~/.local/shanti-flatpak-permission-probe`, `xdg-data/shanti-flatpak-permission-probe`, `xdg-config/shanti-flatpak-permission-probe`, and `xdg-cache/shanti-flatpak-permission-probe` roots, each with `:create`. The manifest has no network, host-command, system-bus, home-wide, or host-wide permission.
-- `tools/flatpak/filesystem-permission-probe.sh` writes and reads one marker under each disposable root, removes its marker and temporary child non-recursively, prints both sandbox-private and host XDG paths, and refuses to run unless `FLATPAK_ID` and `/.flatpak-info` confirm it is inside Flatpak.
+- `tools/flatpak/filesystem-permission-probe.sh` writes and reads one marker under each disposable root, removes its marker and temporary child non-recursively, prints sandbox-private and host XDG paths separately, and refuses to run unless `FLATPAK_ID` and `/.flatpak-info` confirm it is inside Flatpak. For XDG aliases it writes via the sandbox-side `$XDG_*_HOME/<test-subpath>`, which Flatpak maps onto the corresponding host subdirectory.
 - `tools/flatpak/README.md` provides build/run guidance; `.github/workflows/flatpak-permission-probe.yml` builds and runs the probe on GitHub Actions for matching pushes or manual dispatch.
 - The script's file operations were smoke-tested in an isolated temporary-directory simulation, but **that is not a Flatpak sandbox test**. This environment did not have `flatpak` or `flatpak-builder` available, so the real sandbox build/run result must be checked in GitHub Actions.
 
