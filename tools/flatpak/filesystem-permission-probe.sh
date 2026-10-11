@@ -9,12 +9,18 @@ if [ -z "$FLATPAK_ID" ] || [ ! -r /.flatpak-info ]; then
     exit 2
 fi
 
-app_data=$HOME/.local/share
-app_config=$HOME/.config
-app_cache=$HOME/.cache
-if [ -n "$HOST_XDG_DATA_HOME" ]; then app_data=$HOST_XDG_DATA_HOME; fi
-if [ -n "$HOST_XDG_CONFIG_HOME" ]; then app_config=$HOST_XDG_CONFIG_HOME; fi
-if [ -n "$HOST_XDG_CACHE_HOME" ]; then app_cache=$HOST_XDG_CACHE_HOME; fi
+# The xdg-data/config/cache permission aliases mount the matching host
+# subdirectories beneath these sandbox XDG roots. Write through the sandbox
+# paths; HOST_XDG_* is reported only to show the corresponding host location.
+sandbox_data=$XDG_DATA_HOME
+sandbox_config=$XDG_CONFIG_HOME
+sandbox_cache=$XDG_CACHE_HOME
+host_data=$HOME/.local/share
+host_config=$HOME/.config
+host_cache=$HOME/.cache
+if [ -n "$HOST_XDG_DATA_HOME" ]; then host_data=$HOST_XDG_DATA_HOME; fi
+if [ -n "$HOST_XDG_CONFIG_HOME" ]; then host_config=$HOST_XDG_CONFIG_HOME; fi
+if [ -n "$HOST_XDG_CACHE_HOME" ]; then host_cache=$HOST_XDG_CACHE_HOME; fi
 
 check_base() {
     name=$1
@@ -34,9 +40,12 @@ check_base() {
 }
 
 check_base HOME "$HOME"
-check_base HOST_XDG_DATA_HOME "$app_data"
-check_base HOST_XDG_CONFIG_HOME "$app_config"
-check_base HOST_XDG_CACHE_HOME "$app_cache"
+check_base XDG_DATA_HOME "$sandbox_data"
+check_base XDG_CONFIG_HOME "$sandbox_config"
+check_base XDG_CACHE_HOME "$sandbox_cache"
+check_base HOST_XDG_DATA_HOME "$host_data"
+check_base HOST_XDG_CONFIG_HOME "$host_config"
+check_base HOST_XDG_CACHE_HOME "$host_cache"
 
 printf 'Shanti Flatpak filesystem-permission probe\n'
 if [ -n "$FLATPAK_ID" ]; then
@@ -45,9 +54,9 @@ else
     printf 'App ID: not-running-under-flatpak\n'
 fi
 printf 'Sandbox XDG_DATA_HOME: %s\n' "$XDG_DATA_HOME"
-printf 'Host XDG data home: %s\n' "$app_data"
-printf 'Host XDG config home: %s\n' "$app_config"
-printf 'Host XDG cache home: %s\n' "$app_cache"
+printf 'Host XDG data home: %s\n' "$host_data"
+printf 'Host XDG config home: %s\n' "$host_config"
+printf 'Host XDG cache home: %s\n' "$host_cache"
 printf '\nOnly the disposable shanti-flatpak-permission-probe paths below will be written.\n\n'
 
 overall_status=0
@@ -138,9 +147,9 @@ probe_path() {
 }
 
 probe_path "user-local install area" "$HOME/.local/shanti-flatpak-permission-probe"
-probe_path "host XDG data area" "$app_data/shanti-flatpak-permission-probe"
-probe_path "host XDG config area" "$app_config/shanti-flatpak-permission-probe"
-probe_path "host XDG cache area" "$app_cache/shanti-flatpak-permission-probe"
+probe_path "host XDG data area (access via sandbox XDG_DATA_HOME)" "$sandbox_data/shanti-flatpak-permission-probe"
+probe_path "host XDG config area (access via sandbox XDG_CONFIG_HOME)" "$sandbox_config/shanti-flatpak-permission-probe"
+probe_path "host XDG cache area (access via sandbox XDG_CACHE_HOME)" "$sandbox_cache/shanti-flatpak-permission-probe"
 
 if [ "$overall_status" -eq 0 ]; then
     printf '\nPASS: all disposable filesystem permission checks succeeded.\n'
