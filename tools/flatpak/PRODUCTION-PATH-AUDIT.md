@@ -89,3 +89,10 @@ External framework documentation confirms that the host integration problem is a
 Do not implement a production filesystem-permission manifest for host IBus/Fcitx5 paths yet. The recommended architecture is a Flatpak GUI plus a separate native host integration package for full host typing. Treat IBus and Fcitx5 as separate integration targets, and gate support claims on end-to-end tests: discovery, engine launch/module load, selection, real text entry into host applications, restart/update, and clean uninstall.
 
 The research sources establish the host-module constraint for Fcitx5 directly. The IBus recommendation is a conservative engineering conclusion from its external-engine/component model and the project's current installer behaviour; it still requires a proof-of-concept on a real desktop before implementation.
+
+
+### Additional IBus-specific evidence
+
+Flatpak issue #3019 documents an attempt to package an IBus engine as a Flatpak. The report states that the engine could not establish its IBus D-Bus connection despite grants for `org.freedesktop.IBus` and related names; the feature request was closed as not planned. This is historical evidence rather than a statement that every modern configuration fails, but it reinforces that component-file visibility plus D-Bus permissions is not sufficient proof of a working host IBus engine. Source: https://github.com/flatpak/flatpak/issues/3019
+
+For Shanti, do not assume a host component XML pointing directly into a Flatpak deployment is a stable solution. A host wrapper that launches the engine through `flatpak run` could be investigated as a prototype, but it must prove that the engine connects to the intended host IBus service, uses the correct app/runtime deployment, and survives updates and uninstall. Do not grant broad session-bus access merely to make a prototype work; use the narrowest workable bus policy and test it explicitly.
