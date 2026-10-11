@@ -14,7 +14,7 @@ Example syntax (replace the placeholder with the actual installed app ID):
 
 ```sh
 SHANTI_FLATPAK_APP_ID=org.example.Shanti flatpak run --help
-SHANTI_FLATPAK_APP_ID=org.example.Shanti tools/flatpak/ibus-flatpak-host-wrapper.sh
+SHANTI_FLATPAK_APP_ID=org.example.Shanti bash tools/flatpak/ibus-flatpak-host-wrapper.sh
 ```
 
 The second command is a direct engine launch smoke test, not a complete IBus integration test. Run it only in a disposable development session where an IBus daemon is active. It may remain running while the engine serves requests; stop it with Ctrl-C. The placeholder ID is not a declared Shanti app ID.
@@ -23,7 +23,7 @@ The `--talk-name=org.freedesktop.IBus` option is deliberately narrow, but its ef
 
 ## Required end-to-end test
 
-A successful direct launch is insufficient. Before this approach can be considered viable, a test deployment and a host-side IBus component entry must be created manually in a disposable account or VM. The component's `exec` must point to the installed host wrapper, not to a path inside the Flatpak deployment.
+A successful direct launch is insufficient. Before this approach can be considered viable, a test deployment and a host-side IBus component entry must be created manually in a disposable account or VM. Install the wrapper into the test account with `install -Dm755 tools/flatpak/ibus-flatpak-host-wrapper.sh "$HOME/.local/bin/shanti-ibus-flatpak-wrapper"` and set `SHANTI_FLATPAK_APP_ID` in the component launch environment. The component's `exec` must point to that installed host wrapper, not to a path inside the Flatpak deployment.
 
 Test in this order:
 
