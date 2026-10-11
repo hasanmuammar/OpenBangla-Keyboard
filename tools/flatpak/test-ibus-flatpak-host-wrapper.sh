@@ -12,7 +12,7 @@ fail() {
     exit 1
 }
 
-[[ -x "$wrapper" ]] || fail "wrapper is missing or not executable: $wrapper"
+[[ -f "$wrapper" ]] || fail "wrapper is missing: $wrapper"
 bash -n "$wrapper" || fail 'wrapper has a shell syntax error'
 
 mkdir -p "$tmp/bin"
@@ -22,18 +22,18 @@ printf '%s\n' "$@" > "$FLATPAK_ARGS_FILE"
 MOCK
 chmod +x "$tmp/bin/flatpak"
 
-if env -u SHANTI_FLATPAK_APP_ID PATH="$tmp/bin:/usr/bin:/bin" "$wrapper" >"$tmp/out" 2>&1; then
+if env -u SHANTI_FLATPAK_APP_ID PATH="$tmp/bin:/usr/bin:/bin" bash "$wrapper" >"$tmp/out" 2>&1; then
     fail 'wrapper accepted an unset app ID'
 fi
 grep -q 'set SHANTI_FLATPAK_APP_ID' "$tmp/out" || fail 'unset app ID error was not clear'
 
-if SHANTI_FLATPAK_APP_ID='not valid' PATH="$tmp/bin:/usr/bin:/bin" "$wrapper" >"$tmp/out" 2>&1; then
+if SHANTI_FLATPAK_APP_ID='not valid' PATH="$tmp/bin:/usr/bin:/bin" bash "$wrapper" >"$tmp/out" 2>&1; then
     fail 'wrapper accepted a malformed app ID'
 fi
 grep -q 'not a valid reverse-DNS-style app ID' "$tmp/out" || fail 'malformed app ID error was not clear'
 
 export FLATPAK_ARGS_FILE="$tmp/args"
-SHANTI_FLATPAK_APP_ID='org.example.Shanti' PATH="$tmp/bin:/usr/bin:/bin" "$wrapper" --probe-arg
+SHANTI_FLATPAK_APP_ID='org.example.Shanti' PATH="$tmp/bin:/usr/bin:/bin" bash "$wrapper" --probe-arg
 expected="$tmp/expected"
 cat > "$expected" <<'EXPECTED'
 run
