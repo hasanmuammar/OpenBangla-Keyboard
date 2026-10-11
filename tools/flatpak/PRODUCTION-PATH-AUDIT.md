@@ -96,3 +96,12 @@ The research sources establish the host-module constraint for Fcitx5 directly. T
 Flatpak issue #3019 documents an attempt to package an IBus engine as a Flatpak. The report states that the engine could not establish its IBus D-Bus connection despite grants for `org.freedesktop.IBus` and related names; the feature request was closed as not planned. This is historical evidence rather than a statement that every modern configuration fails, but it reinforces that component-file visibility plus D-Bus permissions is not sufficient proof of a working host IBus engine. Source: https://github.com/flatpak/flatpak/issues/3019
 
 For Shanti, do not assume a host component XML pointing directly into a Flatpak deployment is a stable solution. A host wrapper that launches the engine through `flatpak run` could be investigated as a prototype, but it must prove that the engine connects to the intended host IBus service, uses the correct app/runtime deployment, and survives updates and uninstall. Do not grant broad session-bus access merely to make a prototype work; use the narrowest workable bus policy and test it explicitly.
+
+
+## Experimental IBus wrapper follow-up
+
+A non-production wrapper prototype now exists at `tools/flatpak/ibus-flatpak-host-wrapper.sh`, with a reproducible mock-based test at `tools/flatpak/test-ibus-flatpak-host-wrapper.sh` and a manual desktop validation plan at `tools/flatpak/IBUS-HOST-WRAPPER-POC.md`.
+
+The isolated test passed for shell syntax, unset/malformed app-ID rejection, and argument forwarding to a mocked `flatpak` command. It does **not** test a real Flatpak deployment, D-Bus access, host IBus discovery, or Bangla text entry. The wrapper is not installed by any production installer and does not modify host configuration. No production permission grants were added.
+
+Next acceptance gate: run the documented test in a disposable Linux desktop session with a real Shanti Flatpak app ID and temporary host IBus component registration. If the narrow D-Bus access fails, preserve the error and investigate the supported architecture rather than broadening permissions blindly.
