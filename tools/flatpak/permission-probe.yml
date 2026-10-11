@@ -16,7 +16,7 @@ modules:
   - name: filesystem-permission-probe
     buildsystem: simple
     build-commands:
-      - install -Dm755 shanti-filesystem-permission-probe.sh /app/bin/shanti-filesystem-permission-probe
+      - install -Dm755 filesystem-permission-probe.sh /app/bin/shanti-filesystem-permission-probe
     sources:
       - type: file
         path: filesystem-permission-probe.sh
